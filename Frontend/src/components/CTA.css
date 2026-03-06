@@ -1,125 +1,145 @@
+/* ── CTA ─────────────────────────────────────────── */
 .cta {
-  background: linear-gradient(135deg, #0F1419 0%, #1a2332 100%);
-  padding: 4rem 0;
+  background: var(--navy);
+  padding: 6rem 0;
 }
 
 .cta-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 3rem;
+  gap: 2rem;
 }
 
 .cta-text h2 {
-  color: #ffffff;
-  font-size: 2rem;
-  margin: 0 0 0.6rem 0;
+  font-size: clamp(1.4rem, 3vw, 2rem);
   font-weight: 700;
+  color: #ffffff;
   letter-spacing: -0.5px;
+  margin: 0 0 0.4rem;
 }
 
 .cta-text p {
-  color: #00BCD4;
-  font-size: 1.05rem;
+  color: rgba(255,255,255,0.6);
+  font-size: 0.95rem;
+  font-weight: 400;
   margin: 0;
-  font-weight: 600;
 }
 
 .cta-buttons {
   display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  gap: 1rem;
+  flex-shrink: 0;
 }
 
 .cta-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-  background: linear-gradient(135deg, #1a2332 0%, #0F1419 100%);
-  color: #ffffff;
-  border: 2px solid #00BCD4;
-  padding: 0.85rem 1.8rem;
-  border-radius: 8px;
-  font-weight: 600;
+  gap: 0.6rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.75rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.95rem;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .cta-btn:hover {
-  background: #00BCD4;
-  color: #0F1419;
-  box-shadow: 0 10px 30px rgba(0, 188, 212, 0.3);
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(245,158,11,0.35);
 }
 
-.cta-btn span {
-  font-size: 1.2rem;
+.cta-btn.play-store {
+  background: transparent;
+  color: rgba(255,255,255,0.85);
+  border: 1.5px solid rgba(255,255,255,0.25);
 }
 
-@media (max-width: 1024px) {
-  .cta {
-    padding: 3.5rem 0;
-  }
-
-  .cta-content {
-    gap: 2.5rem;
-  }
-
-  .cta-text h2 {
-    font-size: 1.7rem;
-  }
+.cta-btn.play-store:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(245,158,11,0.08);
+  box-shadow: none;
+  transform: translateY(-2px);
 }
+
+.cta-btn span { font-size: 1.1rem; }
 
 @media (max-width: 768px) {
-  .cta {
-    padding: 3rem 0;
-  }
-
-  .cta-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 2rem;
-  }
-
-  .cta-text h2 {
-    font-size: 1.5rem;
-  }
-
-  .cta-buttons {
-    justify-content: center;
-    width: 100%;
-    gap: 1rem;
-  }
-
-  .cta-btn {
-    padding: 0.8rem 1.6rem;
-    font-size: 0.9rem;
-  }
+  .cta { padding: 4rem 0; }
+  .cta-content { flex-direction: column; text-align: center; align-items: center; }
+  .cta-buttons { justify-content: center; }
 }
 
 @media (max-width: 480px) {
-  .cta {
-    padding: 2.5rem 0;
-  }
+  .cta { padding: 3rem 0; }
+  .cta-buttons { flex-direction: column; width: 100%; }
+  .cta-btn { justify-content: center; }
+}
 
-  .cta-text h2 {
-    font-size: 1.3rem;
-  }
+.cta-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
 
-  .cta-text p {
-    font-size: 1rem;
-  }
+.cta-text h2 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  margin: 0 0 0.4rem;
+}
 
-  .cta-buttons {
-    flex-direction: column;
-    width: 100%;
-  }
+.cta-text p {
+  color: var(--cyan);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0;
+}
 
-  .cta-btn {
-    width: 100%;
-    padding: 0.75rem 1.5rem;
-    font-size: 0.85rem;
-  }
+.cta-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.cta-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid rgba(0, 200, 224, 0.35);
+  padding: 0.75rem 1.6rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.25s, background 0.25s, transform 0.25s;
+}
+
+.cta-btn:hover {
+  border-color: var(--cyan);
+  background: rgba(0, 200, 224, 0.1);
+  transform: translateY(-2px);
+}
+
+.cta-btn span { font-size: 1.1rem; }
+
+@media (max-width: 768px) {
+  .cta { padding: 4rem 0; }
+  .cta-content { flex-direction: column; text-align: center; align-items: center; }
+  .cta-buttons { justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .cta { padding: 3rem 0; }
+  .cta-buttons { flex-direction: column; width: 100%; }
+  .cta-btn { justify-content: center; }
 }

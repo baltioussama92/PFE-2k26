@@ -1,175 +1,376 @@
 .hero {
-  background-color: #0F1419;
-  padding: 4rem 3rem 2rem 3rem;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 600px;
+  background-image: url('/hero-property.png');
+  background-size: cover;
+  background-position: center;
+  background-color: #0F172A;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 550px;
-  position: relative;
-}
-
-.hero-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  align-items: center;
-  max-width: 1300px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.hero-text {
-  padding: 1rem 0;
-}
-
-.hero-title {
-  font-size: 3.5rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 1.2rem 0;
-  line-height: 1.25;
-  letter-spacing: -1px;
-}
-
-.hero-description {
-  font-size: 0.95rem;
-  color: #999999;
-  margin: 0;
-  line-height: 1.7;
-  max-width: 450px;
-}
-
-.hero-image {
-  width: 100%;
-}
-
-.property-card {
-  background: linear-gradient(135deg, #1a2332 0%, #0F1419 100%);
-  border-radius:   5vw ;
+  flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 188, 212, 0.08);
-  position: relative;
-  -webkit-border-radius:   5vw ;
-  -moz-border-radius:   5vw ;
-  -ms-border-radius:   5vw ;
-  -o-border-radius:   5vw ;
 }
 
-.property-card:hover {
-  transform: translateY(-12px);
-  box-shadow: 0 30px 80px rgba(0, 188, 212, 0.15);
-}
-
-.property-image {
-  width: 100%;
-  height: 320px;
-  overflow: hidden;
-  background-color: #1a2332;
-}
-
-.hero-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.property-info {
-  padding: 1.8rem;
+/* Dark gradient overlay */
+.hero::before {
+  content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, rgba(15, 20, 25, 0.95), transparent);
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.35) 0%,
+    rgba(0,0,0,0.15) 40%,
+    rgba(0,0,0,0.55) 100%
+  );
+  z-index: 0;
 }
 
-.property-info h3 {
-  color: #ffffff;
-  font-size: 1.15rem;
-  margin: 0 0 0.6rem 0;
+/* ── Floating Header ─────────────────────────── */
+.hero-header {
+  position: relative;
+  z-index: 10;
+  padding: 1.25rem 2rem;
+}
+
+.hero-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.hero-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.hero-nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 100px;
+  padding: 0.35rem 0.5rem;
+}
+
+.hero-nav-link {
+  color: rgba(255,255,255,0.75);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.4rem 0.9rem;
+  border-radius: 100px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.hero-nav-link:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.15);
+}
+
+.hero-nav-link.active {
+  background: var(--accent);
+  color: #fff;
   font-weight: 600;
 }
 
-.location {
-  color: #00BCD4;
-  font-size: 0.85rem;
-  margin: 0;
+.hero-header-right {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.hero-lang {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.hero-phone {
+  color: rgba(255,255,255,0.85);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Hamburger */
+.hero-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+}
+.hero-hamburger span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+  transition: all 0.25s;
+}
+.hero-hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+.hero-hamburger.open span:nth-child(2) { opacity: 0; }
+.hero-hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+.hero-mobile-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  margin: 0.5rem 0;
+  overflow: hidden;
+}
+.hero-mobile-nav a {
+  color: rgba(255,255,255,0.85);
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.hero-mobile-nav a:last-child { border-bottom: none; }
+.hero-mobile-nav a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+/* ── Hero Body ───────────────────────────────── */
+.hero-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 2.5rem 2rem;
+}
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
   gap: 0.4rem;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.9);
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.35rem 0.85rem;
+  border-radius: 100px;
+  width: fit-content;
 }
 
-@media (max-width: 1024px) {
-  .hero {
-    padding: 3rem 0 2rem 0;
-    min-height: 500px;
-  }
-
-  .hero-title {
-    font-size: 2.8rem;
-  }
-
-  .hero-content {
-    gap: 2.5rem;
-  }
-
-  .property-image {
-    height: 280px;
-  }
+.hero-title {
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  font-weight: 800;
+  font-style: italic;
+  color: #fff;
+  line-height: 1.0;
+  letter-spacing: -2px;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.3);
 }
 
+.hero-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.hero-tag {
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.9);
+  padding: 0.45rem 1rem;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.hero-tag:hover {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+}
+
+/* ── Booking Bar ─────────────────────────────── */
+.hero-booking {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255,255,255,0.18);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 1.5rem 2.5rem;
+}
+
+.booking-fields {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+}
+
+.booking-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 1.75rem;
+  flex: 1;
+}
+
+.booking-field:first-child { padding-left: 0; }
+
+.booking-field label {
+  color: rgba(255,255,255,0.65);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.booking-field input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  width: 100%;
+  padding-top: 0.15rem;
+}
+
+.booking-field input::placeholder { color: rgba(255,255,255,0.5); }
+.booking-field input::-webkit-calendar-picker-indicator { filter: invert(1) brightness(0.8); opacity: 0.65; cursor: pointer; }
+
+.booking-divider {
+  width: 1px;
+  height: 42px;
+  background: rgba(255,255,255,0.25);
+  flex-shrink: 0;
+}
+
+.book-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.8rem 1.75rem;
+  border-radius: 100px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  transition: all 0.25s;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(245,158,11,0.3);
+}
+
+.book-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(245,158,11,0.5);
+}
+
+.hero-address {
+  text-align: right;
+  flex-shrink: 0;
+  padding-left: 1.25rem;
+}
+
+.hero-address p {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.7rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* ── Responsive ──────────────────────────────── */
 @media (max-width: 768px) {
-  .hero {
-    padding: 2.5rem 0 2rem 0;
-    min-height: auto;
+  .hero { height: auto; min-height: 100svh; }
+
+  .hero-header-right { display: none; }
+  .hero-hamburger { display: flex; }
+  .hero-nav-pill { display: none; }
+
+  .hero-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 0 1.25rem 1.5rem;
   }
 
-  .hero-content {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
+  .hero-tags {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
   }
 
-  .hero-title {
-    font-size: 2.2rem;
+  .hero-booking {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
   }
 
-  .hero-description {
-    font-size: 0.95rem;
+  .booking-fields {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
   }
 
-  .property-image {
-    height: 280px;
-  }
+  .booking-field { padding: 0.5rem 0; }
+  .booking-divider { width: 100%; height: 1px; }
 
-  .property-info {
-    padding: 1.5rem;
-  }
+  .book-btn { width: 100%; text-align: center; padding: 0.85rem; }
 
-  .property-info h3 {
-    font-size: 1rem;
-  }
+  .hero-address { display: none; }
 }
 
 @media (max-width: 480px) {
-  .hero {
-    padding: 2rem 0 1.5rem 0;
-  }
+  .hero-title { letter-spacing: -1px; }
+  .hero-header { padding: 1rem 1.25rem; }
+}
 
-  .hero-title {
-    font-size: 1.7rem;
-  }
+/* ── Wave Shape ────────────────────────────────── */
+.hero-wave {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  line-height: 0;
+  z-index: 0;
+  pointer-events: none;
+}
 
-  .hero-description {
-    font-size: 0.9rem;
-  }
-
-  .property-card {
-    border-radius: 16px;
-  }
-
-  .property-image {
-    height: 240px;
-  }
+.hero-wave svg {
+  display: block;
+  width: 100%;
+  height: 80px;
 }

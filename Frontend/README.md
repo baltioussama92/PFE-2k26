@@ -1,144 +1,193 @@
-# House Rental Frontend (React + Vite + TypeScript)
+# Maskan Frontend Handoff Guide
 
-A modern React frontend for a house rental and sharing platform with user authentication, property browsing, booking management, and messaging capabilities.
+This README explains what is already built in the frontend, how it works, and how to connect it to the backend when API development is finished.
 
-## Tech Stack
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Fast build tool and dev server
-- **React Router v6** - Client-side routing
-- **Axios** - HTTP client for API calls
+---
 
-## Project Structure
+## 1) Current Frontend Status
+
+### Tech
+- React 18 + TypeScript + Vite
+- React Router v6
+- Axios (already configured for API client)
+
+### Design and UI
+- Luxury beige/black/gold design system applied across pages/components.
+- Reusable layout sections: Navbar, Footer, cards, forms, filter panel.
+- Search bar layout is now 3 rows:
+	1. Row 1: Location, Check-in, Check-out
+	2. Row 2: Adults, Kids, Pets counters
+	3. Row 3: Search button (centered)
+
+### Routes already implemented
+- `/` → HomePage
+- `/search` → SearchResults
+- `/property/:id` → PropertyDetails
+- `/login` → Login
+- `/register` → Register
+- `/profile` → UserProfile
+- `/add-property` → AddProperty
+
+---
+
+## 2) What Is Mock vs What Is Ready
+
+### Already API-ready
+- Full API scaffolding exists in `src/services` and typed contracts in `src/types`.
+- Endpoint mapping matches backend controllers.
+- Axios client includes auth token injection and error normalization.
+
+### Still using mock/local behavior in pages
+- `SearchResults.tsx`: uses local `mockProperties`.
+- `PropertyDetails.tsx`: uses local `mockPropertyDetails`.
+- `Login.tsx` / `Register.tsx`: simulated login/register and localStorage mock user.
+- `UserProfile.tsx`: uses local `mockBookings` and `mockSaved`.
+- `AddProperty.tsx`: form submits with alert only.
+
+---
+
+## 3) API Layer Structure (Already Created)
+
+### Contracts
+- `src/types/contracts.ts`
+	- `LoginRequest`, `RegisterRequest`, `AuthResponse`
+	- `PropertyRequest`, `PropertyResponse`, `PropertyQuery`
+	- `BookingRequest`, `BookingResponse`, `BookingStatusUpdateRequest`
+	- `ReviewRequest`, `ReviewResponse`
+	- `MessageRequest`, `MessageResponse`
+	- `UserDto`, `UpdateUserRoleRequest`
+	- `Role`, `BookingStatus`
+
+### API Client
+- `src/services/apiClient.ts`
+	- Base URL from `VITE_API_BASE_URL` (fallback: `http://localhost:8080/api`)
+	- Token key from `VITE_AUTH_TOKEN_KEY` (fallback: `authToken`)
+	- Request interceptor adds `Authorization: Bearer <token>`
+	- Response interceptor converts axios errors to a typed `ApiError`
+
+### Endpoints
+- `src/services/endpoints.ts`
+	- Central endpoint map:
+		- `/auth/*`
+		- `/properties/*`
+		- `/bookings/*`
+		- `/reviews/*`
+		- `/messages/*`
+		- `/admin/*`
+
+### Services
+- `src/services/authService.ts`
+- `src/services/propertyService.ts`
+- `src/services/bookingService.ts`
+- `src/services/reviewService.ts`
+- `src/services/messageService.ts`
+- `src/services/adminService.ts`
+- Barrel export: `src/services/index.ts`
+
+---
+
+## 4) Backend Integration Steps (for teammate)
+
+### Step 1: Environment
+1. Create `.env` in `Frontend/` (or copy `.env.example`).
+2. Set:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080/api
+VITE_AUTH_TOKEN_KEY=authToken
 ```
-Frontend/
-├── src/
-│   ├── components/      # Reusable React components
-│   ├── pages/           # Page components for routes
-│   ├── services/        # API integration & utility services
-│   ├── context/         # Context API state management
-│   ├── hooks/           # Custom React hooks
-│   ├── types/           # TypeScript type definitions
-│   ├── App.tsx          # Main App component
-│   ├── main.tsx         # Entry point
-│   └── index.css        # Global styles
-├── public/              # Static assets
-├── index.html           # HTML template
-├── vite.config.ts       # Vite configuration
-├── tsconfig.json        # TypeScript configuration
-└── package.json         # Dependencies & scripts
-```
 
-## Features to Implement
-- [ ] **Authentication** - Register, login, logout with JWT token management
-- [ ] **Property Listing** - Browse available properties with filters
-- [ ] **Property Details** - View full property information and reviews
-- [ ] **Booking Management** - Create, view, and manage booking requests
-- [ ] **Review System** - Leave and view property reviews
-- [ ] **Messaging** - Send and receive direct messages
-- [ ] **User Dashboard** - Profile management and role-specific features
-- [ ] **Admin Panel** - User management and system administration (if applicable)
-- [ ] **Responsive Design** - Mobile-friendly UI
+### Step 2: Start apps
+1. Backend running on `http://localhost:8080`.
+2. Frontend dev server:
 
-## Installation
-
-### Prerequisites
-- **Node.js 16+** and **npm** (or yarn/pnpm)
-
-### Setup
-1. Navigate to the Frontend folder:
-```bash
-cd Frontend
-```
-
-2. Install dependencies:
 ```bash
 npm install
-```
-
-3. Create a `.env.local` file for environment variables:
-```
-VITE_API_BASE_URL=http://localhost:8080/api
-```
-
-## Development
-
-### Start dev server
-```bash
 npm run dev
 ```
-The frontend will be available at `http://localhost:3000`
 
-### Build for production
+Frontend runs on `http://localhost:3000`.
+
+### Step 3: CORS on backend
+Allow frontend origin (`http://localhost:3000`) for API routes.
+
+### Step 4: Replace mocks page by page
+
+#### A) Login page
+- File: `src/pages/Login.tsx`
+- Replace simulated timeout block with:
+	- `await authService.login({ email, password })`
+	- on success: navigate to `/`
+
+#### B) Register page
+- File: `src/pages/Register.tsx`
+- Replace simulated timeout block with:
+	- `await authService.register({ name, email, password, role: 'TENANT' })`
+
+#### C) Search results page
+- File: `src/pages/SearchResults.tsx`
+- Read URL params (`location`, `checkIn`, `checkOut`, `adults`, `kids`, `pets`) and call:
+	- `propertyService.list(query)`
+- Remove `mockProperties` filtering once API response is used.
+
+#### D) Property details page
+- File: `src/pages/PropertyDetails.tsx`
+- Use route param `id` and call:
+	- `propertyService.getById(id)`
+	- `reviewService.listByProperty(id)`
+- Keep UI; map response fields as needed.
+
+#### E) Add property page
+- File: `src/pages/AddProperty.tsx`
+- On submit call:
+	- `propertyService.create({ title, location, price })`
+- Current backend `PropertyRequest` only requires these 3 fields.
+
+#### F) Profile page
+- File: `src/pages/UserProfile.tsx`
+- Replace `mockBookings` with:
+	- `bookingService.getMine()`
+- Saved properties can be connected when backend endpoint exists.
+
+---
+
+## 5) Backend Contract Notes
+
+Current backend DTOs for property are minimal:
+- Request: `title`, `location`, `price`
+- Response: `id`, `title`, `location`, `price`, `ownerId`
+
+Current UI cards/details also display fields like:
+- `image`, `type`, `rating`, `description`, `amenities`, etc.
+
+So teammate has 2 options:
+1. Extend backend DTOs to include these UI fields (recommended).
+2. Keep backend minimal and map fallback values on frontend.
+
+---
+
+## 6) Useful Commands
+
 ```bash
+npm run dev
 npm run build
-```
-
-### Preview production build
-```bash
 npm run preview
-```
-
-## API Integration
-
-The frontend communicates with the backend at:
-- **Default**: `http://localhost:8080/api`
-- **Configurable via**: `VITE_API_BASE_URL` environment variable
-- **Proxy**: Vite is configured to proxy `/api` requests to the backend
-
-### Key Backend Endpoints Used
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login
-- `GET /properties` - List all properties
-- `GET /properties/{id}` - Get property details
-- `POST /properties` - Create property (OWNER/ADMIN)
-- `POST /bookings` - Create booking (TENANT)
-- `PUT /bookings/{id}/status` - Update booking status (OWNER/ADMIN)
-- `POST /reviews` - Post a review (TENANT)
-- `GET /reviews/property/{propertyId}` - Get property reviews
-- `POST /messages` - Send message
-- `GET /messages/inbox` - Get received messages
-- `GET /messages/outbox` - Get sent messages
-- `GET /admin/users` - List users (ADMIN)
-
-## Authentication Flow
-
-1. User registers/logs in via authentication endpoints
-2. Backend returns JWT token in response
-3. Token is stored locally (localStorage or sessionStorage)
-4. For protected routes, token is included in `Authorization: Bearer <token>` header
-5. On page refresh, token is retrieved and user is re-authenticated
-
-## Styling
-Currently using vanilla CSS. You can integrate:
-- **Tailwind CSS** - Utility-first CSS
-- **Material-UI** - Component library
-- **Bootstrap** - Popular CSS framework
-- **Styled Components** - CSS-in-JS solution
-
-## Linting
-```bash
 npm run lint
 ```
 
-## Notes
-- JWT tokens are stateless; no session management needed on frontend
-- Passwords should never be stored locally; only the JWT token
-- CORS should be enabled on backend to allow frontend requests
-- All API requests should include proper error handling and loading states
-- Implement responsive design for mobile and tablet users
+---
 
-## Development Tips
-- Use React DevTools browser extension for debugging
-- Use Vite's hot module replacement (HMR) for fast development
-- Follow TypeScript strict mode for better type safety
-- Organize components by feature, not by type
+## 7) Quick Handoff Checklist
 
-## Next Steps
-1. Set up authentication context/provider
-2. Create API service layer
-3. Build core pages (Home, Login, Register, Properties, Dashboard)
-4. Implement property listing with filters
-5. Create booking flow
-6. Add messaging system
-7. Build role-specific features
+- [ ] Backend running and CORS enabled
+- [ ] `.env` configured (`VITE_API_BASE_URL`)
+- [ ] Login/Register wired to `authService`
+- [ ] SearchResults wired to `propertyService.list`
+- [ ] PropertyDetails wired to `propertyService.getById` + `reviewService`
+- [ ] AddProperty wired to `propertyService.create`
+- [ ] UserProfile bookings wired to `bookingService.getMine`
+- [ ] Remove local mock arrays after API wiring
+
+---
+
+If backend endpoints change, update `src/services/endpoints.ts` first so all service calls stay centralized.
