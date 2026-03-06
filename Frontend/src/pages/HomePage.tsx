@@ -64,7 +64,7 @@ const HomePage: React.FC = () => {
           <div className="about-grid">
             <article className="about-card">
               <img
-                src="../../public/hosts.webp"
+                src="/hosts.webp"
                 alt="Hosts welcoming guests"
               />
               <div className="about-card-body">
@@ -75,7 +75,7 @@ const HomePage: React.FC = () => {
 
             <article className="about-card">
               <img
-                src="../../public/guest.jpg"
+                src="/guest.jpg"
                 alt="Guests exploring properties"
               />
               <div className="about-card-body">
