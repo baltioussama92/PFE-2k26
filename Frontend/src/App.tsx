@@ -5,8 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import HomePage       from './pages/HomePage'
 import SearchResults  from './pages/SearchResults'
 import PropertyDetails from './pages/PropertyDetails'
-import Login          from './pages/Login'
-import Register       from './pages/Register'
+import AuthPage       from './pages/AuthPage'
 import UserProfile    from './pages/UserProfile'
 import AddProperty    from './pages/AddProperty'
 
@@ -37,8 +36,8 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/"          element={<PageWrapper><HomePage        /></PageWrapper>} />
         <Route path="/search"    element={<PageWrapper><SearchResults   /></PageWrapper>} />
         <Route path="/property/:id" element={<PageWrapper><PropertyDetails /></PageWrapper>} />
-        <Route path="/login"     element={<PageWrapper><Login           /></PageWrapper>} />
-        <Route path="/register"  element={<PageWrapper><Register        /></PageWrapper>} />
+        <Route path="/login"     element={<PageWrapper><AuthPage        /></PageWrapper>} />
+        <Route path="/register"  element={<PageWrapper><AuthPage        /></PageWrapper>} />
         <Route path="/profile"   element={<PageWrapper><UserProfile     /></PageWrapper>} />
         <Route path="/add-property" element={<PageWrapper><AddProperty  /></PageWrapper>} />
       </Routes>

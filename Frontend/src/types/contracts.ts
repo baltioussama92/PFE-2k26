@@ -1,12 +1,15 @@
-export type Role = 'ADMIN' | 'OWNER' | 'TENANT'
+export type Role = 'PROPRIETOR' | 'TENANT' | 'ADMIN' | 'OWNER'
 
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED'
 
 export interface UserDto {
   id: number | string
-  name: string
+  fullName?: string
+  name?: string
   email: string
   role: Role
+  createdAt?: string
+  isVerified?: boolean
 }
 
 export interface LoginRequest {
@@ -15,10 +18,12 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  name: string
+  fullName: string
   email: string
   password: string
   role: Role
+  phoneNumber?: string
+  agencyName?: string
 }
 
 export interface AuthResponse {

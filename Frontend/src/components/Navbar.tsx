@@ -34,9 +34,10 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface NavUser {
-  name: string
+  name?: string
+  fullName?: string
   email: string
-  role: 'ADMIN' | 'OWNER' | 'TENANT'
+  role: 'PROPRIETOR' | 'TENANT' | 'ADMIN' | 'OWNER'
   avatarUrl?: string
 }
 
@@ -69,6 +70,7 @@ const Navbar: React.FC = () => {
   // TODO: replace with real auth state from your AuthContext
   // Using useState so TS doesn't narrow the type to literal `null`
   const [user] = useState<NavUser | null>(MOCK_USER)
+  const displayName = user ? (user.fullName || user.name || 'User') : 'User'
   const unreadCount  = MOCK_UNREAD
   const isLoggedIn   = !!user
 
@@ -202,16 +204,16 @@ const Navbar: React.FC = () => {
                     {user.avatarUrl ? (
                       <img
                         src={user.avatarUrl}
-                        alt={user.name}
+                        alt={displayName}
                         className="w-7 h-7 rounded-lg object-cover"
                       />
                     ) : (
                       <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-bold">
-                        {user.name.charAt(0).toUpperCase()}
+                        {displayName.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <span className="text-sm font-medium hidden sm:block">
-                      {user.name.split(' ')[0]}
+                      {displayName.split(' ')[0]}
                     </span>
                     <motion.span animate={{ rotate: dropdownOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
                       <ChevronDown size={14} />
@@ -230,7 +232,7 @@ const Navbar: React.FC = () => {
                       >
                         {/* User info header */}
                         <div className="px-4 py-3 border-b border-slate-100">
-                          <p className="text-sm font-semibold text-slate-900">{user.name}</p>
+                          <p className="text-sm font-semibold text-slate-900">{displayName}</p>
                           <p className="text-xs text-slate-500 truncate">{user.email}</p>
                           <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-brand-50 text-brand-600">
                             {user.role}
@@ -240,8 +242,7 @@ const Navbar: React.FC = () => {
                         {/* Menu items */}
                         <div className="py-1">
                           <DropdownItem to="/profile"      icon={<UserCircle size={15}  />} label="My Profile" />
-                          {/* TODO: show AddProperty only for OWNER role */}
-                          {user.role === 'OWNER' && (
+                          {user.role === 'PROPRIETOR' && (
                             <DropdownItem to="/add-property" icon={<PlusSquare  size={15}  />} label="Add Property" />
                           )}
                           {user.role === 'ADMIN' && (
