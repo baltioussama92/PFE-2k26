@@ -1,12 +1,3 @@
-/**
- * App.tsx
- * ──────────────────────────────────────────────────────────────────────────────
- * Root router with soft cross-fade page transitions powered by Framer Motion.
- *
- * AnimatePresence is placed outside Routes so it can detect route changes.
- * Each page wraps itself in a <motion.div> with the `pageVariants` preset.
- * ──────────────────────────────────────────────────────────────────────────────
- */
 import React from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -18,9 +9,7 @@ import Login          from './pages/Login'
 import Register       from './pages/Register'
 import UserProfile    from './pages/UserProfile'
 import AddProperty    from './pages/AddProperty'
-import './App.css'
 
-// ── Soft cross-fade transition applied to every route ─────────────────────────
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
   in:      { opacity: 1, y: 0 },
@@ -40,7 +29,6 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </motion.div>
 )
 
-// ── Animated routes — uses location key so AnimatePresence detects changes ────
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation()
   return (
