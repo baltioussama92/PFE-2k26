@@ -1,10 +1,10 @@
 # House Rental Backend (Spring Boot)
 
-Production-ready REST API for a house renting and sharing platform with JWT auth, role-based access, and PostgreSQL persistence.
+Production-ready REST API for a house renting and sharing platform with JWT auth, role-based access, and MongoDB persistence.
 
 ## Tech Stack
-- Java 17, Spring Boot 3 (Web, Data JPA, Security, Validation)
-- PostgreSQL
+- Java 17, Spring Boot 3 (Web, Data MongoDB, Security, Validation)
+- MongoDB
 - JWT (jjwt 0.12.x)
 - Maven, Lombok
 
@@ -21,13 +21,12 @@ Production-ready REST API for a house renting and sharing platform with JWT auth
 ## Prerequisites
 - JDK 17+
 - Maven 3.9+ (or use provided coordinates)
-- PostgreSQL database
+- MongoDB database
 
 ## Configuration
 Set environment variables (recommended):
-- `SPRING_DATASOURCE_URL` (e.g. `jdbc:postgresql://localhost:5432/houserental`)
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
+- `SPRING_DATA_MONGODB_URI` (e.g. `mongodb://localhost:27017/houserental`)
+- `SPRING_DATA_MONGODB_DATABASE`
 - `JWT_SECRET` (base64 or 32+ chars)
 - `JWT_EXPIRATION_MS` (e.g. `86400000`)
 - `SERVER_PORT` (optional)
@@ -51,7 +50,7 @@ mvn spring-boot:run
 
 ## Core Endpoints (prefixed with `/api`)
 - Auth: `POST /auth/register`, `POST /auth/login`
-- Properties: `GET /properties`, `GET /properties/{id}`, `POST /properties` (OWNER/ADMIN), `PUT /properties/{id}` (OWNER/ADMIN), `DELETE /properties/{id}` (OWNER/ADMIN)
+- Properties: `GET /properties`, `GET /properties/search`, `GET /properties/{id}`, `POST /properties` (OWNER/ADMIN), `PUT /properties/{id}` (OWNER/ADMIN), `DELETE /properties/{id}` (OWNER/ADMIN)
 - Bookings: `POST /bookings` (TENANT), `PUT /bookings/{id}/status` (OWNER/ADMIN), `GET /bookings/me` (TENANT)
 - Reviews: `POST /reviews` (TENANT), `GET /reviews/property/{propertyId}`
 - Messages: `POST /messages`, `GET /messages/inbox`, `GET /messages/outbox`
@@ -84,4 +83,4 @@ Validation errors return 400 with field messages; missing entities return 404; u
 ## Notes
 - JWT is stateless; include `Authorization: Bearer <token>` for protected routes.
 - Passwords are stored with BCrypt.
-- Hibernate DDL auto is `update` by default; adjust for production migrations.
+- Mongo documents use String IDs with `@Document`/`@Id`.

@@ -9,10 +9,10 @@ import java.time.LocalDate;
 @Value
 @Builder
 public class BookingResponse {
-    Long id;
+    String id;
     LocalDate startDate;
     LocalDate endDate;
     BookingStatus status;
-    Long propertyId;
-    Long userId;
+    String propertyId;
+    String userId;
 }

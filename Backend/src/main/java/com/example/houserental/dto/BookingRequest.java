@@ -9,7 +9,7 @@ import java.time.LocalDate;
 @Value
 public class BookingRequest {
     @NotNull
-    Long propertyId;
+    String propertyId;
 
     @NotNull
     @FutureOrPresent

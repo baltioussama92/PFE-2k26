@@ -52,7 +52,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public BookingResponse updateStatus(Long bookingId, BookingStatusUpdateRequest request, String email) {
+    public BookingResponse updateStatus(String bookingId, BookingStatusUpdateRequest request, String email) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Booking not found"));
         User current = getUserByEmail(email);
@@ -65,7 +65,8 @@ public class BookingServiceImpl implements BookingService {
         }
 
         booking.setStatus(request.getStatus());
-        return toResponse(booking);
+        Booking saved = bookingRepository.save(booking);
+        return toResponse(saved);
     }
 
     @Override

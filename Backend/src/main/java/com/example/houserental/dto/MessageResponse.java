@@ -8,9 +8,9 @@ import java.time.Instant;
 @Value
 @Builder
 public class MessageResponse {
-    Long id;
-    Long senderId;
-    Long receiverId;
+    String id;
+    String senderId;
+    String receiverId;
     String content;
     Instant createdAt;
 }

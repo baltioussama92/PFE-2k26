@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface AdminService {
     List<UserDto> listUsers();
-    UserDto updateRole(Long userId, UpdateUserRoleRequest request);
-    void deleteUser(Long userId);
+    UserDto updateRole(String userId, UpdateUserRoleRequest request);
+    void deleteUser(String userId);
 }

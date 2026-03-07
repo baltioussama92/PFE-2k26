@@ -8,9 +8,9 @@ import java.math.BigDecimal;
 @Value
 @Builder
 public class PropertyResponse {
-    Long id;
+    String id;
     String title;
     String location;
     BigDecimal price;
-    Long ownerId;
+    String ownerId;
 }

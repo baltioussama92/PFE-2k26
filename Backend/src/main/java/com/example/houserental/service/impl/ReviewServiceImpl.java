@@ -43,7 +43,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ReviewResponse> getReviewsByProperty(Long propertyId) {
+    public List<ReviewResponse> getReviewsByProperty(String propertyId) {
         return reviewRepository.findByPropertyId(propertyId).stream()
                 .map(this::toResponse)
                 .toList();

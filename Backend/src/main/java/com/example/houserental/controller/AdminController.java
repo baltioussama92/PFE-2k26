@@ -31,13 +31,13 @@ public class AdminController {
     }
 
     @PutMapping("/users/{id}/role")
-    public ResponseEntity<UserDto> updateRole(@PathVariable Long id,
+    public ResponseEntity<UserDto> updateRole(@PathVariable String id,
                                               @Valid @RequestBody UpdateUserRoleRequest request) {
         return ResponseEntity.ok(adminService.updateRole(id, request));
     }
 
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         adminService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }

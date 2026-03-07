@@ -7,7 +7,7 @@ import lombok.Value;
 @Value
 @Builder
 public class UserDto {
-    Long id;
+    String id;
     String name;
     String email;
     Role role;

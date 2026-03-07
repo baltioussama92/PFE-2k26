@@ -33,7 +33,7 @@ public class ReviewController {
     }
 
     @GetMapping("/property/{propertyId}")
-    public ResponseEntity<List<ReviewResponse>> listByProperty(@PathVariable Long propertyId) {
+    public ResponseEntity<List<ReviewResponse>> listByProperty(@PathVariable String propertyId) {
         return ResponseEntity.ok(reviewService.getReviewsByProperty(propertyId));
     }
 }

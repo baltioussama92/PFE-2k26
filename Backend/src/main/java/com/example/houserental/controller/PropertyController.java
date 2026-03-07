@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -32,8 +34,16 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.findAll());
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<PropertyResponse>> search(@RequestParam(required = false) String location,
+                                                         @RequestParam(required = false) BigDecimal minPrice,
+                                                         @RequestParam(required = false) BigDecimal maxPrice,
+                                                         @RequestParam(required = false) Boolean available) {
+        return ResponseEntity.ok(propertyService.search(location, minPrice, maxPrice, available));
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<PropertyResponse> get(@PathVariable Long id) {
+    public ResponseEntity<PropertyResponse> get(@PathVariable String id) {
         return ResponseEntity.ok(propertyService.findById(id));
     }
 
@@ -46,7 +56,7 @@ public class PropertyController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('OWNER','ADMIN')")
-    public ResponseEntity<PropertyResponse> update(@PathVariable Long id,
+    public ResponseEntity<PropertyResponse> update(@PathVariable String id,
                                                    @Valid @RequestBody PropertyRequest request,
                                                    @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(propertyService.update(id, request, principal.getUsername()));
@@ -54,7 +64,7 @@ public class PropertyController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('OWNER','ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id,
+    public ResponseEntity<Void> delete(@PathVariable String id,
                                        @AuthenticationPrincipal UserDetails principal) {
         propertyService.delete(id, principal.getUsername());
         return ResponseEntity.noContent().build();

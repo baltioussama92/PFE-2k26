@@ -28,15 +28,16 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public UserDto updateRole(Long userId, UpdateUserRoleRequest request) {
+    public UserDto updateRole(String userId, UpdateUserRoleRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
         user.setRole(request.getRole());
-        return toDto(user);
+        User updated = userRepository.save(user);
+        return toDto(updated);
     }
 
     @Override
-    public void deleteUser(Long userId) {
+    public void deleteUser(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
         userRepository.delete(user);

@@ -7,5 +7,5 @@ import java.util.List;
 
 public interface ReviewService {
     ReviewResponse createReview(ReviewRequest request, String email);
-    List<ReviewResponse> getReviewsByProperty(Long propertyId);
+    List<ReviewResponse> getReviewsByProperty(String propertyId);
 }

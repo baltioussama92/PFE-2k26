@@ -8,6 +8,6 @@ import java.util.List;
 
 public interface BookingService {
     BookingResponse createBooking(BookingRequest request, String email);
-    BookingResponse updateStatus(Long bookingId, BookingStatusUpdateRequest request, String email);
+    BookingResponse updateStatus(String bookingId, BookingStatusUpdateRequest request, String email);
     List<BookingResponse> getMyBookings(String email);
 }

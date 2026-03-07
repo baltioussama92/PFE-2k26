@@ -1,11 +1,11 @@
 package com.example.houserental.repository;
 
 import com.example.houserental.entity.Message;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;
 
-public interface MessageRepository extends JpaRepository<Message, Long> {
-	List<Message> findByReceiverIdOrderByCreatedAtDesc(Long receiverId);
-	List<Message> findBySenderIdOrderByCreatedAtDesc(Long senderId);
+public interface MessageRepository extends MongoRepository<Message, String> {
+	List<Message> findByReceiverIdOrderByCreatedAtDesc(String receiverId);
+	List<Message> findBySenderIdOrderByCreatedAtDesc(String senderId);
 }

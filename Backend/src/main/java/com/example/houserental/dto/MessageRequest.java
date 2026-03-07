@@ -7,7 +7,7 @@ import lombok.Value;
 @Value
 public class MessageRequest {
     @NotNull
-    Long receiverId;
+    String receiverId;
 
     @NotBlank
     String content;

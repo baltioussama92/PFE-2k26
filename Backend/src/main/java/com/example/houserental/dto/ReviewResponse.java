@@ -6,9 +6,9 @@ import lombok.Value;
 @Value
 @Builder
 public class ReviewResponse {
-    Long id;
+    String id;
     Integer rating;
     String comment;
-    Long userId;
-    Long propertyId;
+    String userId;
+    String propertyId;
 }

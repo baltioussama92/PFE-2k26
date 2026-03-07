@@ -9,7 +9,7 @@ import lombok.Value;
 @Value
 public class ReviewRequest {
     @NotNull
-    Long propertyId;
+    String propertyId;
 
     @NotNull
     @Min(1)
