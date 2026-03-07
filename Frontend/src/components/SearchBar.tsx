@@ -238,17 +238,17 @@ const SearchBar: React.FC = () => {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 onClick={() => expand('location')}
-                className="flex items-center gap-0 px-2 py-1.5"
+                className="flex items-center gap-0 px-2.5 py-1"
               >
                 {/* Left: summary text */}
-                <div className="flex items-center divide-x divide-slate-300/70 flex-1 pl-2">
-                  <span className="pr-4 text-sm font-semibold text-slate-800 truncate max-w-[120px] sm:max-w-none">
+                <div className="flex items-center divide-x divide-slate-300/60 flex-1 pl-3">
+                  <span className="pr-6 text-sm font-semibold text-slate-800 truncate max-w-[140px] sm:max-w-none">
                     {pillLocation}
                   </span>
-                  <span className="px-4 text-sm font-medium text-slate-500 hidden sm:block">
+                  <span className="px-6 text-sm font-medium text-slate-500 hidden sm:block">
                     {pillDates}
                   </span>
-                  <span className={`pl-4 text-sm font-medium ${totalGuests > 0 ? 'text-slate-700' : 'text-slate-400'} hidden md:block`}>
+                  <span className={`pl-6 text-sm font-medium ${totalGuests > 0 ? 'text-slate-700' : 'text-slate-400'} hidden md:block`}>
                     {pillGuests}
                   </span>
                 </div>

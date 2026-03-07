@@ -99,12 +99,13 @@ const Register: React.FC = () => {
         : 'Registration successful. Redirecting to explore...')
 
       if (data.role === 'PROPRIETOR') {
-        navigate('/dashboard/owner')
+        navigate('/dashboard/proprietor')
       } else {
         navigate('/explore')
       }
     } catch (caughtError: any) {
       const message = String(caughtError?.payload?.message || caughtError?.message || 'Network Error')
+      console.error('Register API error:', caughtError)
 
       if (isOfflineError(message)) {
         setError('Server is currently offline')
@@ -147,14 +148,14 @@ const Register: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setRole('TENANT')}
-                className={`w-1/2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${role === 'TENANT' ? 'bg-white text-slate-900' : 'text-slate-200'}`}
+                className={`w-1/2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${role === 'TENANT' ? 'border-indigo-500 bg-indigo-500 text-white shadow-sm' : 'border-white/35 bg-transparent text-slate-100 hover:border-indigo-300'}`}
               >
                 I am a Tenant
               </button>
               <button
                 type="button"
                 onClick={() => setRole('PROPRIETOR')}
-                className={`w-1/2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${role === 'PROPRIETOR' ? 'bg-white text-slate-900' : 'text-slate-200'}`}
+                className={`w-1/2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${role === 'PROPRIETOR' ? 'border-indigo-500 bg-indigo-500 text-white shadow-sm' : 'border-white/35 bg-transparent text-slate-100 hover:border-indigo-300'}`}
               >
                 I am a Proprietor
               </button>
@@ -174,7 +175,7 @@ const Register: React.FC = () => {
                   value={formData.fullName}
                   onChange={handleChange}
                   onBlur={() => setFieldTouched(prev => ({ ...prev, fullName: true }))}
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 focus:outline-none ${fieldTouched.fullName && !validation.fullName ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldTouched.fullName && !validation.fullName ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
                 />
               </div>
 
@@ -188,7 +189,7 @@ const Register: React.FC = () => {
                   value={formData.email}
                   onChange={handleChange}
                   onBlur={() => setFieldTouched(prev => ({ ...prev, email: true }))}
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 focus:outline-none ${fieldTouched.email && !validation.email ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldTouched.email && !validation.email ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
                 />
               </div>
 
@@ -202,7 +203,7 @@ const Register: React.FC = () => {
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   onBlur={() => setFieldTouched(prev => ({ ...prev, phoneNumber: true }))}
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 focus:outline-none ${fieldTouched.phoneNumber && !validation.phoneNumber ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldTouched.phoneNumber && !validation.phoneNumber ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
                 />
               </div>
 
@@ -216,7 +217,7 @@ const Register: React.FC = () => {
                     placeholder="Your agency"
                     value={formData.companyName}
                     onChange={handleChange}
-                    className="w-full rounded-xl border border-white/20 bg-white px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 focus:outline-none"
+                    className="w-full rounded-xl border border-white/20 bg-white px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               )}
@@ -231,7 +232,7 @@ const Register: React.FC = () => {
                   value={formData.password}
                   onChange={handleChange}
                   onBlur={() => setFieldTouched(prev => ({ ...prev, password: true }))}
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 focus:outline-none ${fieldTouched.password && !validation.password ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldTouched.password && !validation.password ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
                 />
               </div>
 
@@ -245,7 +246,7 @@ const Register: React.FC = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   onBlur={() => setFieldTouched(prev => ({ ...prev, confirmPassword: true }))}
-                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 focus:outline-none ${fieldTouched.confirmPassword && !validation.confirmPassword ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-950 placeholder:text-slate-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${fieldTouched.confirmPassword && !validation.confirmPassword ? 'border-red-500 bg-white' : 'border-white/20 bg-white'}`}
                 />
               </div>
 

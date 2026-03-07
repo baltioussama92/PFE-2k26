@@ -9,6 +9,7 @@ import AuthPage       from './pages/AuthPage'
 import Register       from './pages/Register'
 import UserProfile    from './pages/UserProfile'
 import AddProperty    from './pages/AddProperty'
+import ProprietorDashboard from './pages/ProprietorDashboard'
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -78,6 +79,10 @@ const AnimatedRoutes: React.FC = () => {
         <Route
           path="/dashboard/owner"
           element={<ProprietorRoute><PageWrapper><AddProperty /></PageWrapper></ProprietorRoute>}
+        />
+        <Route
+          path="/dashboard/proprietor"
+          element={<ProprietorRoute><PageWrapper><ProprietorDashboard /></PageWrapper></ProprietorRoute>}
         />
       </Routes>
     </AnimatePresence>

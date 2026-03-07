@@ -155,10 +155,17 @@ const AuthPage = () => {
 
       setStoredAuthToken(data.token)
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user))
+      localStorage.setItem('userRole', data.role)
 
       toast.success(mode === 'register' ? 'Account created successfully.' : 'Welcome back.')
-      navigate('/')
+
+      if (data.role === 'PROPRIETOR') {
+        navigate('/dashboard/proprietor')
+      } else {
+        navigate('/explore')
+      }
     } catch (error) {
+      console.error('Auth API error:', error)
       const message =
         error?.payload?.message ||
         error?.response?.data?.message ||
@@ -167,7 +174,9 @@ const AuthPage = () => {
 
       const normalizedMessage = String(message).toLowerCase()
 
-      if (normalizedMessage.includes('already')) {
+      if (normalizedMessage.includes('network') || normalizedMessage.includes('failed to fetch') || normalizedMessage.includes('connect')) {
+        toast.error('Server is currently offline')
+      } else if (normalizedMessage.includes('already')) {
         toast.error('Email already exists')
       } else if (normalizedMessage.includes('invalid')) {
         toast.error('Invalid Credentials')
