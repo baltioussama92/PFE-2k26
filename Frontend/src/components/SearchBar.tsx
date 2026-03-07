@@ -238,7 +238,7 @@ const SearchBar: React.FC = () => {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
                 onClick={() => expand('location')}
-                className="flex items-center gap-0 px-2 py-2"
+                className="flex items-center gap-0 px-2 py-1.5"
               >
                 {/* Left: summary text */}
                 <div className="flex items-center divide-x divide-slate-300/70 flex-1 pl-2">
@@ -254,7 +254,7 @@ const SearchBar: React.FC = () => {
                 </div>
 
                 {/* Right: search button */}
-                <div className="ml-2 p-3 bg-gradient-to-r from-brand-500 to-brand-600 rounded-full shadow-md shadow-brand-500/40 shrink-0">
+                <div className="ml-2 p-2.5 bg-indigo-500 rounded-full shadow-md shadow-indigo-500/45 shrink-0">
                   <Search size={15} className="text-white" strokeWidth={2.5} />
                 </div>
               </motion.div>

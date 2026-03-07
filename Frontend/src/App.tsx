@@ -1,11 +1,12 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import HomePage       from './pages/HomePage'
 import SearchResults  from './pages/SearchResults'
 import PropertyDetails from './pages/PropertyDetails'
 import AuthPage       from './pages/AuthPage'
+import Register       from './pages/Register'
 import UserProfile    from './pages/UserProfile'
 import AddProperty    from './pages/AddProperty'
 
@@ -28,6 +29,36 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </motion.div>
 )
 
+const getStoredRole = (): string | null => {
+  try {
+    const explicitRole = localStorage.getItem('userRole')
+    if (explicitRole) return explicitRole
+
+    const userRaw = localStorage.getItem('user')
+    if (!userRaw) return null
+
+    const parsedUser = JSON.parse(userRaw)
+    return parsedUser?.role ?? null
+  } catch {
+    return null
+  }
+}
+
+const ProprietorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const role = getStoredRole()
+  const token = localStorage.getItem('authToken')
+
+  if (!token) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (role !== 'PROPRIETOR') {
+    return <Navigate to="/explore" replace />
+  }
+
+  return <>{children}</>
+}
+
 const AnimatedRoutes: React.FC = () => {
   const location = useLocation()
   return (
@@ -35,11 +66,19 @@ const AnimatedRoutes: React.FC = () => {
       <Routes location={location} key={location.pathname}>
         <Route path="/"          element={<PageWrapper><HomePage        /></PageWrapper>} />
         <Route path="/search"    element={<PageWrapper><SearchResults   /></PageWrapper>} />
+        <Route path="/explore"   element={<PageWrapper><SearchResults   /></PageWrapper>} />
         <Route path="/property/:id" element={<PageWrapper><PropertyDetails /></PageWrapper>} />
         <Route path="/login"     element={<PageWrapper><AuthPage        /></PageWrapper>} />
-        <Route path="/register"  element={<PageWrapper><AuthPage        /></PageWrapper>} />
+        <Route path="/register"  element={<PageWrapper><Register        /></PageWrapper>} />
         <Route path="/profile"   element={<PageWrapper><UserProfile     /></PageWrapper>} />
-        <Route path="/add-property" element={<PageWrapper><AddProperty  /></PageWrapper>} />
+        <Route
+          path="/add-property"
+          element={<ProprietorRoute><PageWrapper><AddProperty /></PageWrapper></ProprietorRoute>}
+        />
+        <Route
+          path="/dashboard/owner"
+          element={<ProprietorRoute><PageWrapper><AddProperty /></PageWrapper></ProprietorRoute>}
+        />
       </Routes>
     </AnimatePresence>
   )
