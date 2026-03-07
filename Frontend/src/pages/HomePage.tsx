@@ -26,14 +26,46 @@ import SearchBar from '../components/SearchBar'
 import PropertyCard, { PropertyCardProps } from '../components/PropertyCard'
 import SkeletonLoader from '../components/SkeletonLoader'
 import Footer from '../components/Footer'
+import { propertyService } from '../services/propertyService'
+import type { PropertyResponse } from '../types/contracts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // Mirrors PropertyResponse from your backend DTOs + UI extras
 interface FeaturedProperty extends Omit<PropertyCardProps, 'id'> {
-  id: number
+  id: string | number
   reviewCount: number
   instantBooking: boolean
 }
+
+const FALLBACK_IMAGES = [
+  'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80',
+  'https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=600&q=80',
+  'https://images.unsplash.com/photo-1499696010180-025ef6e1a8f9?w=600&q=80',
+  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80',
+  'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80',
+  'https://images.unsplash.com/photo-1542401886-65d6c61db217?w=600&q=80',
+]
+
+const inferType = (title: string): string => {
+  const text = title.toLowerCase()
+  if (text.includes('villa')) return 'Villa'
+  if (text.includes('cabin')) return 'Cabin'
+  if (text.includes('camp')) return 'Camping'
+  if (text.includes('beach')) return 'Beach House'
+  return 'Apartment'
+}
+
+const mapToFeaturedProperty = (property: PropertyResponse, index: number): FeaturedProperty => ({
+  id: property.id,
+  title: property.title,
+  location: property.location,
+  price: Number(property.price ?? 0),
+  rating: 4.6,
+  reviewCount: 0,
+  image: FALLBACK_IMAGES[index % FALLBACK_IMAGES.length],
+  type: inferType(property.title),
+  instantBooking: true,
+})
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -95,48 +127,40 @@ const HomePage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All')
   const [properties,     setProperties]     = useState<FeaturedProperty[]>([])
   const [loading,        setLoading]        = useState(true)
+  const [error,          setError]          = useState('')
 
-  // ── TODO: API — replace this mock with your real API call ─────────────────
-  // Example: propertyService.getFeatured()
-  //   const { data } = await apiClient.get('/properties?featured=true&size=6')
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // MOCK data — remove and replace with API call above
-      setProperties([
-        {
-          id: 1, title: 'Luxury Penthouse with Sea View', location: 'Algiers, Algeria',
-          price: 280, rating: 4.9, reviewCount: 142, image: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=80',
-          type: 'Apartment', instantBooking: true,
-        },
-        {
-          id: 2, title: 'Charming Mountain Villa', location: 'Tikjda, Bouira',
-          price: 195, rating: 4.8, reviewCount: 87, image: 'https://images.unsplash.com/photo-1416331108676-a22ccb276e35?w=600&q=80',
-          type: 'Villa', instantBooking: false,
-        },
-        {
-          id: 3, title: 'Cozy Beachfront Cabin', location: 'Oran, Algeria',
-          price: 130, rating: 4.7, reviewCount: 63, image: 'https://images.unsplash.com/photo-1499696010180-025ef6e1a8f9?w=600&q=80',
-          type: 'Cabin', instantBooking: true,
-        },
-        {
-          id: 4, title: 'Modern City Studio', location: 'Constantine, Algeria',
-          price: 85, rating: 4.5, reviewCount: 211, image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&q=80',
-          type: 'Apartment', instantBooking: true,
-        },
-        {
-          id: 5, title: 'Traditional Kasbah Riad', location: 'Ghardaia, Algeria',
-          price: 160, rating: 4.9, reviewCount: 39, image: 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=600&q=80',
-          type: 'Villa', instantBooking: false,
-        },
-        {
-          id: 6, title: 'Sahara Desert Camp', location: 'Tamanrasset, Algeria',
-          price: 220, rating: 5.0, reviewCount: 28, image: 'https://images.unsplash.com/photo-1542401886-65d6c61db217?w=600&q=80',
-          type: 'Camping', instantBooking: false,
-        },
-      ])
-      setLoading(false)
-    }, 1500) // simulate 1.5 s network delay
-    return () => clearTimeout(timer)
+    let active = true
+
+    const loadProperties = async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        const data = await propertyService.list()
+        if (!active) {
+          return
+        }
+
+        const featured = data.slice(0, 6).map(mapToFeaturedProperty)
+        setProperties(featured)
+      } catch {
+        if (!active) {
+          return
+        }
+        setError('Server Connection Error')
+        setProperties([])
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadProperties()
+    return () => {
+      active = false
+    }
   }, [])
 
   // Filter by category (client-side; replace with server-side when connected)
@@ -315,6 +339,17 @@ const HomePage: React.FC = () => {
           {/* Grid — skeleton while loading, staggered cards when ready */}
           {loading ? (
             <SkeletonLoader count={6} />
+          ) : error ? (
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              className="text-center py-20 text-slate-500"
+            >
+              <Building2 size={48} className="mx-auto mb-4 opacity-30" />
+              <p className="text-lg font-medium">{error}</p>
+              <p className="text-sm text-slate-400 mt-2">Please ensure the backend server is running on port 8080.</p>
+            </motion.div>
           ) : filtered.length === 0 ? (
             <motion.div
               variants={fadeUp}

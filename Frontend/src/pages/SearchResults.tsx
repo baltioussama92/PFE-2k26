@@ -1,13 +1,10 @@
 import React, { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import PropertyCard from '../components/PropertyCard'
 import FilterPanel from '../components/FilterPanel'
+import PropertyGrid from '../components/PropertyGrid'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import './SearchResults.css'
-
-// Mock property data
-const mockProperties: any[] = []
 
 const SearchResults: React.FC = () => {
   const [searchParams] = useSearchParams()
@@ -23,22 +20,6 @@ const SearchResults: React.FC = () => {
   const checkIn = searchParams.get('checkIn') || ''
   const checkOut = searchParams.get('checkOut') || ''
   const guests = searchParams.get('guests') || ''
-
-  // Filter and sort properties
-  let filteredProperties = mockProperties.filter(prop => {
-    const matchesPrice = prop.price >= filters.priceRange[0] && prop.price <= filters.priceRange[1]
-    const matchesType = filters.propertyType.length === 0 || filters.propertyType.includes(prop.type)
-    const matchesRating = prop.rating >= filters.rating
-    return matchesPrice && matchesType && matchesRating
-  })
-
-  if (sortBy === 'price-low') {
-    filteredProperties.sort((a, b) => a.price - b.price)
-  } else if (sortBy === 'price-high') {
-    filteredProperties.sort((a, b) => b.price - a.price)
-  } else if (sortBy === 'rating') {
-    filteredProperties.sort((a, b) => b.rating - a.rating)
-  }
 
   return (
     <div className="search-results-page">
@@ -72,28 +53,9 @@ const SearchResults: React.FC = () => {
 
           <div className="properties-section">
             <div className="properties-count">
-              {filteredProperties.length} properties found
+              Live properties from backend
             </div>
-            <div className="properties-grid">
-              {filteredProperties.map(property => (
-                <PropertyCard
-                  key={property.id}
-                  id={property.id}
-                  title={property.title}
-                  location={property.location}
-                  price={property.price}
-                  rating={property.rating}
-                  image={property.image}
-                  type={property.type}
-                />
-              ))}
-            </div>
-
-            {filteredProperties.length === 0 && (
-              <div className="no-results">
-                <p>Sorry, no houses yet</p>
-              </div>
-            )}
+            <PropertyGrid sortBy={sortBy} filters={filters} />
           </div>
         </div>
       </main>

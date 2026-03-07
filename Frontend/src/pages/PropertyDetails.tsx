@@ -1,11 +1,15 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import SkeletonLoader from '../components/SkeletonLoader'
+import { propertyService } from '../services/propertyService'
+import { bookingService } from '../services/bookingService'
+import type { ApiError, PropertyResponse } from '../types/contracts'
 import './PropertyDetails.css'
 
 interface PropertyDetailsData {
-  id: string
+  id: string | number
   title: string
   location: string
   type: string
@@ -29,101 +33,144 @@ interface PropertyDetailsData {
   }>
 }
 
-// Mock property data
-const mockPropertyDetails: Record<string, PropertyDetailsData> = {
-  '1': {
-    id: '1',
-    title: 'Luxury Modern Apartment',
-    location: 'New York, USA',
-    type: 'Apartment',
-    price: 150,
-    rating: 4.8,
-    reviews: 128,
-    images: [
-      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-    ],
-    description:
-      'Experience luxury living in the heart of New York City. This stunning modern apartment features high ceilings, floor-to-ceiling windows, and premium finishes throughout. Perfect for business travelers or families looking for a sophisticated retreat.',
-    amenities: ['WiFi', 'Air Conditioning', 'Kitchen', 'Washer/Dryer', 'TV', 'Gym Access', 'Doorman', 'Parking'],
-    bedrooms: 2,
-    bathrooms: 2,
-    guests: 4,
-    hostName: 'Sarah Johnson',
-    hostImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-    hostReviews: 243,
-    reviews_list: [
-      {
-        author: 'Michael Chen',
-        rating: 5,
-        text: 'Amazing apartment! Location is perfect and the host was very responsive.',
-        date: '2 weeks ago',
-      },
-      {
-        author: 'Emma Wilson',
-        rating: 4.5,
-        text: 'Great space and very clean. Would definitely come back.',
-        date: '1 month ago',
-      },
-      {
-        author: 'David Martinez',
-        rating: 5,
-        text: 'Exceeded my expectations. Everything was perfect!',
-        date: '1 month ago',
-      },
-    ],
-  },
-  '2': {
-    id: '2',
-    title: 'Beachfront Villa',
-    location: 'Bali, Indonesia',
-    type: 'Beach House',
-    price: 280,
-    rating: 4.9,
-    reviews: 95,
-    images: [
-      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop',
-    ],
-    description:
-      'Wake up to the sound of waves at this luxurious beachfront villa. Private beach access, infinity pool overlooking the ocean, and world-class amenities make this the ultimate tropical paradise.',
-    amenities: ['WiFi', 'Pool', 'Air Conditioning', 'Kitchen', 'Beach Access', 'TV', 'Hot Tub', 'Parking'],
-    bedrooms: 3,
-    bathrooms: 3,
-    guests: 6,
-    hostName: 'Made Bali',
-    hostImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
-    hostReviews: 189,
-    reviews_list: [
-      {
-        author: 'Jessica Lee',
-        rating: 5,
-        text: 'Absolute paradise! The views are breathtaking.',
-        date: '3 weeks ago',
-      },
-      {
-        author: 'Robert Brown',
-        rating: 4.8,
-        text: 'Best vacation ever. Everything is luxury!',
-        date: '1 month ago',
-      },
-    ],
-  },
-}
+const GALLERY_IMAGES = [
+  'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
+  'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop',
+  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
+]
+
+const mapToPropertyDetails = (property: PropertyResponse): PropertyDetailsData => ({
+  id: property.id,
+  title: property.title,
+  location: property.location,
+  type: 'Property',
+  price: Number(property.price ?? 0),
+  rating: 4.6,
+  reviews: 0,
+  images: GALLERY_IMAGES,
+  description: 'Comfortable stay in a well-located property with essential amenities for a pleasant booking experience.',
+  amenities: ['WiFi', 'Air Conditioning', 'Kitchen', 'TV', 'Parking'],
+  bedrooms: 2,
+  bathrooms: 1,
+  guests: 4,
+  hostName: 'Maskan Host',
+  hostImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
+  hostReviews: 0,
+  reviews_list: [],
+})
 
 const PropertyDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>()
-  const property = mockPropertyDetails[id || '1'] || mockPropertyDetails['1']
+  const [property, setProperty] = useState<PropertyDetailsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   const [selectedImage, setSelectedImage] = useState(0)
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
   const [guests, setGuests] = useState(1)
+  const [bookingLoading, setBookingLoading] = useState(false)
+  const [bookingMessage, setBookingMessage] = useState('')
 
-  const handleBooking = () => {
-    alert(`Booking ${property.title} from ${checkIn} to ${checkOut} for ${guests} guest(s)`)
+  useEffect(() => {
+    let active = true
+
+    const loadProperty = async () => {
+      if (!id) {
+        setError('Property Not Found')
+        setLoading(false)
+        return
+      }
+
+      setLoading(true)
+      setError('')
+
+      try {
+        const data = await propertyService.getById(id)
+        if (!active) {
+          return
+        }
+        setProperty(mapToPropertyDetails(data))
+      } catch {
+        if (!active) {
+          return
+        }
+        setError('Server Connection Error')
+        setProperty(null)
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadProperty()
+    return () => {
+      active = false
+    }
+  }, [id])
+
+  const handleBooking = async () => {
+    if (!property) {
+      return
+    }
+
+    if (!checkIn || !checkOut) {
+      setBookingMessage('Please select check-in and check-out dates.')
+      return
+    }
+
+    if (new Date(checkOut) < new Date(checkIn)) {
+      setBookingMessage('Check-out date must be after check-in date.')
+      return
+    }
+
+    setBookingLoading(true)
+    setBookingMessage('')
+
+    try {
+      await bookingService.create({
+        propertyId: property.id,
+        startDate: checkIn,
+        endDate: checkOut,
+      })
+      setBookingMessage('Booking created successfully.')
+    } catch (error) {
+      const apiError = error as ApiError
+      if (apiError.status === 401 || apiError.status === 403) {
+        setBookingMessage('Please sign in as a tenant to create a booking.')
+      } else {
+        setBookingMessage('Server Connection Error')
+      }
+    } finally {
+      setBookingLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="property-details-page">
+        <Navbar />
+        <main className="property-details-main">
+          <SkeletonLoader count={3} />
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (error || !property) {
+    return (
+      <div className="property-details-page">
+        <Navbar />
+        <main className="property-details-main">
+          <div className="no-results">
+            <p>{error || 'Property Not Found'}</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -273,9 +320,13 @@ const PropertyDetails: React.FC = () => {
                   </select>
                 </div>
 
-                <button className="book-button" onClick={handleBooking}>
-                  Book Now
+                <button className="book-button" onClick={handleBooking} disabled={bookingLoading}>
+                  {bookingLoading ? 'Booking...' : 'Book Now'}
                 </button>
+
+                {bookingMessage && (
+                  <p className="review-date" style={{ marginTop: '10px' }}>{bookingMessage}</p>
+                )}
               </div>
 
               <div className="price-breakdown">

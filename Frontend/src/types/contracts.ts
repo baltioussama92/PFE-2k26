@@ -3,7 +3,7 @@ export type Role = 'ADMIN' | 'OWNER' | 'TENANT'
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED'
 
 export interface UserDto {
-  id: number
+  id: number | string
   name: string
   email: string
   role: Role
@@ -34,11 +34,11 @@ export interface PropertyRequest {
 }
 
 export interface PropertyResponse {
-  id: number
+  id: number | string
   title: string
   location: string
   price: number
-  ownerId: number
+  ownerId: number | string
 }
 
 export interface PropertyQuery {
@@ -54,7 +54,7 @@ export interface PropertyQuery {
 }
 
 export interface BookingRequest {
-  propertyId: number
+  propertyId: number | string
   startDate: string
   endDate: string
 }
@@ -64,37 +64,37 @@ export interface BookingStatusUpdateRequest {
 }
 
 export interface BookingResponse {
-  id: number
+  id: number | string
   startDate: string
   endDate: string
   status: BookingStatus
-  propertyId: number
-  userId: number
+  propertyId: number | string
+  userId: number | string
 }
 
 export interface ReviewRequest {
-  propertyId: number
+  propertyId: number | string
   rating: number
   comment?: string
 }
 
 export interface ReviewResponse {
-  id: number
+  id: number | string
   rating: number
   comment: string
-  userId: number
-  propertyId: number
+  userId: number | string
+  propertyId: number | string
 }
 
 export interface MessageRequest {
-  receiverId: number
+  receiverId: number | string
   content: string
 }
 
 export interface MessageResponse {
-  id: number
-  senderId: number
-  receiverId: number
+  id: number | string
+  senderId: number | string
+  receiverId: number | string
   content: string
   createdAt: string
 }
