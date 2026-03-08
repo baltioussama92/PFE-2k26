@@ -92,3 +92,15 @@ input, select, textarea { font-family: inherit; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Blur the page when SearchBar expands while keeping the panel sharp above it. */
+.searchbar-overlay {
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.searchbar-shell {
+  position: relative;
+  z-index: 30;
+}

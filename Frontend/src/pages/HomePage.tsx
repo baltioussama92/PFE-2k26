@@ -198,7 +198,7 @@ const HomePage: React.FC = () => {
         />
 
         {/* Hero content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center gap-8 pt-20">
+        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center gap-8 pt-20">
 
           {/* Trust badge */}
           <motion.div

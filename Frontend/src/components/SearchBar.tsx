@@ -170,7 +170,7 @@ const SearchBar: React.FC = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25 }}
               onClick={collapse}
-              className="fixed inset-0 z-20 bg-transparent"
+              className="searchbar-overlay fixed inset-0 z-20"
               aria-hidden="true"
             />
           )}
@@ -180,7 +180,7 @@ const SearchBar: React.FC = () => {
 
       <div
         ref={containerRef}
-        className="relative z-30 w-full flex justify-center"
+        className="searchbar-shell relative z-30 w-full flex justify-center"
         role="search"
         aria-expanded={isExpanded}
         aria-label="Property search"
@@ -190,10 +190,12 @@ const SearchBar: React.FC = () => {
           transition={{ type: 'spring', stiffness: 400, damping: 38 }}
           style={{
             borderRadius: isExpanded ? 24 : 9999,
-            width: isExpanded ? 'min(760px, 92vw)' : undefined,
+            width: isExpanded ? 'min(920px, 94vw)' : undefined,
           }}
           className={[
-            'overflow-hidden',
+            'searchbar-panel',
+            isExpanded ? 'is-expanded' : 'is-collapsed',
+            isExpanded ? 'overflow-visible' : 'overflow-hidden',
             isExpanded
               ? 'bg-white shadow-[0_24px_72px_-8px_rgba(0,0,0,0.32)]'
               : 'bg-white shadow-[0_8px_40px_rgba(0,0,0,0.28)] cursor-pointer hover:shadow-[0_12px_48px_rgba(0,0,0,0.32)] transition-all duration-200',
