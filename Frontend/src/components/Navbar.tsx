@@ -19,6 +19,7 @@ import {
   Home,
   Search,
   Bell,
+  MessageSquare,
   User,
   LogIn,
   LogOut,
@@ -134,6 +135,29 @@ const Navbar: React.FC = () => {
     }
   }, [])
 
+  // Fetch fresh user data from backend on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (hasAuthToken()) {
+        try {
+          const freshUser = await authService.getCurrentUser()
+          setUser({
+            name: freshUser.fullName,
+            fullName: freshUser.fullName,
+            email: freshUser.email,
+            role: freshUser.role,
+          })
+        } catch (error) {
+          console.error('Failed to fetch user data:', error)
+          // If token is invalid, logout
+          authService.logout()
+          setUser(null)
+        }
+      }
+    }
+    fetchUserData()
+  }, [])
+
   const handleLogout = () => {
     authService.logout()
     setUser(null)
@@ -204,22 +228,39 @@ const Navbar: React.FC = () => {
 
               {/* Notification bell — only when logged in */}
               {isLoggedIn && (
-                <button
-                  className={[
-                    'relative p-2 rounded-xl transition-colors',
-                    useSolidNavbar
-                      ? 'text-slate-600 hover:bg-slate-100'
-                      : 'text-white/90 hover:bg-white/10',
-                  ].join(' ')}
-                  aria-label={`${unreadCount} notifications`}
-                >
-                  <Bell size={20} />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-accent-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 ring-2 ring-white">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
+                <>
+                  <Link
+                    to="/messages"
+                    className={[
+                      'relative p-2 rounded-xl transition-colors',
+                      pathname === '/messages'
+                        ? 'bg-brand-500/10 text-brand-600'
+                        : useSolidNavbar
+                          ? 'text-slate-600 hover:bg-slate-100'
+                          : 'text-white/90 hover:bg-white/10',
+                    ].join(' ')}
+                    aria-label="Open messages"
+                  >
+                    <MessageSquare size={20} />
+                  </Link>
+
+                  <button
+                    className={[
+                      'relative p-2 rounded-xl transition-colors',
+                      useSolidNavbar
+                        ? 'text-slate-600 hover:bg-slate-100'
+                        : 'text-white/90 hover:bg-white/10',
+                    ].join(' ')}
+                    aria-label={`${unreadCount} notifications`}
+                  >
+                    <Bell size={20} />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-accent-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 ring-2 ring-white">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                </>
               )}
 
               {/* ── Auth section ────────────────────────────────────────── */}
@@ -277,6 +318,7 @@ const Navbar: React.FC = () => {
                         {/* Menu items */}
                         <div className="py-1">
                           <DropdownItem to="/profile"      icon={<UserCircle size={15}  />} label="My Profile" />
+                          <DropdownItem to="/messages"     icon={<MessageSquare size={15} />} label="Messages" />
                           {user.role === 'PROPRIETOR' && (
                             <DropdownItem to="/add-property" icon={<PlusSquare  size={15}  />} label="Add Property" />
                           )}
@@ -393,6 +435,17 @@ const Navbar: React.FC = () => {
                     {label}
                   </Link>
                 ))}
+
+                {isLoggedIn && (
+                  <Link
+                    to="/messages"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 hover:bg-brand-50 hover:text-brand-600 font-medium transition-colors"
+                  >
+                    <MessageSquare size={16} />
+                    Messages
+                  </Link>
+                )}
               </nav>
 
               {/* Auth buttons */}

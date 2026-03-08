@@ -9,6 +9,8 @@ import AuthPage       from './pages/AuthPage'
 import Register       from './pages/Register'
 import UserProfile    from './pages/UserProfile'
 import AddProperty    from './pages/AddProperty'
+import SettingsPage   from './pages/SettingsPage'
+import MessagesPage   from './pages/MessagesPage'
 
 const pageVariants = {
   initial: { opacity: 0, y: 8 },
@@ -31,14 +33,14 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 const getStoredRole = (): string | null => {
   try {
-    const explicitRole = localStorage.getItem('userRole')
-    if (explicitRole) return explicitRole
-
     const userRaw = localStorage.getItem('user')
-    if (!userRaw) return null
+    if (userRaw) {
+      const parsedUser = JSON.parse(userRaw)
+      if (parsedUser?.role) return parsedUser.role
+    }
 
-    const parsedUser = JSON.parse(userRaw)
-    return parsedUser?.role ?? null
+    const explicitRole = localStorage.getItem('userRole')
+    return explicitRole ?? null
   } catch {
     return null
   }
@@ -71,6 +73,8 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/login"     element={<PageWrapper><AuthPage        /></PageWrapper>} />
         <Route path="/register"  element={<PageWrapper><Register        /></PageWrapper>} />
         <Route path="/profile"   element={<PageWrapper><UserProfile     /></PageWrapper>} />
+        <Route path="/settings"  element={<PageWrapper><SettingsPage    /></PageWrapper>} />
+        <Route path="/messages"  element={<PageWrapper><MessagesPage    /></PageWrapper>} />
         <Route
           path="/add-property"
           element={<ProprietorRoute><PageWrapper><AddProperty /></PageWrapper></ProprietorRoute>}

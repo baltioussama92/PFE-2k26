@@ -49,5 +49,11 @@ public class BookingController {
     public ResponseEntity<List<BookingResponse>> myBookings(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.getMyBookings(principal.getUsername()));
     }
+
+    @GetMapping("/owner")
+    @PreAuthorize("hasRole('PROPRIETOR')")
+    public ResponseEntity<List<BookingResponse>> ownerBookings(@AuthenticationPrincipal UserDetails principal) {
+        return ResponseEntity.ok(bookingService.getOwnerBookings(principal.getUsername()));
+    }
 }
 

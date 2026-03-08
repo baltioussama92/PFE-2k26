@@ -91,6 +91,13 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    @Override
+    public UserDto getCurrentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return toDto(user);
+    }
+
     private UserDto toDto(User user) {
         return UserDto.builder()
                 .id(user.getId())

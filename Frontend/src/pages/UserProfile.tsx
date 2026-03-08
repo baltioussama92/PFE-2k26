@@ -1,43 +1,32 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import PropertyCard from '../components/PropertyCard'
+import { authService } from '../services/authService'
+import { bookingService } from '../services/bookingService'
+import type { BookingResponse, BookingStatus, Role } from '../types/contracts'
 import './UserProfile.css'
 
-interface Booking {
-  id: string
-  propertyTitle: string
-  location: string
-  checkIn: string
-  checkOut: string
-  status: 'upcoming' | 'completed' | 'cancelled'
-  price: number
-  image: string
+const BOOKING_PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=500&fit=crop'
+
+const toStatusClass = (status: BookingStatus): 'upcoming' | 'completed' | 'cancelled' => {
+  if (status === 'PENDING') return 'upcoming'
+  if (status === 'CONFIRMED') return 'completed'
+  return 'cancelled'
 }
 
-// Mock data
-const mockBookings: Booking[] = [
-  {
-    id: '1',
-    propertyTitle: 'Luxury Modern Apartment',
-    location: 'New York, USA',
-    checkIn: '2024-06-15',
-    checkOut: '2024-06-20',
-    status: 'upcoming',
-    price: 750,
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&h=200&fit=crop',
-  },
-  {
-    id: '2',
-    propertyTitle: 'Beachfront Villa',
-    location: 'Bali, Indonesia',
-    checkIn: '2024-05-10',
-    checkOut: '2024-05-20',
-    status: 'completed',
-    price: 2800,
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop',
-  },
-]
+const toStatusLabel = (status: BookingStatus): string => {
+  if (status === 'PENDING') return 'Pending'
+  if (status === 'CONFIRMED') return 'Confirmed'
+  return 'Cancelled'
+}
+
+const formatDate = (value: string): string => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
 
 const mockSaved = [
   {
@@ -61,8 +50,15 @@ const mockSaved = [
 ]
 
 const UserProfile: React.FC = () => {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'profile' | 'bookings' | 'saved'>('profile')
   const [isEditing, setIsEditing] = useState(false)
+  const [role, setRole] = useState<Role>('TENANT')
+  const [bookings, setBookings] = useState<BookingResponse[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [bookingsError, setBookingsError] = useState('')
+  const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null)
+  const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop')
   const [profileData, setProfileData] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
@@ -70,6 +66,114 @@ const UserProfile: React.FC = () => {
     bio: 'Travel enthusiast and explorer',
     joinDate: 'January 2023',
   })
+  const [loading, setLoading] = useState(true)
+
+  // Fetch user data from backend on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = await authService.getCurrentUser()
+        setRole(user.role)
+        setProfileData({
+          name: user.fullName || 'User',
+          email: user.email,
+          phone: '+1 (555) 123-4567', // Keep default for now
+          bio: 'Travel enthusiast and explorer', // Keep default for now
+          joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently',
+        })
+      } catch (error) {
+        console.error('Failed to fetch user data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchUserData()
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    const fetchBookings = async () => {
+      if (role !== 'TENANT' && role !== 'PROPRIETOR') {
+        if (active) {
+          setBookings([])
+          setBookingsLoading(false)
+          setBookingsError('')
+        }
+        return
+      }
+
+      if (active) {
+        setBookingsLoading(true)
+        setBookingsError('')
+      }
+
+      try {
+        const data = role === 'PROPRIETOR'
+          ? await bookingService.getOwnerBookings()
+          : await bookingService.getMine()
+
+        if (active) {
+          setBookings(data)
+        }
+      } catch (error) {
+        console.error('Failed to load bookings:', error)
+        if (active) {
+          setBookings([])
+          setBookingsError('Could not load bookings right now.')
+        }
+      } finally {
+        if (active) {
+          setBookingsLoading(false)
+        }
+      }
+    }
+
+    if (!loading) {
+      fetchBookings()
+    }
+
+    return () => {
+      active = false
+    }
+  }, [loading, role])
+
+  const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
+    setBookingsError('')
+    setUpdatingBookingId(bookingId)
+    try {
+      const updated = await bookingService.updateStatus(bookingId, { status })
+      setBookings(prev => prev.map(item => (item.id === bookingId ? updated : item)))
+    } catch (error) {
+      console.error('Failed to update booking status:', error)
+      setBookingsError('Could not update booking status.')
+    } finally {
+      setUpdatingBookingId(null)
+    }
+  }
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setProfileImage(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="profile-page">
+        <Navbar />
+        <main className="profile-main">
+          <div style={{ padding: '100px 20px', textAlign: 'center' }}>Loading...</div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
 
   return (
     <div className="profile-page">
@@ -81,7 +185,20 @@ const UserProfile: React.FC = () => {
           <div className="header-background"></div>
           <div className="header-content container">
             <div className="profile-avatar">
-              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop" alt="Profile" />
+              <img src={profileImage} alt="Profile" />
+              <div className="avatar-overlay" onClick={() => document.getElementById('avatar-upload')?.click()}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <input
+                id="avatar-upload"
+                type="file"
+                accept="image/*"
+                className="avatar-input"
+                onChange={handleImageChange}
+              />
             </div>
             <div className="header-info">
               <h1>{profileData.name}</h1>
@@ -103,7 +220,7 @@ const UserProfile: React.FC = () => {
               className={`nav-tab ${activeTab === 'bookings' ? 'active' : ''}`}
               onClick={() => setActiveTab('bookings')}
             >
-              My Bookings
+              {role === 'PROPRIETOR' ? 'Booking Requests' : 'My Bookings'}
             </button>
             <button
               className={`nav-tab ${activeTab === 'saved' ? 'active' : ''}`}
@@ -190,43 +307,79 @@ const UserProfile: React.FC = () => {
           {/* Bookings Tab */}
           {activeTab === 'bookings' && (
             <section className="profile-section">
-              <h2>My Bookings</h2>
+              <h2>{role === 'PROPRIETOR' ? 'Incoming Booking Requests' : 'My Bookings'}</h2>
 
-              <div className="bookings-container">
-                {mockBookings.map(booking => (
-                  <div key={booking.id} className="booking-card">
-                    <div className="booking-image">
-                      <img src={booking.image} alt={booking.propertyTitle} />
-                      <span className={`booking-status ${booking.status}`}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </span>
-                    </div>
-                    <div className="booking-details">
-                      <h3>{booking.propertyTitle}</h3>
-                      <p className="location">{booking.location}</p>
-                      <div className="booking-dates">
-                        <span>{booking.checkIn}</span>
-                        <span>→</span>
-                        <span>{booking.checkOut}</span>
+              {bookingsError && (
+                <div className="empty-state" style={{ marginBottom: '1rem' }}>
+                  <p>{bookingsError}</p>
+                </div>
+              )}
+
+              {bookingsLoading ? (
+                <div className="empty-state">
+                  <p>Loading bookings...</p>
+                </div>
+              ) : bookings.length > 0 ? (
+                <div className="bookings-container">
+                  {bookings.map(booking => (
+                    <div key={booking.id} className="booking-card">
+                      <div className="booking-image">
+                        <img src={BOOKING_PLACEHOLDER_IMAGE} alt={`Property ${booking.propertyId}`} />
+                        <span className={`booking-status ${toStatusClass(booking.status)}`}>
+                          {toStatusLabel(booking.status)}
+                        </span>
                       </div>
-                      <div className="booking-footer">
-                        <span className="price">${booking.price}</span>
-                        <div className="booking-actions">
-                          <button className="action-button">View Details</button>
-                          {booking.status === 'completed' && (
-                            <button className="action-button secondary">Leave Review</button>
-                          )}
+                      <div className="booking-details">
+                        <h3>Property #{booking.propertyId}</h3>
+                        <p className="location">
+                          {role === 'PROPRIETOR' ? 'Requested by tenant' : 'Your booking request'}
+                        </p>
+                        <div className="booking-dates">
+                          <span>{formatDate(booking.startDate)}</span>
+                          <span>→</span>
+                          <span>{formatDate(booking.endDate)}</span>
+                        </div>
+                        <div className="booking-footer">
+                          <span className="price">{toStatusLabel(booking.status)}</span>
+                          <div className="booking-actions">
+                            <button
+                              className="action-button"
+                              onClick={() => navigate(`/property/${booking.propertyId}`)}
+                            >
+                              View Property
+                            </button>
+                            {role === 'PROPRIETOR' && booking.status === 'PENDING' && (
+                              <>
+                                <button
+                                  className="action-button secondary"
+                                  disabled={updatingBookingId === booking.id}
+                                  onClick={() => handleUpdateBookingStatus(booking.id as string, 'CONFIRMED')}
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  className="action-button secondary"
+                                  disabled={updatingBookingId === booking.id}
+                                  onClick={() => handleUpdateBookingStatus(booking.id as string, 'CANCELLED')}
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              {mockBookings.length === 0 && (
+                  ))}
+                </div>
+              ) : (
                 <div className="empty-state">
-                  <p>No bookings yet</p>
-                  <p className="empty-sub">Start exploring and book your first property!</p>
+                  <p>{role === 'PROPRIETOR' ? 'No booking requests yet' : 'No bookings yet'}</p>
+                  <p className="empty-sub">
+                    {role === 'PROPRIETOR'
+                      ? 'When a tenant books your property, it will appear here.'
+                      : 'Start exploring and book your first property!'}
+                  </p>
                 </div>
               )}
             </section>

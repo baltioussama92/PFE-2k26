@@ -13,6 +13,11 @@ export const bookingService = {
     return data
   },
 
+  async getOwnerBookings(): Promise<BookingResponse[]> {
+    const { data } = await apiClient.get<BookingResponse[]>(ENDPOINTS.bookings.listOwner)
+    return data
+  },
+
   async updateStatus(id: number | string, payload: BookingStatusUpdateRequest): Promise<BookingResponse> {
     const { data } = await apiClient.put<BookingResponse>(ENDPOINTS.bookings.updateStatus(id), payload)
     return data

@@ -13,7 +13,7 @@ import type { UserDto } from '../types/contracts'
  * ──────────────────────────────────────────────────────────────────────────────
  */
 
-export const DEMO_MODE = true
+export const DEMO_MODE = false
 
 /**
  * Demo user credentials for testing
