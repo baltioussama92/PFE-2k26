@@ -9,6 +9,7 @@ const Header: React.FC = () => {
       <div className="container">
         <div className="header-content">
           <div className="logo">
+            <img src="/maskan no name logo.png" alt="Maskan Logo" className="logo-img" />
             <h1>Maskan</h1>
           </div>
           <nav className="nav">

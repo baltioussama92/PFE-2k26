@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import {
   Home,
@@ -31,6 +31,8 @@ import {
   PlusSquare,
   ShieldCheck,
 } from 'lucide-react'
+import { AUTH_TOKEN_KEY } from '../services/apiClient'
+import { authService } from '../services/authService'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface NavUser {
@@ -41,9 +43,23 @@ interface NavUser {
   avatarUrl?: string
 }
 
-// ─── Mock auth state — replace with your AuthContext / token check ─────────────
-const MOCK_USER: NavUser | null = null        // set to a NavUser object to test logged-in UI
-const MOCK_UNREAD  = 3                        // unread notification count
+const MOCK_UNREAD = 3
+
+const getStoredUser = (): NavUser | null => {
+  try {
+    const raw = localStorage.getItem('user')
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw)
+    if (!parsed?.email || !parsed?.role) return null
+
+    return parsed as NavUser
+  } catch {
+    return null
+  }
+}
+
+const hasAuthToken = (): boolean => Boolean(localStorage.getItem(AUTH_TOKEN_KEY))
 
 // ─── Nav links ────────────────────────────────────────────────────────────────
 const NAV_LINKS = [
@@ -67,12 +83,12 @@ const dropdownVariants: Variants = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const Navbar: React.FC = () => {
-  // TODO: replace with real auth state from your AuthContext
-  // Using useState so TS doesn't narrow the type to literal `null`
-  const [user] = useState<NavUser | null>(MOCK_USER)
+  const navigate = useNavigate()
+
+  const [user, setUser] = useState<NavUser | null>(() => getStoredUser())
   const displayName = user ? (user.fullName || user.name || 'User') : 'User'
-  const unreadCount  = MOCK_UNREAD
-  const isLoggedIn   = !!user
+  const unreadCount = MOCK_UNREAD
+  const isLoggedIn = !!user && hasAuthToken()
 
   const [scrolled,     setScrolled]     = useState(false)
   const [mobileOpen,   setMobileOpen]   = useState(false)
@@ -80,6 +96,7 @@ const Navbar: React.FC = () => {
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { pathname } = useLocation()
+  const useSolidNavbar = scrolled || pathname !== '/'
 
   // ── Detect scroll to toggle glass effect ────────────────────────────────────
   useEffect(() => {
@@ -102,10 +119,26 @@ const Navbar: React.FC = () => {
   // ── Close mobile menu on route change ───────────────────────────────────────
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
-  // ── Mock logout handler — wire to your AuthService ──────────────────────────
+  // Keep navbar auth state synced with localStorage updates.
+  useEffect(() => {
+    const syncUser = () => {
+      setUser(getStoredUser())
+    }
+
+    window.addEventListener('storage', syncUser)
+    window.addEventListener('focus', syncUser)
+
+    return () => {
+      window.removeEventListener('storage', syncUser)
+      window.removeEventListener('focus', syncUser)
+    }
+  }, [])
+
   const handleLogout = () => {
-    // TODO: authService.logout()  →  navigate('/login')
+    authService.logout()
+    setUser(null)
     setDropdownOpen(false)
+    navigate('/login')
   }
 
   return (
@@ -114,7 +147,7 @@ const Navbar: React.FC = () => {
       <header
         className={[
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-          scrolled
+          useSolidNavbar
             ? 'bg-white/80 backdrop-blur-lg shadow-glass border-b border-white/20'
             : 'bg-transparent',
         ].join(' ')}
@@ -127,13 +160,15 @@ const Navbar: React.FC = () => {
               to="/"
               className="flex items-center gap-2 select-none group"
             >
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <Building2 size={16} className="text-white" />
-              </div>
+              <img
+                src="/maskan no name logo.png"
+                alt="Maskan Logo"
+                className="h-20 w-auto group-hover:scale-105 transition-transform"
+              />
               <span
                 className={[
                   'text-xl font-bold tracking-tight transition-colors',
-                  scrolled ? 'text-slate-900' : 'text-white drop-shadow',
+                  useSolidNavbar ? 'text-slate-900' : 'text-white drop-shadow',
                 ].join(' ')}
               >
                 Maskan
@@ -152,7 +187,7 @@ const Navbar: React.FC = () => {
                       'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200',
                       active
                         ? 'bg-brand-500/10 text-brand-600'
-                        : scrolled
+                        : useSolidNavbar
                           ? 'text-slate-600 hover:text-brand-600 hover:bg-brand-50'
                           : 'text-white/90 hover:text-white hover:bg-white/10',
                     ].join(' ')}
@@ -172,7 +207,7 @@ const Navbar: React.FC = () => {
                 <button
                   className={[
                     'relative p-2 rounded-xl transition-colors',
-                    scrolled
+                    useSolidNavbar
                       ? 'text-slate-600 hover:bg-slate-100'
                       : 'text-white/90 hover:bg-white/10',
                   ].join(' ')}
@@ -195,7 +230,7 @@ const Navbar: React.FC = () => {
                     onClick={() => setDropdownOpen(v => !v)}
                     className={[
                       'flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border transition-all duration-200',
-                      scrolled
+                      useSolidNavbar
                         ? 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                         : 'border-white/20 bg-white/10 hover:bg-white/20 text-white',
                     ].join(' ')}
@@ -272,7 +307,7 @@ const Navbar: React.FC = () => {
                     to="/login"
                     className={[
                       'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200',
-                      scrolled
+                      useSolidNavbar
                         ? 'text-slate-700 hover:bg-slate-100'
                         : 'text-white/90 hover:bg-white/10',
                     ].join(' ')}
@@ -294,7 +329,7 @@ const Navbar: React.FC = () => {
               <button
                 className={[
                   'md:hidden p-2 rounded-xl transition-colors',
-                  scrolled ? 'text-slate-700 hover:bg-slate-100' : 'text-white hover:bg-white/10',
+                  useSolidNavbar ? 'text-slate-700 hover:bg-slate-100' : 'text-white hover:bg-white/10',
                 ].join(' ')}
                 onClick={() => setMobileOpen(v => !v)}
                 aria-label="Toggle menu"

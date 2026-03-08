@@ -3,12 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import toast, { Toaster } from 'react-hot-toast'
 
-import { apiClient, setStoredAuthToken } from '../services/apiClient'
-import { ENDPOINTS } from '../services/endpoints'
+import { authService } from '../services/authService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^[0-9+()\-\s]{8,20}$/
-const USER_STORAGE_KEY = 'user'
 
 const formVariants = {
   enter: (direction) => ({ opacity: 0, x: direction > 0 ? 42 : -42 }),
@@ -136,28 +134,24 @@ const AuthPage = () => {
     try {
       setIsLoading(true)
 
-      const endpoint = mode === 'register' ? ENDPOINTS.auth.register : ENDPOINTS.auth.login
-      const payload = mode === 'register'
-        ? {
-            fullName: registerData.fullName.trim(),
-            email: registerData.email.trim().toLowerCase(),
-            password: registerData.password,
-            role: selectedRole,
-            phoneNumber: registerData.phoneNumber.trim(),
-            agencyName: selectedRole === 'PROPRIETOR' ? registerData.agencyName.trim() : undefined,
-          }
-        : {
-            email: loginData.email.trim().toLowerCase(),
-            password: loginData.password,
-          }
-
-      const { data } = await apiClient.post(endpoint, payload)
-
-      setStoredAuthToken(data.token)
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user))
+      if (mode === 'register') {
+        await authService.register({
+          fullName: registerData.fullName.trim(),
+          email: registerData.email.trim().toLowerCase(),
+          password: registerData.password,
+          role: selectedRole,
+          phoneNumber: registerData.phoneNumber.trim(),
+          agencyName: selectedRole === 'PROPRIETOR' ? registerData.agencyName.trim() : undefined,
+        })
+      } else {
+        await authService.login({
+          email: loginData.email.trim().toLowerCase(),
+          password: loginData.password,
+        })
+      }
 
       toast.success(mode === 'register' ? 'Account created successfully.' : 'Welcome back.')
-      navigate('/')
+      navigate('/profile', { replace: true })
     } catch (error) {
       const message =
         error?.payload?.message ||
