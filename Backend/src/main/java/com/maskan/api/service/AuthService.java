@@ -7,5 +7,6 @@ import com.maskan.api.dto.UserDto;
 public interface AuthService {
     AuthResponse register(UserDto request);
     AuthResponse login(LoginRequest request);
+    UserDto getCurrentUser(String email);
 }
 

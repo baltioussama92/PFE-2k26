@@ -14,11 +14,16 @@ import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.BookingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +33,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public BookingResponse createBooking(BookingRequest request, String email) {
@@ -74,6 +80,26 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponse> getMyBookings(String email) {
         User user = getUserByEmail(email);
         return bookingRepository.findByUserId(user.getId()).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getOwnerBookings(String email) {
+        User owner = getUserByEmail(email);
+
+        Query ownerPropertiesQuery = new Query(Criteria.where("owner.$id").is(owner.getId()));
+        Set<String> ownerPropertyIds = mongoTemplate.find(ownerPropertiesQuery, Property.class).stream()
+                .map(Property::getId)
+                .collect(Collectors.toSet());
+
+        if (ownerPropertyIds.isEmpty()) {
+            return List.of();
+        }
+
+        Query ownerBookingsQuery = new Query(Criteria.where("property.$id").in(ownerPropertyIds));
+        return mongoTemplate.find(ownerBookingsQuery, Booking.class).stream()
                 .map(this::toResponse)
                 .toList();
     }
