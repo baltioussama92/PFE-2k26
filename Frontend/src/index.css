@@ -1,94 +1,83 @@
-/* ── Google Fonts ────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ── Tailwind CSS Directives ─────────────────────────────────────────── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Brand palette – mapped to Tailwind brand-* utilities as well */
-  --brand-500: #6366f1;
-  --brand-600: #4f46e5;
-  --accent-500: #f97316;
-
-  /* Legacy tokens kept for backward-compat with existing CSS files */
-  --bg: #f8fafc;
-  --bg-2: #FFFFFF;
-  --bg-3: #f1f5f9;
-  --navy: #0f172a;
-  --navy-2: #1e293b;
-  --navy-3: #334155;
-  --accent: #6366f1;
-  --accent-dim: rgba(99, 102, 241, 0.12);
-  --accent-hover: #4f46e5;
-  --white: #FFFFFF;
-  --gray: #64748b;
-  --gray-light: #94a3b8;
-  --border: #e2e8f0;
-  --radius-card: 16px;
-  --radius-button: 12px;
-  --radius-container: 24px;
-  --radius-hero: 32px;
-  --shadow-soft: 0 4px 24px rgba(0,0,0,.08);
-  --shadow-hover: 0 16px 48px rgba(0,0,0,.14);
-  --dark: #0f172a;
-  --cyan: #6366f1;
-  --cyan-dim: rgba(99, 102, 241, 0.12);
-  color-scheme: light;
+/* ── Google Fonts ───────────────────────────────────────────── */
+@layer base {
+  html {
+    font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
 }
 
-*, *::before, *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ── Glassmorphism Utility ──────────────────────────────────── */
+@layer components {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/30 shadow-glass;
+  }
+  .glass-dark {
+    @apply bg-slate-900/60 backdrop-blur-md border border-white/10;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-500
+           text-white font-semibold text-sm shadow-md
+           hover:bg-primary-600 active:scale-95
+           transition-all duration-200;
+  }
+  .btn-outline {
+    @apply inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-primary-500
+           text-primary-600 font-semibold text-sm
+           hover:bg-primary-50 active:scale-95
+           transition-all duration-200;
+  }
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80
+           text-slate-900 placeholder-slate-400 text-sm font-medium
+           focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
+           transition-all duration-200;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+  }
+  .badge-emerald {
+    @apply badge bg-emerald-100 text-emerald-600;
+  }
+  .badge-primary {
+    @apply badge bg-primary-100 text-primary-600;
+  }
 }
 
-html {
-  overflow-x: hidden;
-  scroll-behavior: smooth;
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: #f1f5f9; }
+::-webkit-scrollbar-thumb  { background: #a5b4fc; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #6366f1; }
+
+/* ── Selection ──────────────────────────────────────────────── */
+::selection {
+  background: rgba(99,102,241,0.2);
+  color: #312e81;
 }
 
-body {
-  overflow-x: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: var(--bg);
-  color: var(--navy);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+/* ── Gradient text helper ───────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-h1, h2, h3 {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  font-weight: 700;
-  color: var(--navy);
+/* ── Hide scrollbar (keep scrollable) ──────────────────────── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-
-h4, h5, h6 {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
-
-#root {
-  width: 100%;
-  overflow-x: hidden;
-}
-
-.container {
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 2.5rem;
-}
-
-@media (max-width: 768px) {
-  .container { padding: 0 1.25rem; }
-}
-
-a { text-decoration: none; color: inherit; }
-button { font-family: inherit; cursor: pointer; border-radius: var(--radius-button); }
-input, select, textarea { font-family: inherit; }
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
