@@ -29,8 +29,8 @@ public class MessageServiceImpl implements MessageService {
                 .orElseThrow(() -> new NotFoundException("Receiver not found"));
 
         Message message = Message.builder()
-                .sender(sender)
-                .receiver(receiver)
+            .senderId(sender.getId())
+            .receiverId(receiver.getId())
                 .content(request.getContent())
                 .build();
 
@@ -49,7 +49,7 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MessageResponse> outbox(String email) {
+    public List<MessageResponse> sent(String email) {
         User user = getUserByEmail(email);
         return messageRepository.findBySenderIdOrderByCreatedAtDesc(user.getId()).stream()
                 .map(this::toResponse)
@@ -59,8 +59,8 @@ public class MessageServiceImpl implements MessageService {
     private MessageResponse toResponse(Message message) {
         return MessageResponse.builder()
                 .id(message.getId())
-                .senderId(message.getSender() != null ? message.getSender().getId() : null)
-                .receiverId(message.getReceiver() != null ? message.getReceiver().getId() : null)
+            .senderId(message.getSenderId())
+            .receiverId(message.getReceiverId())
                 .content(message.getContent())
                 .createdAt(message.getCreatedAt())
                 .build();

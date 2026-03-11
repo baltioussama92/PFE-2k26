@@ -28,15 +28,15 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
-    @PreAuthorize("hasRole('TENANT')")
+    @PreAuthorize("hasRole('GUEST')")
     public ResponseEntity<ReviewResponse> create(@Valid @RequestBody ReviewRequest request,
                                                  @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(reviewService.createReview(request, principal.getUsername()));
     }
 
-    @GetMapping("/property/{propertyId}")
-    public ResponseEntity<List<ReviewResponse>> listByProperty(@PathVariable String propertyId) {
-        return ResponseEntity.ok(reviewService.getReviewsByProperty(propertyId));
+    @GetMapping("/listing/{listingId}")
+    public ResponseEntity<List<ReviewResponse>> listByProperty(@PathVariable String listingId) {
+        return ResponseEntity.ok(reviewService.getReviewsByProperty(listingId));
     }
 }
 

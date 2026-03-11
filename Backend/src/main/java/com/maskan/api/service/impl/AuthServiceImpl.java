@@ -34,23 +34,24 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Email already in use");
         }
 
-                if (request.getRole() == null) {
-                        throw new IllegalArgumentException("Role is required");
+                Role role = request.getRole() == null ? Role.GUEST : request.getRole();
+                if (role == Role.ADMIN) {
+                    throw new IllegalArgumentException("ADMIN role cannot be assigned during self-registration");
                 }
 
                 if (request.getPassword() == null || request.getPassword().isBlank()) {
-                        throw new IllegalArgumentException("Password is required");
+                    throw new IllegalArgumentException("Password is required");
                 }
 
-                boolean verifiedByDefault = request.getRole() == Role.TENANT;
+                boolean verifiedByDefault = role == Role.GUEST;
 
         User user = User.builder()
-                                .fullName(request.getFullName())
+                        .name(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
-                                .isVerified(verifiedByDefault)
-                                .createdAt(Instant.now())
+                        .role(role)
+                        .isVerified(verifiedByDefault)
+                        .createdAt(Instant.now())
                 .build();
 
         User saved = userRepository.save(user);
@@ -101,11 +102,12 @@ public class AuthServiceImpl implements AuthService {
     private UserDto toDto(User user) {
         return UserDto.builder()
                 .id(user.getId())
-                                .fullName(user.getFullName())
+                                .fullName(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole())
                                 .createdAt(user.getCreatedAt())
                                 .isVerified(user.getIsVerified())
+                                .banned(user.getBanned())
                 .build();
     }
 }

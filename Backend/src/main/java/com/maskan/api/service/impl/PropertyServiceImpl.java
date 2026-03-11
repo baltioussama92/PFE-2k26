@@ -34,9 +34,11 @@ public class PropertyServiceImpl implements PropertyService {
         User owner = getUserByEmail(email);
         Property property = Property.builder()
                 .title(request.getTitle())
+            .description(request.getDescription())
                 .location(request.getLocation())
-                .price(request.getPrice())
-                .owner(owner)
+            .pricePerNight(request.getPricePerNight())
+            .images(request.getImages() == null ? List.of() : request.getImages())
+            .hostId(owner.getId())
                 .build();
         Property saved = propertyRepository.save(property);
         return toResponse(saved);
@@ -50,8 +52,10 @@ public class PropertyServiceImpl implements PropertyService {
         requireOwnerOrProprietor(property, current);
 
         property.setTitle(request.getTitle());
+        property.setDescription(request.getDescription());
         property.setLocation(request.getLocation());
-        property.setPrice(request.getPrice());
+        property.setPricePerNight(request.getPricePerNight());
+        property.setImages(request.getImages() == null ? List.of() : request.getImages());
         Property updated = propertyRepository.save(property);
         return toResponse(updated);
     }
@@ -99,13 +103,6 @@ public class PropertyServiceImpl implements PropertyService {
             criteriaList.add(priceCriteria);
         }
 
-        if (available != null && available) {
-            criteriaList.add(new Criteria().orOperator(
-                    Criteria.where("bookings").exists(false),
-                    Criteria.where("bookings").size(0)
-            ));
-        }
-
         Query query = new Query();
         if (!criteriaList.isEmpty()) {
             query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
@@ -121,9 +118,12 @@ public class PropertyServiceImpl implements PropertyService {
         return PropertyResponse.builder()
                 .id(property.getId())
                 .title(property.getTitle())
+            .description(property.getDescription())
                 .location(property.getLocation())
-                .price(property.getPrice())
-                .ownerId(property.getOwner() != null ? property.getOwner().getId() : null)
+            .pricePerNight(property.getPricePerNight())
+            .images(property.getImages())
+            .hostId(property.getHostId())
+            .createdAt(property.getCreatedAt())
                 .build();
     }
 
@@ -133,9 +133,9 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     private void requireOwnerOrProprietor(Property property, User user) {
-        boolean isOwner = property.getOwner() != null && property.getOwner().getId().equals(user.getId());
-        boolean isProprietor = user.getRole() == Role.PROPRIETOR;
-        if (!isOwner && !isProprietor) {
+        boolean isOwner = property.getHostId() != null && property.getHostId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        if (!isOwner && !isAdmin) {
             throw new IllegalArgumentException("Not authorized to modify this property");
         }
     }

@@ -9,7 +9,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.function.Function;

@@ -8,11 +8,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -30,20 +29,29 @@ public class Property {
     private String title;
 
     @NotBlank
+    private String description;
+
+    @NotBlank
     private String location;
 
     @NotNull
-    private BigDecimal price;
-
-    @DBRef(lazy = true)
-    private User owner;
+    private BigDecimal pricePerNight;
 
     @Builder.Default
-    @DBRef(lazy = true)
-    private List<Booking> bookings = new ArrayList<>();
+    private List<String> images = List.of();
+
+    @NotBlank
+    private String hostId;
 
     @Builder.Default
-    @DBRef(lazy = true)
-    private List<Review> reviews = new ArrayList<>();
+    private Instant createdAt = Instant.now();
+
+    public BigDecimal getPrice() {
+        return pricePerNight;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.pricePerNight = price;
+    }
 }
 

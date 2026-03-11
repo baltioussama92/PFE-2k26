@@ -1,8 +1,10 @@
 package com.maskan.api.service.impl;
 
-import com.maskan.api.dto.UpdateUserRoleRequest;
+import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.UserDto;
+import com.maskan.api.entity.Booking;
 import com.maskan.api.entity.User;
+import com.maskan.api.repository.BookingRepository;
 import com.maskan.api.exception.NotFoundException;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.AdminService;
@@ -18,6 +20,7 @@ import java.util.List;
 public class AdminServiceImpl implements AdminService {
 
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -28,29 +31,42 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public UserDto updateRole(String userId, UpdateUserRoleRequest request) {
+    public UserDto banUser(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        user.setRole(request.getRole());
+        user.setBanned(Boolean.TRUE);
         User updated = userRepository.save(user);
         return toDto(updated);
     }
 
     @Override
-    public void deleteUser(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-        userRepository.delete(user);
+    @Transactional(readOnly = true)
+    public List<BookingResponse> listBookings() {
+        return bookingRepository.findAll().stream()
+                .map(this::toBookingResponse)
+                .toList();
+    }
+
+    private BookingResponse toBookingResponse(Booking booking) {
+        return BookingResponse.builder()
+                .id(booking.getId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .status(booking.getStatus())
+                .listingId(booking.getListingId())
+                .guestId(booking.getGuestId())
+                .build();
     }
 
     private UserDto toDto(User user) {
         return UserDto.builder()
                 .id(user.getId())
-                .fullName(user.getFullName())
+                .fullName(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .isVerified(user.getIsVerified())
+                .banned(user.getBanned())
                 .build();
     }
 }

@@ -10,12 +10,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 @Getter
 @Setter
@@ -29,7 +26,7 @@ public class User {
     private String id;
 
     @NotBlank
-    private String fullName;
+    private String name;
 
     @Email
     @NotBlank
@@ -49,31 +46,22 @@ public class User {
     private Boolean isVerified = Boolean.TRUE;
 
     @Builder.Default
-    @DBRef(lazy = true)
-    private List<Property> properties = new ArrayList<>();
-
-    @Builder.Default
-    @DBRef(lazy = true)
-    private List<Booking> bookings = new ArrayList<>();
-
-    @Builder.Default
-    @DBRef(lazy = true)
-    private List<Review> reviews = new ArrayList<>();
-
-    @Builder.Default
-    @DBRef(lazy = true)
-    private List<Message> sentMessages = new ArrayList<>();
-
-    @Builder.Default
-    @DBRef(lazy = true)
-    private List<Message> receivedMessages = new ArrayList<>();
+    private Boolean banned = Boolean.FALSE;
 
     public String getName() {
-        return fullName;
+        return name;
     }
 
     public void setName(String name) {
-        this.fullName = name;
+        this.name = name;
+    }
+
+    public String getFullName() {
+        return name;
+    }
+
+    public void setFullName(String fullName) {
+        this.name = fullName;
     }
 }
 

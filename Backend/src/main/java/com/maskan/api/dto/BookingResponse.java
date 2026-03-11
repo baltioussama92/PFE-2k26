@@ -10,10 +10,10 @@ import java.time.LocalDate;
 @Builder
 public class BookingResponse {
     String id;
-    LocalDate startDate;
-    LocalDate endDate;
+    LocalDate checkInDate;
+    LocalDate checkOutDate;
     BookingStatus status;
-    String propertyId;
-    String userId;
+    String listingId;
+    String guestId;
 }
 

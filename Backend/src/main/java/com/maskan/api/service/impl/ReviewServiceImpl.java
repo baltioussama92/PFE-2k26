@@ -27,13 +27,13 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public ReviewResponse createReview(ReviewRequest request, String email) {
-        Property property = propertyRepository.findById(request.getPropertyId())
+        Property property = propertyRepository.findById(request.getListingId())
                 .orElseThrow(() -> new NotFoundException("Property not found"));
         User user = getUserByEmail(email);
 
         Review review = Review.builder()
-                .property(property)
-                .user(user)
+            .listingId(property.getId())
+            .guestId(user.getId())
                 .rating(request.getRating())
                 .comment(request.getComment())
                 .build();
@@ -44,7 +44,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public List<ReviewResponse> getReviewsByProperty(String propertyId) {
-        return reviewRepository.findByPropertyId(propertyId).stream()
+        return reviewRepository.findByListingId(propertyId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -54,8 +54,9 @@ public class ReviewServiceImpl implements ReviewService {
                 .id(review.getId())
                 .rating(review.getRating())
                 .comment(review.getComment())
-                .userId(review.getUser() != null ? review.getUser().getId() : null)
-                .propertyId(review.getProperty() != null ? review.getProperty().getId() : null)
+            .guestId(review.getGuestId())
+            .listingId(review.getListingId())
+            .createdAt(review.getCreatedAt())
                 .build();
     }
 

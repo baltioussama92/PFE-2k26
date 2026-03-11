@@ -39,10 +39,10 @@ public class MessageController {
         return ResponseEntity.ok(messageService.inbox(principal.getUsername()));
     }
 
-    @GetMapping("/outbox")
+    @GetMapping("/sent")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<MessageResponse>> outbox(@AuthenticationPrincipal UserDetails principal) {
-        return ResponseEntity.ok(messageService.outbox(principal.getUsername()));
+        return ResponseEntity.ok(messageService.sent(principal.getUsername()));
     }
 }
 

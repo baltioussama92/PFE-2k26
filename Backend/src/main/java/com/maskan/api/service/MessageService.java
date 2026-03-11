@@ -8,6 +8,6 @@ import java.util.List;
 public interface MessageService {
     MessageResponse send(MessageRequest request, String email);
     List<MessageResponse> inbox(String email);
-    List<MessageResponse> outbox(String email);
+    List<MessageResponse> sent(String email);
 }
 

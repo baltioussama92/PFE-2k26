@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,28 +31,36 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    @PreAuthorize("hasRole('TENANT')")
+    @PreAuthorize("hasRole('GUEST')")
     public ResponseEntity<BookingResponse> create(@Valid @RequestBody BookingRequest request,
                                                   @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.createBooking(request, principal.getUsername()));
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('PROPRIETOR')")
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     public ResponseEntity<BookingResponse> updateStatus(@PathVariable String id,
                                                         @Valid @RequestBody BookingStatusUpdateRequest request,
                                                         @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.updateStatus(id, request, principal.getUsername()));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('GUEST','ADMIN')")
+    public ResponseEntity<Void> cancel(@PathVariable String id,
+                                       @AuthenticationPrincipal UserDetails principal) {
+        bookingService.cancelBooking(id, principal.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/me")
-    @PreAuthorize("hasRole('TENANT')")
+    @PreAuthorize("hasRole('GUEST')")
     public ResponseEntity<List<BookingResponse>> myBookings(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.getMyBookings(principal.getUsername()));
     }
 
     @GetMapping("/owner")
-    @PreAuthorize("hasRole('PROPRIETOR')")
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     public ResponseEntity<List<BookingResponse>> ownerBookings(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.getOwnerBookings(principal.getUsername()));
     }

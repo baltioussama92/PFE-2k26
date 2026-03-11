@@ -26,7 +26,7 @@ import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/properties")
+@RequestMapping("/api/listings")
 @CrossOrigin(origins = "${app.cors.allowed-origin:http://localhost:5173}")
 @RequiredArgsConstructor
 public class PropertyController {
@@ -49,14 +49,14 @@ public class PropertyController {
         return ResponseEntity.ok(listings);
     }
 
-    @GetMapping("/{propertyId}")
-    public ResponseEntity<PropertyResponse> getPropertyById(@PathVariable String propertyId) {
-        PropertyResponse property = propertyService.findById(propertyId);
+    @GetMapping("/{id}")
+    public ResponseEntity<PropertyResponse> getPropertyById(@PathVariable String id) {
+        PropertyResponse property = propertyService.findById(id);
         return ResponseEntity.ok(property);
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('PROPRIETOR')")
+    @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<PropertyResponse> createProperty(
             @Valid @RequestBody PropertyRequest request,
             @AuthenticationPrincipal UserDetails authenticatedUser) {
@@ -64,29 +64,29 @@ public class PropertyController {
 
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
-                .path("/{propertyId}")
+                .path("/{id}")
                 .buildAndExpand(createdProperty.getId())
                 .toUri();
 
         return ResponseEntity.created(location).body(createdProperty);
     }
 
-    @PutMapping("/{propertyId}")
-    @PreAuthorize("hasRole('PROPRIETOR')")
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     public ResponseEntity<PropertyResponse> updateProperty(
-            @PathVariable String propertyId,
+            @PathVariable String id,
             @Valid @RequestBody PropertyRequest request,
             @AuthenticationPrincipal UserDetails authenticatedUser) {
-        PropertyResponse updatedProperty = propertyService.update(propertyId, request, authenticatedUser.getUsername());
+        PropertyResponse updatedProperty = propertyService.update(id, request, authenticatedUser.getUsername());
         return ResponseEntity.ok(updatedProperty);
     }
 
-    @DeleteMapping("/{propertyId}")
-    @PreAuthorize("hasRole('PROPRIETOR')")
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
     public ResponseEntity<Void> deleteProperty(
-            @PathVariable String propertyId,
+            @PathVariable String id,
             @AuthenticationPrincipal UserDetails authenticatedUser) {
-        propertyService.delete(propertyId, authenticatedUser.getUsername());
+        propertyService.delete(id, authenticatedUser.getUsername());
         return ResponseEntity.noContent().build();
     }
 }

@@ -9,14 +9,26 @@ import java.time.LocalDate;
 @Value
 public class BookingRequest {
     @NotNull
-    String propertyId;
+    String listingId;
 
     @NotNull
     @FutureOrPresent
-    LocalDate startDate;
+    LocalDate checkInDate;
 
     @NotNull
     @FutureOrPresent
-    LocalDate endDate;
+    LocalDate checkOutDate;
+
+    public String getPropertyId() {
+        return listingId;
+    }
+
+    public LocalDate getStartDate() {
+        return checkInDate;
+    }
+
+    public LocalDate getEndDate() {
+        return checkOutDate;
+    }
 }
 

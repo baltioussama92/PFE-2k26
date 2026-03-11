@@ -9,7 +9,7 @@ import lombok.Value;
 @Value
 public class ReviewRequest {
     @NotNull
-    String propertyId;
+    String listingId;
 
     @NotNull
     @Min(1)
@@ -18,5 +18,9 @@ public class ReviewRequest {
 
     @Size(max = 1000)
     String comment;
+
+    public String getPropertyId() {
+        return listingId;
+    }
 }
 

@@ -10,8 +10,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -25,6 +26,12 @@ public class Review {
     private String id;
 
     @NotNull
+    private String listingId;
+
+    @NotNull
+    private String guestId;
+
+    @NotNull
     @Min(1)
     @Max(5)
     private Integer rating;
@@ -32,10 +39,7 @@ public class Review {
     @Size(max = 1000)
     private String comment;
 
-    @DBRef(lazy = true)
-    private User user;
-
-    @DBRef(lazy = true)
-    private Property property;
+    @Builder.Default
+    private Instant createdAt = Instant.now();
 }
 

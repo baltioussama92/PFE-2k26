@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
@@ -24,18 +23,35 @@ public class Booking {
     private String id;
 
     @NotNull
-    private LocalDate startDate;
+    private String listingId;
 
     @NotNull
-    private LocalDate endDate;
+    private String guestId;
 
     @NotNull
+    private LocalDate checkInDate;
+
+    @NotNull
+    private LocalDate checkOutDate;
+
+    @NotNull
+    @Builder.Default
     private BookingStatus status = BookingStatus.PENDING;
 
-    @DBRef(lazy = true)
-    private User user;
+    public LocalDate getStartDate() {
+        return checkInDate;
+    }
 
-    @DBRef(lazy = true)
-    private Property property;
+    public void setStartDate(LocalDate startDate) {
+        this.checkInDate = startDate;
+    }
+
+    public LocalDate getEndDate() {
+        return checkOutDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.checkOutDate = endDate;
+    }
 }
 

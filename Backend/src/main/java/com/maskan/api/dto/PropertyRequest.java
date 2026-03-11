@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Value;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Value
 public class PropertyRequest {
@@ -12,9 +13,18 @@ public class PropertyRequest {
     String title;
 
     @NotBlank
+    String description;
+
+    @NotBlank
     String location;
 
     @NotNull
-    BigDecimal price;
+    BigDecimal pricePerNight;
+
+    List<String> images;
+
+    public BigDecimal getPrice() {
+        return pricePerNight;
+    }
 }
 
