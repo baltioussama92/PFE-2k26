@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,19 +31,19 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse createBooking(BookingRequest request, String email) {
-        if (request.getCheckOutDate().isBefore(request.getCheckInDate())) {
+    if (request.getCheckOutDate().isBefore(request.getCheckInDate())) {
             throw new IllegalArgumentException("End date must be after start date");
         }
 
-        Property property = propertyRepository.findById(request.getListingId())
+    Property property = propertyRepository.findById(request.getListingId())
                 .orElseThrow(() -> new NotFoundException("Property not found"));
-        User guest = getUserByEmail(email);
+    User user = getUserByEmail(email);
 
         Booking booking = Booking.builder()
-            .listingId(property.getId())
-            .guestId(guest.getId())
-            .checkInDate(request.getCheckInDate())
-            .checkOutDate(request.getCheckOutDate())
+        .listingId(property.getId())
+        .guestId(user.getId())
+        .checkInDate(request.getCheckInDate())
+        .checkOutDate(request.getCheckOutDate())
                 .status(BookingStatus.PENDING)
                 .build();
 
@@ -56,13 +57,18 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("Booking not found"));
         User current = getUserByEmail(email);
 
-        Property listing = propertyRepository.findById(booking.getListingId())
-                .orElseThrow(() -> new NotFoundException("Listing not found"));
-
         boolean isAdmin = current.getRole() == Role.ADMIN;
-        boolean isHost = listing.getHostId() != null && listing.getHostId().equals(current.getId());
-        if (!isAdmin && !isHost) {
-            throw new IllegalArgumentException("Not authorized to update this booking");
+        if (!isAdmin) {
+            if (current.getRole() != Role.HOST) {
+                throw new IllegalArgumentException("Not authorized to update this booking");
+            }
+
+            Property property = propertyRepository.findById(booking.getListingId())
+                    .orElseThrow(() -> new NotFoundException("Property not found"));
+
+            if (!current.getId().equals(property.getHostId())) {
+                throw new IllegalArgumentException("Not authorized to update this booking");
+            }
         }
 
         booking.setStatus(request.getStatus());
@@ -76,12 +82,13 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("Booking not found"));
         User current = getUserByEmail(email);
 
-        if (!booking.getGuestId().equals(current.getId()) && current.getRole() != Role.ADMIN) {
+        boolean isAdmin = current.getRole() == Role.ADMIN;
+        boolean isBookingGuest = current.getId().equals(booking.getGuestId());
+        if (!isAdmin && !isBookingGuest) {
             throw new IllegalArgumentException("Not authorized to cancel this booking");
         }
 
-        booking.setStatus(BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
+        bookingRepository.delete(booking);
     }
 
     @Override
@@ -98,9 +105,19 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponse> getOwnerBookings(String email) {
         User owner = getUserByEmail(email);
 
+        if (owner.getRole() == Role.ADMIN) {
+            return bookingRepository.findAll().stream()
+                    .map(this::toResponse)
+                    .toList();
+        }
+
+        if (owner.getRole() != Role.HOST) {
+            throw new IllegalArgumentException("Not authorized to view owner bookings");
+        }
+
         List<String> ownerPropertyIds = propertyRepository.findByHostId(owner.getId()).stream()
                 .map(Property::getId)
-                .toList();
+                .collect(Collectors.toList());
 
         if (ownerPropertyIds.isEmpty()) {
             return List.of();
@@ -114,17 +131,19 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream().map(this::toResponse).toList();
+        return bookingRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private BookingResponse toResponse(Booking booking) {
         return BookingResponse.builder()
                 .id(booking.getId())
-            .checkInDate(booking.getCheckInDate())
-            .checkOutDate(booking.getCheckOutDate())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
                 .status(booking.getStatus())
-            .listingId(booking.getListingId())
-            .guestId(booking.getGuestId())
+                .listingId(booking.getListingId())
+                .guestId(booking.getGuestId())
                 .build();
     }
 
