@@ -14,10 +14,16 @@ import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.BookingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,22 +33,23 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final MongoTemplate mongoTemplate;
 
     @Override
     public BookingResponse createBooking(BookingRequest request, String email) {
-        if (request.getCheckOutDate().isBefore(request.getCheckInDate())) {
+        if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after start date");
         }
 
-        Property property = propertyRepository.findById(request.getListingId())
+        Property property = propertyRepository.findById(request.getPropertyId())
                 .orElseThrow(() -> new NotFoundException("Property not found"));
-        User guest = getUserByEmail(email);
+        User user = getUserByEmail(email);
 
         Booking booking = Booking.builder()
-            .listingId(property.getId())
-            .guestId(guest.getId())
-            .checkInDate(request.getCheckInDate())
-            .checkOutDate(request.getCheckOutDate())
+                .property(property)
+                .user(user)
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
                 .status(BookingStatus.PENDING)
                 .build();
 
@@ -56,12 +63,10 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("Booking not found"));
         User current = getUserByEmail(email);
 
-        Property listing = propertyRepository.findById(booking.getListingId())
-                .orElseThrow(() -> new NotFoundException("Listing not found"));
-
-        boolean isAdmin = current.getRole() == Role.ADMIN;
-        boolean isHost = listing.getHostId() != null && listing.getHostId().equals(current.getId());
-        if (!isAdmin && !isHost) {
+        boolean isProprietor = current.getRole() == Role.PROPRIETOR;
+        boolean isOwner = booking.getProperty() != null && booking.getProperty().getOwner() != null
+                && booking.getProperty().getOwner().getId().equals(current.getId());
+        if (!isProprietor && !isOwner) {
             throw new IllegalArgumentException("Not authorized to update this booking");
         }
 
@@ -71,24 +76,10 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public void cancelBooking(String bookingId, String email) {
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new NotFoundException("Booking not found"));
-        User current = getUserByEmail(email);
-
-        if (!booking.getGuestId().equals(current.getId()) && current.getRole() != Role.ADMIN) {
-            throw new IllegalArgumentException("Not authorized to cancel this booking");
-        }
-
-        booking.setStatus(BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public List<BookingResponse> getMyBookings(String email) {
         User user = getUserByEmail(email);
-        return bookingRepository.findByGuestId(user.getId()).stream()
+        return bookingRepository.findByUserId(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -98,33 +89,29 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponse> getOwnerBookings(String email) {
         User owner = getUserByEmail(email);
 
-        List<String> ownerPropertyIds = propertyRepository.findByHostId(owner.getId()).stream()
+        Query ownerPropertiesQuery = new Query(Criteria.where("owner.$id").is(owner.getId()));
+        Set<String> ownerPropertyIds = mongoTemplate.find(ownerPropertiesQuery, Property.class).stream()
                 .map(Property::getId)
-                .toList();
+                .collect(Collectors.toSet());
 
         if (ownerPropertyIds.isEmpty()) {
             return List.of();
         }
 
-        return bookingRepository.findByListingIdIn(ownerPropertyIds).stream()
+        Query ownerBookingsQuery = new Query(Criteria.where("property.$id").in(ownerPropertyIds));
+        return mongoTemplate.find(ownerBookingsQuery, Booking.class).stream()
                 .map(this::toResponse)
                 .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<BookingResponse> getAllBookings() {
-        return bookingRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     private BookingResponse toResponse(Booking booking) {
         return BookingResponse.builder()
                 .id(booking.getId())
-            .checkInDate(booking.getCheckInDate())
-            .checkOutDate(booking.getCheckOutDate())
+                .startDate(booking.getStartDate())
+                .endDate(booking.getEndDate())
                 .status(booking.getStatus())
-            .listingId(booking.getListingId())
-            .guestId(booking.getGuestId())
+                .propertyId(booking.getProperty() != null ? booking.getProperty().getId() : null)
+                .userId(booking.getUser() != null ? booking.getUser().getId() : null)
                 .build();
     }
 
