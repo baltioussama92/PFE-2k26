@@ -1,0 +1,396 @@
+import React, { useState, useEffect } from 'react'
+import { Navigate, Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  CalendarCheck, MapPin, Clock, CheckCircle2, XCircle,
+  Hourglass, ChevronRight, Building2, Search, X,
+  Calendar, Users, CreditCard, Loader2,
+} from 'lucide-react'
+import { PROPERTIES } from '../data/mockData'
+import { bookingService } from '../services/bookingService'
+import { propertyService } from '../services/propertyService'
+
+// ── Status config ────────────────────────────────────────────
+const STATUS_CONFIG = {
+  confirmed: {
+    label: 'Confirmée',
+    icon: CheckCircle2,
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    dot: 'bg-emerald-500',
+  },
+  pending: {
+    label: 'En attente',
+    icon: Hourglass,
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    dot: 'bg-amber-500',
+  },
+  completed: {
+    label: 'Terminée',
+    icon: CheckCircle2,
+    bg: 'bg-primary-50',
+    text: 'text-primary-600',
+    border: 'border-primary-200',
+    dot: 'bg-primary-400',
+  },
+  cancelled: {
+    label: 'Annulée',
+    icon: XCircle,
+    bg: 'bg-red-50',
+    text: 'text-red-600',
+    border: 'border-red-200',
+    dot: 'bg-red-400',
+  },
+}
+
+const FILTER_TABS = [
+  { value: 'all',       label: 'Toutes'     },
+  { value: 'confirmed', label: 'Confirmées' },
+  { value: 'pending',   label: 'En attente' },
+  { value: 'completed', label: 'Terminées'  },
+  { value: 'cancelled', label: 'Annulées'   },
+]
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('fr-TN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
+}
+
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000)
+}
+
+// ── Component ────────────────────────────────────────────────
+export default function BookingsPage({ user }) {
+  const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [expandedId, setExpandedId] = useState(null)
+  const [allBookings, setAllBookings] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    setLoading(true)
+    bookingService.getMine()
+      .then(async (data) => {
+        if (!active) return
+        // Resolve property details for each booking
+        const enriched = await Promise.all(data.map(async (b) => {
+          let property = PROPERTIES.find(p => String(p.id) === String(b.listingId))
+          if (!property) {
+            try {
+              const p = await propertyService.getById(b.listingId)
+              property = {
+                ...p,
+                price: p.price ?? p.pricePerNight,
+                image: p.image ?? (p.images?.length ? p.images[0] : null),
+              }
+            } catch { /* property not resolvable */ }
+          }
+          const nights = Math.max(1, Math.round((new Date(b.checkOutDate) - new Date(b.checkInDate)) / 86400000))
+          return {
+            id: b.id,
+            propertyId: b.listingId,
+            checkIn: b.checkInDate,
+            checkOut: b.checkOutDate,
+            guests: 1,
+            totalPrice: (property?.price ?? 0) * nights,
+            status: (b.status || '').toLowerCase(),
+            createdAt: b.checkInDate,
+            property: property || { title: 'Propriété', location: 'Non disponible', image: '' },
+          }
+        }))
+        setAllBookings(enriched)
+      })
+      .catch(() => setAllBookings([]))
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [user])
+
+  if (!user) return <Navigate to="/" replace />
+
+  // Filter by status
+  let bookings = filter !== 'all'
+    ? allBookings.filter(b => b.status === filter)
+    : [...allBookings]
+
+  // Search
+  if (search.trim()) {
+    const q = search.toLowerCase()
+    bookings = bookings.filter(b =>
+      (b.property?.title || '').toLowerCase().includes(q) ||
+      (b.property?.location || '').toLowerCase().includes(q) ||
+      String(b.id).toLowerCase().includes(q)
+    )
+  }
+
+  // Stats
+  const stats = {
+    total: allBookings.length,
+    confirmed: allBookings.filter(b => b.status === 'confirmed').length,
+    pending: allBookings.filter(b => b.status === 'pending').length,
+    totalSpent: allBookings
+      .filter(b => b.status === 'confirmed' || b.status === 'completed')
+      .reduce((s, b) => s + (b.totalPrice || 0), 0),
+  }
+
+  return (
+    <section className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
+      <div className="max-w-5xl mx-auto">
+
+        {loading && (
+          <div className="flex justify-center py-32">
+            <Loader2 className="w-8 h-8 text-primary-400 animate-spin" />
+          </div>
+        )}
+
+        {!loading && (
+        <>
+
+        {/* ── Header ──────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-md">
+              <CalendarCheck className="w-5 h-5 text-primary-50" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-primary-900">Mes Réservations</h1>
+              <p className="text-sm text-primary-500">Gérez et suivez toutes vos réservations</p>
+            </div>
+          </div>
+
+          {/* Stats cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total', value: stats.total, icon: CalendarCheck, color: 'from-primary-400 to-primary-600' },
+              { label: 'Confirmées', value: stats.confirmed, icon: CheckCircle2, color: 'from-emerald-400 to-emerald-500' },
+              { label: 'En attente', value: stats.pending, icon: Hourglass, color: 'from-amber-400 to-amber-500' },
+              { label: 'Total dépensé', value: `${stats.totalSpent.toLocaleString('fr-TN')} TND`, icon: CreditCard, color: 'from-primary-500 to-primary-700' },
+            ].map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-primary-50 border border-primary-200 rounded-2xl p-4"
+              >
+                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${s.color} flex items-center justify-center mb-2`}>
+                  <s.icon className="w-4 h-4 text-white" />
+                </div>
+                <p className="text-lg font-extrabold text-primary-900">{s.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-primary-400">{s.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── Filter tabs + search ─────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col sm:flex-row gap-3 mb-6"
+        >
+          <div className="flex gap-1 overflow-x-auto pb-1 sm:pb-0">
+            {FILTER_TABS.map(t => (
+              <button
+                key={t.value}
+                onClick={() => setFilter(t.value)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  filter === t.value
+                    ? 'bg-primary-500 text-primary-50 shadow-md'
+                    : 'bg-primary-100 text-primary-600 hover:bg-primary-200'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="relative sm:ml-auto">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 pointer-events-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher..."
+              className="w-full sm:w-56 pl-10 pr-4 py-2.5 rounded-xl border border-primary-200 bg-primary-50 text-sm
+                         text-primary-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="w-4 h-4 text-primary-400 hover:text-primary-600" />
+              </button>
+            )}
+          </div>
+        </motion.div>
+
+        {/* ── Empty state ──────────────────────────────────── */}
+        {bookings.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-24 text-center"
+          >
+            <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center mb-5">
+              <CalendarCheck className="w-9 h-9 text-primary-300" />
+            </div>
+            <h2 className="text-lg font-bold text-primary-800 mb-1">
+              {search || filter !== 'all' ? 'Aucun résultat' : 'Aucune réservation'}
+            </h2>
+            <p className="text-sm text-primary-500 mb-6 max-w-xs">
+              {search || filter !== 'all'
+                ? 'Essayez un autre filtre ou terme de recherche.'
+                : 'Explorez les propriétés et réservez votre prochain logement.'}
+            </p>
+            {!search && filter === 'all' && (
+              <Link
+                to="/explorer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-500 text-sm font-bold text-primary-50 shadow-md hover:bg-primary-600 transition"
+              >
+                <Building2 className="w-4 h-4" /> Explorer
+              </Link>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── Booking list ─────────────────────────────────── */}
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {bookings.map((b, i) => {
+              const sc = STATUS_CONFIG[b.status]
+              const StatusIcon = sc.icon
+              const nights = daysBetween(b.checkIn, b.checkOut)
+              const expanded = expandedId === b.id
+
+              return (
+                <motion.div
+                  key={b.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.35, delay: i * 0.04 }}
+                  className="bg-primary-50 border border-primary-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {/* Main row */}
+                  <button
+                    onClick={() => setExpandedId(expanded ? null : b.id)}
+                    className="w-full flex items-center gap-4 p-4 sm:p-5 text-left"
+                  >
+                    {/* Property image */}
+                    <img
+                      src={b.property.image}
+                      alt={b.property.title}
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 ring-2 ring-primary-200"
+                    />
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="font-bold text-primary-900 text-sm sm:text-base truncate">{b.property.title}</h3>
+                        <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${sc.bg} ${sc.text} ${sc.border} border`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                          {sc.label}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-primary-500 mb-2">
+                        <MapPin className="w-3 h-3" />
+                        <span className="truncate">{b.property.location}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-primary-600">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-primary-400" />
+                          {formatDate(b.checkIn)} → {formatDate(b.checkOut)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-primary-400" />
+                          {nights} jours
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Expand arrow */}
+                    <motion.div
+                      animate={{ rotate: expanded ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="hidden sm:block shrink-0"
+                    >
+                      <ChevronRight className="w-5 h-5 text-primary-300" />
+                    </motion.div>
+                  </button>
+
+                  {/* Expanded details */}
+                  <AnimatePresence>
+                    {expanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 sm:px-5 pb-5 pt-1 border-t border-primary-200">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                            <DetailCell icon={Calendar} label="Arrivée" value={formatDate(b.checkIn)} />
+                            <DetailCell icon={Calendar} label="Départ" value={formatDate(b.checkOut)} />
+                            <DetailCell icon={Users} label="Voyageurs" value={`${b.guests} personne${b.guests > 1 ? 's' : ''}`} />
+                            <DetailCell icon={CreditCard} label="Total" value={`${b.totalPrice.toLocaleString('fr-TN')} TND`} />
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-primary-200">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-400">
+                              Réf. {b.id}
+                            </span>
+                            <span className="text-[10px] text-primary-400">
+                              Réservée le {formatDate(b.createdAt)}
+                            </span>
+                            <div className="ml-auto flex gap-2">
+                              <Link
+                                to={`/property/${b.propertyId}`}
+                                className="px-3.5 py-2 rounded-xl bg-primary-100 border border-primary-200 text-xs font-semibold text-primary-700 hover:bg-primary-200 transition"
+                              >
+                                Voir la propriété
+                              </Link>
+                              {b.status === 'confirmed' && (
+                                <button className="px-3.5 py-2 rounded-xl bg-primary-500 text-xs font-bold text-primary-50 shadow-sm hover:bg-primary-600 transition">
+                                  Contacter l'hôte
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+        </div>
+        </>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ── Detail cell ──────────────────────────────────────────────
+function DetailCell({ icon: Icon, label, value }) {
+  return (
+    <div className="bg-primary-100 rounded-xl p-3">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className="w-3.5 h-3.5 text-primary-400" />
+        <span className="text-[10px] font-bold uppercase tracking-wider text-primary-400">{label}</span>
+      </div>
+      <p className="text-sm font-bold text-primary-900">{value}</p>
+    </div>
+  )
+}

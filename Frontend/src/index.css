@@ -1,0 +1,107 @@
+/* ── Google Fonts ────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Tailwind CSS Directives ─────────────────────────────────────────── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Brand palette – mapped to Tailwind brand-* utilities as well */
+  --brand-500: #B8622A;
+  --brand-600: #9A5223;
+  --accent-500: #D4A876;
+
+  /* Legacy tokens kept for backward-compat with existing CSS files */
+  --bg: #F7F1E8;
+  --bg-2: #FDFAF5;
+  --bg-3: #F0E6D8;
+  --navy: #2A1A0E;
+  --navy-2: #3D2010;
+  --navy-3: #5A3A20;
+  --accent: #B8622A;
+  --accent-dim: rgba(184, 98, 42, 0.12);
+  --accent-hover: #9A5223;
+  --white: #FDFAF5;
+  --gray: #7A6A62;
+  --gray-light: #B0A098;
+  --border: #E0CEBD;
+  --radius-card: 16px;
+  --radius-button: 12px;
+  --radius-container: 24px;
+  --radius-hero: 32px;
+  --shadow-soft: 0 4px 24px rgba(42,26,14,.08);
+  --shadow-hover: 0 16px 48px rgba(42,26,14,.14);
+  --dark: #2A1A0E;
+  --cyan: #B8622A;
+  --cyan-dim: rgba(184, 98, 42, 0.12);
+  color-scheme: light;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--bg);
+  color: var(--navy);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+h4, h5, h6 {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#root {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 2.5rem;
+}
+
+@media (max-width: 768px) {
+  .container { padding: 0 1.25rem; }
+}
+
+a { text-decoration: none; color: inherit; }
+button { font-family: inherit; cursor: pointer; border-radius: var(--radius-button); }
+input, select, textarea { font-family: inherit; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+
+/* Blur the page when SearchBar expands while keeping the panel sharp above it. */
+.searchbar-overlay {
+  background: rgba(42, 26, 14, 0.28);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.searchbar-shell {
+  position: relative;
+  z-index: 30;
+}
