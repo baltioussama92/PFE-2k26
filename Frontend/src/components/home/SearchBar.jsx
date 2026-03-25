@@ -7,7 +7,7 @@ import { CITIES } from '../../data/mockData'
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : null
 
-const panelClass = 'absolute top-full mt-3 w-72 rounded-2xl border border-primary-200/50 bg-primary-50/85 shadow-glass-lg backdrop-blur-xl z-20'
+const panelClass = 'absolute top-full mt-3 w-72 rounded-2xl border border-primary-200/50 bg-primary-50/85 shadow-glass-lg backdrop-blur-xl z-[120]'
 const inputClass = 'w-full rounded-xl border border-primary-200 bg-primary-100 px-4 py-3 text-sm text-primary-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200'
 
 // ── Pill Divider ─────────────────────────────────────────────
@@ -204,7 +204,7 @@ export default function SearchBar({ onSearch, className = '' }) {
     <form
       ref={barRef}
       onSubmit={handleSubmit}
-      className={`relative flex flex-col md:flex-row items-stretch md:items-center
+      className={`relative z-[110] flex flex-col md:flex-row items-stretch md:items-center
                   rounded-full border border-primary-200/50 bg-primary-50/75 shadow-glass-lg backdrop-blur-xl p-1.5 gap-1 w-full max-w-3xl
                   ${className}`}
     >

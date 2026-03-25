@@ -142,7 +142,7 @@ export default function Hero({ onSearch }) {
           </motion.p>
 
           {/* Search Bar */}
-          <motion.div variants={itemVar} className="w-full flex justify-center">
+          <motion.div variants={itemVar} className="relative z-30 w-full flex justify-center">
             <SearchBar onSearch={onSearch} />
           </motion.div>
 
@@ -170,7 +170,7 @@ export default function Hero({ onSearch }) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0  }}
           transition={{ delay: 1.0, duration: 0.7 }}
-          className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto"
+          className="relative z-10 mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto"
         >
           {STATS.map(({ label, value }) => (
             <div key={label} className="rounded-2xl border border-primary-200/10 bg-primary-900/45 px-5 py-4 text-center backdrop-blur-xl">
