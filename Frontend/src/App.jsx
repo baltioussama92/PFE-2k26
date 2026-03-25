@@ -15,7 +15,6 @@ import SettingsPage       from './pages/SettingsPage'
 import AddPropertyPage    from './pages/AddPropertyPage'
 import MyPropertiesPage   from './pages/MyPropertiesPage'
 import HostBookingsPage   from './pages/HostBookingsPage'
-import { DEMO_MODE } from './config/demo'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const AUTH_TOKEN_KEY = 'authToken'
@@ -26,6 +25,7 @@ const ROLE_STORAGE_KEY = 'userRole'
 const mapRole = (role) => {
   if (role === 'HOST') return 'PROPRIETOR'
   if (role === 'GUEST') return 'TENANT'
+  if (role === 'PROPRIETAIRE') return 'PROPRIETOR'
   return role || 'TENANT'
 }
 
@@ -83,14 +83,6 @@ function AppRoutes() {
         return
       }
 
-      if (DEMO_MODE) {
-        const stored = localStorage.getItem(USER_STORAGE_KEY)
-        if (stored) {
-          setUser(normalizeUser(JSON.parse(stored)))
-        }
-        return
-      }
-
       try {
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
@@ -105,7 +97,7 @@ function AppRoutes() {
         const backendUser = await response.json()
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(backendUser))
         if (backendUser?.role) {
-          localStorage.setItem(ROLE_STORAGE_KEY, backendUser.role)
+          localStorage.setItem(ROLE_STORAGE_KEY, mapRole(backendUser.role))
         }
 
         setUser(normalizeUser(backendUser))

@@ -18,5 +18,14 @@ public class PropertyResponse {
     List<String> images;
     String hostId;
     Instant createdAt;
+    Boolean available;
+    String type;
+    Integer bedrooms;
+    Integer bathrooms;
+    Integer area;
+    List<String> amenities;
+    Double rating;
+    Integer reviewCount;
+    Boolean pendingApproval;
 }
 

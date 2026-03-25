@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -15,20 +15,14 @@ const AMENITIES_LIST = [
   'Cheminée', 'Garage', 'Conciergerie', 'Calme absolu', 'Gardien',
 ]
 
-const DEMO_IMAGES = [
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80',
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
-  'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80',
-  'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&q=80',
-  'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',
-  'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&q=80',
-]
-
 export default function AddPropertyPage({ user }) {
   const navigate = useNavigate()
+  const fileInputRef = useRef(null)
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+  const [imageError, setImageError] = useState('')
 
   const [form, setForm] = useState({
     title: '',
@@ -40,7 +34,7 @@ export default function AddPropertyPage({ user }) {
     bathrooms: 1,
     area: 80,
     amenities: [],
-    selectedImage: 0,
+    imagePreview: '',
   })
 
   if (!user || (user.role !== 'PROPRIETOR' && user.role !== 'ADMIN')) {
@@ -52,26 +46,55 @@ export default function AddPropertyPage({ user }) {
   const toggleAmenity = (a) =>
     set('amenities', form.amenities.includes(a) ? form.amenities.filter(x => x !== a) : [...form.amenities, a])
 
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('Veuillez sélectionner un fichier image valide.')
+      return
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      setImageError('Image trop volumineuse (max 3 MB).')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setImageError('')
+      set('imagePreview', String(reader.result || ''))
+    }
+    reader.readAsDataURL(file)
+  }
+
   const canProceed =
     step === 1
       ? form.title.trim() && form.location.trim() && form.description.trim()
       : step === 2
       ? form.price > 0 && form.bedrooms > 0 && form.bathrooms > 0 && form.area > 0
-      : true
+      : !!form.imagePreview
 
   const handleSubmit = async () => {
     setSubmitting(true)
+    setError('')
     try {
       await propertyService.create({
         title: form.title.trim(),
         description: form.description.trim(),
         location: form.location.trim(),
         pricePerNight: Number(form.price),
-        images: [DEMO_IMAGES[form.selectedImage]],
+        images: [form.imagePreview],
+        type: form.type,
+        bedrooms: Number(form.bedrooms),
+        bathrooms: Number(form.bathrooms),
+        area: Number(form.area),
+        amenities: form.amenities,
+        available: true,
       })
       setSuccess(true)
     } catch (err) {
-      // Silently fail - property was not created
+      setError('Publication échouée. Vérifiez les données puis réessayez.')
     } finally {
       setSubmitting(false)
     }
@@ -100,7 +123,24 @@ export default function AddPropertyPage({ user }) {
               Mes Propriétés
             </button>
             <button
-              onClick={() => { setSuccess(false); setStep(1); setForm({ ...form, title: '', location: '', description: '' }) }}
+              onClick={() => {
+                setSuccess(false)
+                setStep(1)
+                setError('')
+                setImageError('')
+                setForm({
+                  title: '',
+                  location: '',
+                  description: '',
+                  type: 'Appartement',
+                  price: 1000,
+                  bedrooms: 2,
+                  bathrooms: 1,
+                  area: 80,
+                  amenities: [],
+                  imagePreview: '',
+                })
+              }}
               className="flex-1 px-5 py-3 rounded-xl border-2 border-primary-200 text-primary-700 font-semibold hover:bg-primary-50 transition"
             >
               Ajouter une autre
@@ -325,30 +365,44 @@ export default function AddPropertyPage({ user }) {
               </h2>
 
               <div>
-                <label className="block text-sm font-semibold text-primary-700 mb-2">Choisir une photo</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {DEMO_IMAGES.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => set('selectedImage', i)}
-                      className={`relative rounded-xl overflow-hidden aspect-video border-2 transition
-                        ${form.selectedImage === i ? 'border-primary-500 ring-2 ring-primary-300' : 'border-primary-100 hover:border-primary-300'}`}
-                    >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                      {form.selectedImage === i && (
-                        <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center">
-                          <Check className="w-6 h-6 text-white drop-shadow" />
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                <label className="block text-sm font-semibold text-primary-700 mb-2">Téléverser votre photo *</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-primary-200 text-primary-700 font-semibold hover:bg-primary-50 transition"
+                  >
+                    Choisir une image depuis mon appareil
+                  </button>
+
+                  {imageError && (
+                    <p className="text-sm text-red-500">{imageError}</p>
+                  )}
+
+                  {!form.imagePreview && !imageError && (
+                    <p className="text-xs text-primary-500">Formats image acceptés. Taille max: 3 MB.</p>
+                  )}
                 </div>
               </div>
 
               {/* Preview card */}
               <div className="border border-primary-100 rounded-2xl overflow-hidden">
                 <div className="aspect-video relative">
-                  <img src={DEMO_IMAGES[form.selectedImage]} alt="" className="w-full h-full object-cover" />
+                  {form.imagePreview ? (
+                    <img src={form.imagePreview} alt="Aperçu" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary-50 flex items-center justify-center text-primary-400 text-sm">
+                      Aucune image sélectionnée
+                    </div>
+                  )}
                   <span className="absolute top-3 left-3 px-3 py-1 rounded-lg bg-emerald-500 text-white text-xs font-bold">
                     Nouveau
                   </span>
@@ -393,24 +447,27 @@ export default function AddPropertyPage({ user }) {
               Suivant
             </button>
           ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="px-6 py-3 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition
-                         disabled:opacity-60 shadow-lg shadow-emerald-500/20 flex items-center gap-2"
-            >
-              {submitting ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Publication…
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  Publier l'annonce
-                </>
-              )}
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !canProceed}
+                className="px-6 py-3 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition
+                           disabled:opacity-60 shadow-lg shadow-emerald-500/20 flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Publication…
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Publier l'annonce
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       </div>

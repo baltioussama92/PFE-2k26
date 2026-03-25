@@ -1,6 +1,8 @@
 package com.maskan.api.controller;
 
 import com.maskan.api.dto.BookingResponse;
+import com.maskan.api.dto.AdminGrowthMetricsResponse;
+import com.maskan.api.dto.PropertyResponse;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.service.AdminService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,16 @@ public class AdminController {
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingResponse>> bookings() {
         return ResponseEntity.ok(adminService.listBookings());
+    }
+
+    @GetMapping("/pending-listings")
+    public ResponseEntity<List<PropertyResponse>> pendingListings() {
+        return ResponseEntity.ok(adminService.listPendingListings());
+    }
+
+    @GetMapping("/growth-metrics")
+    public ResponseEntity<AdminGrowthMetricsResponse> growthMetrics() {
+        return ResponseEntity.ok(adminService.growthMetrics());
     }
 }
 

@@ -1,7 +1,7 @@
 ﻿import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Calendar, Users, Search, ChevronDown, Plus, Minus } from 'lucide-react'
-import { CITIES } from '../../data/mockData'
+import { propertyService } from '../../services/propertyService'
 
 // ── Date formatter helper ────────────────────────────────────
 const fmtDate = (d) =>
@@ -37,9 +37,9 @@ function SearchField({ label, value, placeholder, icon: Icon, onClick, active, c
 }
 
 // ── Location Dropdown ────────────────────────────────────────
-function LocationDropdown({ value, onChange, onClose }) {
+function LocationDropdown({ value, onChange, onClose, cities }) {
   const [query, setQuery] = useState('')
-  const filtered = CITIES.filter((c) =>
+  const filtered = cities.filter((c) =>
     c.toLowerCase().includes(query.toLowerCase())
   )
   return (
@@ -176,6 +176,7 @@ export default function SearchBar({ onSearch, className = '' }) {
   const [adults,    setAdults]    = useState(2)
   const [kids,      setKids]      = useState(0)
   const [openPanel, setOpenPanel] = useState(null) // 'location' | 'checkin' | 'checkout' | 'guests'
+  const [cities, setCities] = useState([])
 
   const barRef = useRef(null)
 
@@ -187,6 +188,24 @@ export default function SearchBar({ onSearch, className = '' }) {
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    propertyService.list()
+      .then((data) => {
+        if (!active) return
+        const uniqueCities = Array.from(new Set(data.map((property) => property.location).filter(Boolean)))
+        setCities(uniqueCities)
+      })
+      .catch(() => {
+        if (!active) return
+        setCities([])
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   const toggle = (panel) => setOpenPanel((p) => (p === panel ? null : panel))
@@ -225,6 +244,7 @@ export default function SearchBar({ onSearch, className = '' }) {
               value={location}
               onChange={setLocation}
               onClose={() => setOpenPanel(null)}
+              cities={cities}
             />
           )}
         </AnimatePresence>

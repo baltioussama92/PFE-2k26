@@ -17,7 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.time.temporal.ChronoUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +46,7 @@ public class BookingServiceImpl implements BookingService {
         .guestId(user.getId())
         .checkInDate(request.getCheckInDate())
         .checkOutDate(request.getCheckOutDate())
+        .guests(request.getGuests() == null || request.getGuests() < 1 ? 1 : request.getGuests())
                 .status(BookingStatus.PENDING)
                 .build();
 
@@ -137,6 +140,16 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingResponse toResponse(Booking booking) {
+        Property listing = propertyRepository.findById(booking.getListingId()).orElse(null);
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        if (listing != null && listing.getPricePerNight() != null) {
+            long days = Math.max(1, ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate()));
+            int guests = booking.getGuests() == null || booking.getGuests() < 1 ? 1 : booking.getGuests();
+            totalPrice = listing.getPricePerNight()
+                .multiply(BigDecimal.valueOf(days))
+                .multiply(BigDecimal.valueOf(guests));
+        }
+
         return BookingResponse.builder()
                 .id(booking.getId())
                 .checkInDate(booking.getCheckInDate())
@@ -144,6 +157,12 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getStatus())
                 .listingId(booking.getListingId())
                 .guestId(booking.getGuestId())
+            .guests(booking.getGuests())
+            .totalPrice(totalPrice)
+            .createdAt(booking.getCreatedAt())
+            .listingTitle(listing != null ? listing.getTitle() : null)
+            .listingLocation(listing != null ? listing.getLocation() : null)
+            .listingImage(listing != null && listing.getImages() != null && !listing.getImages().isEmpty() ? listing.getImages().get(0) : null)
                 .build();
     }
 

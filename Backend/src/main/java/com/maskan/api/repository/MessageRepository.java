@@ -8,5 +8,6 @@ import java.util.List;
 public interface MessageRepository extends MongoRepository<Message, String> {
 	List<Message> findByReceiverIdOrderByCreatedAtDesc(String receiverId);
 	List<Message> findBySenderIdOrderByCreatedAtDesc(String senderId);
+	long countByReceiverId(String receiverId);
 }
 

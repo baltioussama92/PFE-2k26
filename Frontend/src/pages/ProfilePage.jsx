@@ -5,7 +5,6 @@ import {
   Camera, Edit3, X, Check, Mail, User, AtSign,
   FileText, Shield, Loader2, Home, ArrowRight,
 } from 'lucide-react'
-import { DEMO_MODE } from '../config/demo'
 
 const USER_STORAGE_KEY = 'user'
 
@@ -113,10 +112,6 @@ export default function ProfilePage({ user, onUserUpdate }) {
   const handleSave = async () => {
     setSaving(true)
 
-    if (DEMO_MODE) {
-      await new Promise(r => setTimeout(r, 600))
-    }
-
     // Build updated user and persist
     const updatedUser = {
       ...user,
@@ -150,9 +145,6 @@ export default function ProfilePage({ user, onUserUpdate }) {
 
   const handleBecomeHost = async () => {
     setSwitching(true)
-    if (DEMO_MODE) {
-      await new Promise(r => setTimeout(r, 800))
-    }
     const updatedUser = { ...user, role: 'PROPRIETOR' }
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser))
     localStorage.setItem('userRole', 'PROPRIETOR')

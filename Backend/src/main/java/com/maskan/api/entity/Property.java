@@ -46,6 +46,23 @@ public class Property {
     @Builder.Default
     private Instant createdAt = Instant.now();
 
+    @Builder.Default
+    private Boolean available = Boolean.TRUE;
+
+    private String type;
+    private Integer bedrooms;
+    private Integer bathrooms;
+    private Integer area;
+
+    @Builder.Default
+    private List<String> amenities = List.of();
+
+    private Double rating;
+    private Integer reviewCount;
+
+    @Builder.Default
+    private Boolean pendingApproval = Boolean.FALSE;
+
     public BigDecimal getPrice() {
         return pricePerNight;
     }

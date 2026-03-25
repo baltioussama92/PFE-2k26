@@ -38,6 +38,13 @@ public class PropertyServiceImpl implements PropertyService {
                 .location(request.getLocation())
             .pricePerNight(request.getPricePerNight())
             .images(request.getImages() == null ? List.of() : request.getImages())
+            .available(request.getAvailable() == null ? Boolean.TRUE : request.getAvailable())
+            .type(request.getType())
+            .bedrooms(request.getBedrooms())
+            .bathrooms(request.getBathrooms())
+            .area(request.getArea())
+            .amenities(request.getAmenities() == null ? List.of() : request.getAmenities())
+            .pendingApproval(Boolean.TRUE)
             .hostId(owner.getId())
                 .build();
         Property saved = propertyRepository.save(property);
@@ -56,6 +63,14 @@ public class PropertyServiceImpl implements PropertyService {
         property.setLocation(request.getLocation());
         property.setPricePerNight(request.getPricePerNight());
         property.setImages(request.getImages() == null ? List.of() : request.getImages());
+        if (request.getAvailable() != null) {
+            property.setAvailable(request.getAvailable());
+        }
+        property.setType(request.getType());
+        property.setBedrooms(request.getBedrooms());
+        property.setBathrooms(request.getBathrooms());
+        property.setArea(request.getArea());
+        property.setAmenities(request.getAmenities() == null ? List.of() : request.getAmenities());
         Property updated = propertyRepository.save(property);
         return toResponse(updated);
     }
@@ -77,6 +92,15 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PropertyResponse> findMine(String email) {
+        User owner = getUserByEmail(email);
+        return propertyRepository.findByHostId(owner.getId()).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PropertyResponse findById(String id) {
         return propertyRepository.findById(id)
                 .map(this::toResponse)
@@ -93,7 +117,7 @@ public class PropertyServiceImpl implements PropertyService {
         }
 
         if (minPrice != null || maxPrice != null) {
-            Criteria priceCriteria = Criteria.where("price");
+            Criteria priceCriteria = Criteria.where("pricePerNight");
             if (minPrice != null) {
                 priceCriteria = priceCriteria.gte(minPrice);
             }
@@ -103,6 +127,10 @@ public class PropertyServiceImpl implements PropertyService {
             criteriaList.add(priceCriteria);
         }
 
+        if (available != null) {
+            criteriaList.add(Criteria.where("available").is(available));
+        }
+
         Query query = new Query();
         if (!criteriaList.isEmpty()) {
             query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
@@ -110,6 +138,13 @@ public class PropertyServiceImpl implements PropertyService {
 
         return mongoTemplate.find(query, Property.class)
                 .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<PropertyResponse> findPendingApproval() {
+        return propertyRepository.findByPendingApprovalTrue().stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -124,6 +159,15 @@ public class PropertyServiceImpl implements PropertyService {
             .images(property.getImages())
             .hostId(property.getHostId())
             .createdAt(property.getCreatedAt())
+            .available(property.getAvailable())
+            .type(property.getType())
+            .bedrooms(property.getBedrooms())
+            .bathrooms(property.getBathrooms())
+            .area(property.getArea())
+            .amenities(property.getAmenities())
+            .rating(property.getRating())
+            .reviewCount(property.getReviewCount())
+            .pendingApproval(property.getPendingApproval())
                 .build();
     }
 

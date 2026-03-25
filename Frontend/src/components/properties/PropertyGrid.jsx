@@ -2,7 +2,6 @@
 import { motion } from 'framer-motion'
 import { SlidersHorizontal, Grid3X3, List, TrendingUp, Loader2 } from 'lucide-react'
 import PropertyCard from './PropertyCard'
-import { PROPERTIES, PROPERTY_TYPES } from '../../data/mockData'
 import { propertyService } from '../../services/propertyService'
 
 // ── Sort Options ─────────────────────────────────────────────
@@ -55,7 +54,8 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
     return () => { active = false }
   }, [])
 
-  const source   = searchResult ?? apiData ?? PROPERTIES
+  const source   = searchResult ?? apiData ?? []
+  const propertyTypes = ['Tous', ...Array.from(new Set(source.map((p) => p.type).filter(Boolean)))]
   const filtered = filterProperties(source, type)
   const sorted   = sortProperties(filtered, sort)
 
@@ -133,7 +133,7 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
 
       {/* ── Type Filter Pills ──────────────────────────────── */}
       <div className="flex flex-wrap gap-2 mb-8">
-        {PROPERTY_TYPES.map((t) => (
+        {propertyTypes.map((t) => (
           <motion.button
             key={t}
             whileHover={{ scale: 1.04 }}
@@ -162,7 +162,11 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
       </div>
 
       {/* ── Property Grid ─────────────────────────────────── */}
-      {sorted.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="w-7 h-7 text-primary-400 animate-spin" />
+        </div>
+      ) : sorted.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

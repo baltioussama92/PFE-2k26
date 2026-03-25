@@ -6,7 +6,6 @@ import {
   Hourglass, ChevronRight, Building2, Search, X,
   Calendar, Users, CreditCard, Loader2,
 } from 'lucide-react'
-import { PROPERTIES } from '../data/mockData'
 import { bookingService } from '../services/bookingService'
 import { propertyService } from '../services/propertyService'
 
@@ -79,9 +78,23 @@ export default function BookingsPage({ user }) {
     bookingService.getMine()
       .then(async (data) => {
         if (!active) return
+        let propertyIndex = new Map()
+        try {
+          const listings = await propertyService.list()
+          propertyIndex = new Map(
+            listings.map((property) => [String(property.id), {
+              ...property,
+              price: property.price ?? property.pricePerNight,
+              image: property.image ?? (property.images?.length ? property.images[0] : null),
+            }])
+          )
+        } catch {
+          propertyIndex = new Map()
+        }
+
         // Resolve property details for each booking
         const enriched = await Promise.all(data.map(async (b) => {
-          let property = PROPERTIES.find(p => String(p.id) === String(b.listingId))
+          let property = propertyIndex.get(String(b.listingId))
           if (!property) {
             try {
               const p = await propertyService.getById(b.listingId)

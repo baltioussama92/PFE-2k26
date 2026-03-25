@@ -29,20 +29,17 @@ export default function MyPropertiesPage({ user }) {
     if (!user) return
     let active = true
     setLoading(true)
-    propertyService.list()
+    propertyService.listMine()
       .then(data => {
         if (!active) return
-        // Filter to only show properties owned by this user
-        const mine = data
-          .filter(p => String(p.hostId) === String(user.id))
-          .map(p => ({
-            ...p,
-            price: p.price ?? p.pricePerNight,
-            image: p.image ?? (p.images?.length ? p.images[0] : null),
-            currency: p.currency || 'TND',
-            period: p.period || 'nuit',
-            available: p.available !== false,
-          }))
+        const mine = data.map(p => ({
+          ...p,
+          price: p.price ?? p.pricePerNight,
+          image: p.image ?? (p.images?.length ? p.images[0] : null),
+          currency: p.currency || 'TND',
+          period: p.period || 'nuit',
+          available: p.available !== false,
+        }))
         setProperties(mine)
       })
       .catch(() => setProperties([]))

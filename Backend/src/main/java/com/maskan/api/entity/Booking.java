@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Getter
@@ -37,6 +38,12 @@ public class Booking {
     @NotNull
     @Builder.Default
     private BookingStatus status = BookingStatus.PENDING;
+    
+    @Builder.Default
+    private Integer guests = 1;
+    
+    @Builder.Default
+    private Instant createdAt = Instant.now();
 
     public LocalDate getStartDate() {
         return checkInDate;

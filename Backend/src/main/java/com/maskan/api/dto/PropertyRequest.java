@@ -23,6 +23,13 @@ public class PropertyRequest {
 
     List<String> images;
 
+    Boolean available;
+    String type;
+    Integer bedrooms;
+    Integer bathrooms;
+    Integer area;
+    List<String> amenities;
+
     public BigDecimal getPrice() {
         return pricePerNight;
     }

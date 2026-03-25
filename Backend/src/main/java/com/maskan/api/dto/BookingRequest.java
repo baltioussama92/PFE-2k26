@@ -1,6 +1,7 @@
 package com.maskan.api.dto;
 
 import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Value;
 
@@ -18,6 +19,9 @@ public class BookingRequest {
     @NotNull
     @FutureOrPresent
     LocalDate checkOutDate;
+
+    @Min(1)
+    Integer guests;
 
     public String getPropertyId() {
         return listingId;

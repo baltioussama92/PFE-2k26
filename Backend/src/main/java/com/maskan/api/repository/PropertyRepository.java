@@ -7,5 +7,7 @@ import java.util.List;
 
 public interface PropertyRepository extends MongoRepository<Property, String> {
 	List<Property> findByHostId(String hostId);
+	List<Property> findByPendingApprovalTrue();
+	long countByHostId(String hostId);
 }
 

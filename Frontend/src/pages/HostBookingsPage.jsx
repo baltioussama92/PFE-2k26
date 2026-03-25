@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 import { bookingService } from '../services/bookingService'
 import { propertyService } from '../services/propertyService'
-import { PROPERTIES } from '../data/mockData'
 
 const STATUS_MAP = {
   pending:   { label: 'En attente',  color: 'text-amber-600',   bg: 'bg-amber-50',   icon: Hourglass },
@@ -33,43 +32,70 @@ export default function HostBookingsPage({ user }) {
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState(null)
+  const [actionError, setActionError] = useState('')
+
+  const loadBookings = async (active = true) => {
+    setLoading(true)
+    setActionError('')
+    try {
+      const data = await bookingService.getOwnerBookings()
+      if (!active) return
+
+      let propertyIndex = new Map()
+      try {
+        const listings = await propertyService.list()
+        propertyIndex = new Map(
+          listings.map((property) => [String(property.id), {
+            ...property,
+            price: property.price ?? property.pricePerNight,
+            image: property.image ?? (property.images?.length ? property.images[0] : null),
+          }])
+        )
+      } catch {
+        propertyIndex = new Map()
+      }
+
+      const enriched = await Promise.all(data.map(async (b) => {
+        let prop = propertyIndex.get(String(b.listingId))
+        if (!prop) {
+          try {
+            const p = await propertyService.getById(b.listingId)
+            prop = { ...p, price: p.price ?? p.pricePerNight, image: p.image ?? (p.images?.length ? p.images[0] : null) }
+          } catch { /* ignore */ }
+        }
+        const nights = Math.max(1, Math.round((new Date(b.checkOutDate) - new Date(b.checkInDate)) / 86400000))
+        return {
+          id: b.id,
+          propertyId: b.listingId,
+          propertyTitle: b.listingTitle || prop?.title || 'Propriété',
+          propertyImage: b.listingImage || prop?.image || '',
+          location: b.listingLocation || prop?.location || '',
+          tenant: { name: `Locataire #${b.guestId}`, avatar: `https://i.pravatar.cc/40?u=${b.guestId}`, email: '' },
+          checkIn: b.checkInDate,
+          checkOut: b.checkOutDate,
+          guests: b.guests ?? 1,
+          totalPrice: Number(b.totalPrice ?? (prop?.price || 0) * nights),
+          status: (b.status || '').toLowerCase(),
+          createdAt: b.createdAt || b.checkInDate,
+          message: '',
+        }
+      }))
+      setBookings(enriched)
+    } catch {
+      if (active) {
+        setBookings([])
+        setActionError('Impossible de charger les réservations.')
+      }
+    } finally {
+      if (active) setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!user) return
     let active = true
-    setLoading(true)
-    bookingService.getOwnerBookings()
-      .then(async (data) => {
-        if (!active) return
-        const enriched = await Promise.all(data.map(async (b) => {
-          let prop = PROPERTIES.find(p => String(p.id) === String(b.listingId))
-          if (!prop) {
-            try {
-              const p = await propertyService.getById(b.listingId)
-              prop = { ...p, price: p.price ?? p.pricePerNight, image: p.image ?? (p.images?.length ? p.images[0] : null) }
-            } catch { /* ignore */ }
-          }
-          const nights = Math.max(1, Math.round((new Date(b.checkOutDate) - new Date(b.checkInDate)) / 86400000))
-          return {
-            id: b.id,
-            propertyId: b.listingId,
-            propertyTitle: prop?.title || 'Propriété',
-            propertyImage: prop?.image || '',
-            location: prop?.location || '',
-            tenant: { name: `Locataire #${b.guestId}`, avatar: `https://i.pravatar.cc/40?u=${b.guestId}`, email: '' },
-            checkIn: b.checkInDate,
-            checkOut: b.checkOutDate,
-            guests: 1,
-            totalPrice: (prop?.price || 0) * nights,
-            status: (b.status || '').toLowerCase(),
-            createdAt: b.checkInDate,
-            message: '',
-          }
-        }))
-        setBookings(enriched)
-      })
-      .catch(() => setBookings([]))
-      .finally(() => { if (active) setLoading(false) })
+    loadBookings(active)
     return () => { active = false }
   }, [user])
 
@@ -77,14 +103,20 @@ export default function HostBookingsPage({ user }) {
     return <Navigate to="/profile" replace />
   }
 
-  const save = (updated) => {
-    setBookings(updated)
-  }
-
-  const updateStatus = (id, newStatus) => {
-    bookingService.updateStatus(id, { status: newStatus.toUpperCase() })
-      .then(() => save(bookings.map(b => b.id === id ? { ...b, status: newStatus } : b)))
-      .catch(() => {})
+  const updateStatus = async (id, newStatus) => {
+    if (updatingId) return
+    setActionError('')
+    setUpdatingId(id)
+    try {
+      const updated = await bookingService.updateStatus(id, { status: newStatus.toUpperCase() })
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: String(updated.status || newStatus).toLowerCase() } : b))
+      await loadBookings(true)
+    } catch (error) {
+      const apiMessage = error?.response?.data?.message || error?.message
+      setActionError(apiMessage || 'Action impossible pour cette réservation.')
+    } finally {
+      setUpdatingId(null)
+    }
   }
 
   const filtered = bookings
@@ -168,6 +200,12 @@ export default function HostBookingsPage({ user }) {
             />
           </div>
         </div>
+
+        {actionError && (
+          <div className="mb-4 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-600">
+            {actionError}
+          </div>
+        )}
 
         {/* Booking cards */}
         {filtered.length === 0 ? (
@@ -289,16 +327,20 @@ export default function HostBookingsPage({ user }) {
                               <div className="flex gap-3 pt-1">
                                 <button
                                   onClick={() => updateStatus(b.id, 'confirmed')}
+                                  disabled={updatingId === b.id}
                                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                                             bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition text-sm"
+                                             bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition text-sm
+                                             disabled:opacity-60"
                                 >
                                   <CheckCircle2 className="w-4 h-4" />
-                                  Accepter
+                                  {updatingId === b.id ? 'Mise à jour…' : 'Accepter'}
                                 </button>
                                 <button
                                   onClick={() => updateStatus(b.id, 'rejected')}
+                                  disabled={updatingId === b.id}
                                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                                             border-2 border-red-200 text-red-500 font-semibold hover:bg-red-50 transition text-sm"
+                                             border-2 border-red-200 text-red-500 font-semibold hover:bg-red-50 transition text-sm
+                                             disabled:opacity-60"
                                 >
                                   <XCircle className="w-4 h-4" />
                                   Refuser
@@ -309,16 +351,20 @@ export default function HostBookingsPage({ user }) {
                               <div className="flex gap-3 pt-1">
                                 <button
                                   onClick={() => updateStatus(b.id, 'completed')}
+                                  disabled={updatingId === b.id}
                                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                                             bg-blue-500 text-white font-semibold hover:bg-blue-600 transition text-sm"
+                                             bg-blue-500 text-white font-semibold hover:bg-blue-600 transition text-sm
+                                             disabled:opacity-60"
                                 >
                                   <CalendarCheck className="w-4 h-4" />
                                   Marquer terminée
                                 </button>
                                 <button
                                   onClick={() => updateStatus(b.id, 'cancelled')}
+                                  disabled={updatingId === b.id}
                                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                                             border-2 border-primary-200 text-primary-600 font-semibold hover:bg-primary-50 transition text-sm"
+                                             border-2 border-primary-200 text-primary-600 font-semibold hover:bg-primary-50 transition text-sm
+                                             disabled:opacity-60"
                                 >
                                   <XCircle className="w-4 h-4" />
                                   Annuler

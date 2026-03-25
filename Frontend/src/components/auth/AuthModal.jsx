@@ -4,7 +4,6 @@ import {
   X, Eye, EyeOff, Mail, Lock, User, Phone,
   Building2, Home, ArrowRight, CheckCircle2, Loader2
 } from 'lucide-react'
-import { DEMO_MODE, DEMO_CREDENTIALS } from '../../config/demo'
 
 // ── Left panel quotes ─────────────────────────────────────────
 const QUOTES = [
@@ -30,6 +29,7 @@ const ROLE_STORAGE_KEY = 'userRole'
 const mapRole = (role) => {
   if (role === 'HOST') return 'PROPRIETOR'
   if (role === 'GUEST') return 'TENANT'
+  if (role === 'PROPRIETAIRE') return 'PROPRIETOR'
   return role || 'TENANT'
 }
 
@@ -177,34 +177,23 @@ function LoginForm({ onSwitch, onClose, onSuccess }) {
     setSubmitError('')
     setLoading(true)
     try {
-      let authResponse
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      })
 
-      if (DEMO_MODE) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        authResponse = {
-          token: DEMO_CREDENTIALS.token,
-          role: DEMO_CREDENTIALS.user.role,
-          user: DEMO_CREDENTIALS.user,
-        }
-      } else {
-        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            password,
-          }),
-        })
-
-        if (!response.ok) {
-          const message = await getErrorMessage(response, 'Compte introuvable ou mot de passe invalide.')
-          throw new Error(message)
-        }
-
-        authResponse = await response.json()
+      if (!response.ok) {
+        const message = await getErrorMessage(response, 'Compte introuvable ou mot de passe invalide.')
+        throw new Error(message)
       }
+
+      const authResponse = await response.json()
 
       persistSession(authResponse)
 
@@ -354,41 +343,25 @@ function RegisterForm({ onSwitch, onClose, onSuccess }) {
     setLoading(true)
     try {
       const backendRole = role === 'PROPRIETAIRE' ? 'HOST' : 'GUEST'
-      let authResponse
-
-      if (DEMO_MODE) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        authResponse = {
-          token: DEMO_CREDENTIALS.token,
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
           role: backendRole,
-          user: {
-            ...DEMO_CREDENTIALS.user,
-            name: name.trim(),
-            email: email.trim().toLowerCase(),
-            role: backendRole,
-          },
-        }
-      } else {
-        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fullName: name.trim(),
-            email: email.trim().toLowerCase(),
-            password,
-            role: backendRole,
-          }),
-        })
+        }),
+      })
 
-        if (!response.ok) {
-          const message = await getErrorMessage(response, 'Impossible de creer ce compte.')
-          throw new Error(message)
-        }
-
-        authResponse = await response.json()
+      if (!response.ok) {
+        const message = await getErrorMessage(response, 'Impossible de creer ce compte.')
+        throw new Error(message)
       }
+
+      const authResponse = await response.json()
 
       persistSession(authResponse)
 

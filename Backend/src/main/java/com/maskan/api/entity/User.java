@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -47,6 +48,9 @@ public class User {
 
     @Builder.Default
     private Boolean banned = Boolean.FALSE;
+
+    @Builder.Default
+    private List<String> wishlistListingIds = List.of();
 
     public String getName() {
         return name;

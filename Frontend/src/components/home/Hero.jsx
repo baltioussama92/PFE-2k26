@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion'
 import { Star, Shield, TrendingUp, ChevronDown } from 'lucide-react'
 import SearchBar from './SearchBar'
-import { STATS } from '../../data/mockData'
+import { propertyService } from '../../services/propertyService'
 
 // -- Floating badge helper ------------------------------------
 function FloatingBadge({ className, icon: Icon, label, sub }) {
@@ -44,6 +44,40 @@ const itemVar = {
 
 export default function Hero({ onSearch }) {
   const [bg, setBg] = useState(0)
+  const [stats, setStats] = useState([
+    { label: 'Propriétés listées', value: '0' },
+    { label: 'Villes couvertes', value: '0' },
+    { label: 'Disponibles', value: '0' },
+    { label: 'Prix moyen', value: '0 TND' },
+  ])
+
+  React.useEffect(() => {
+    let active = true
+    propertyService.list()
+      .then((data) => {
+        if (!active) return
+        const prices = data
+          .map((p) => Number(p.price ?? p.pricePerNight ?? 0))
+          .filter((value) => Number.isFinite(value) && value > 0)
+        const avgPrice = prices.length
+          ? Math.round(prices.reduce((sum, value) => sum + value, 0) / prices.length)
+          : 0
+        const cityCount = new Set(data.map((p) => p.location).filter(Boolean)).size
+        const availableCount = data.filter((p) => p.available !== false).length
+
+        setStats([
+          { label: 'Propriétés listées', value: String(data.length) },
+          { label: 'Villes couvertes', value: String(cityCount) },
+          { label: 'Disponibles', value: String(availableCount) },
+          { label: 'Prix moyen', value: `${avgPrice.toLocaleString('fr-TN')} TND` },
+        ])
+      })
+      .catch(() => {})
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden">
@@ -172,7 +206,7 @@ export default function Hero({ onSearch }) {
           transition={{ delay: 1.0, duration: 0.7 }}
           className="relative z-10 mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto"
         >
-          {STATS.map(({ label, value }) => (
+          {stats.map(({ label, value }) => (
             <div key={label} className="rounded-2xl border border-primary-200/10 bg-primary-900/45 px-5 py-4 text-center backdrop-blur-xl">
               <p className="text-2xl font-extrabold text-primary-50 leading-none">{value}</p>
               <p className="text-xs text-primary-50/50 mt-1 font-medium">{label}</p>

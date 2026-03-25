@@ -99,7 +99,7 @@ export interface PropertyQuery {
 }
 
 // ── Bookings ─────────────────────────────────────────────────
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED'
+export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REJECTED' | 'COMPLETED'
 
 export interface BookingRequest {
   listingId: string
@@ -114,6 +114,12 @@ export interface BookingResponse {
   checkInDate: string
   checkOutDate: string
   status: BookingStatus
+  guests?: number
+  totalPrice?: number
+  createdAt?: string
+  listingTitle?: string
+  listingLocation?: string
+  listingImage?: string
 }
 
 export interface BookingStatusUpdateRequest {

@@ -6,7 +6,6 @@ import {
   Wifi, Car, Waves, Shield, TreePine, Wind, ChefHat, Building,
   CalendarDays, Users, X, Check, Loader2, ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import { PROPERTIES } from '../data/mockData'
 import { propertyService } from '../services/propertyService'
 import { bookingService } from '../services/bookingService'
 
@@ -330,9 +329,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
       })
       .catch(() => {
         if (!active) return
-        // Fallback to mock data
-        const mock = PROPERTIES.find(p => String(p.id) === String(id))
-        setProperty(mock || null)
+        setProperty(null)
       })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }

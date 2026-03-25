@@ -5,28 +5,7 @@ import {
   Heart, Trash2, MapPin, Star, Bed, Bath, Maximize2,
   Search, SlidersHorizontal, X,
 } from 'lucide-react'
-import { PROPERTIES } from '../data/mockData'
-
-const STORAGE_KEY = 'maskan_wishlist'
-
-// ── helpers ──────────────────────────────────────────────────
-function getWishlist() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []
-  } catch {
-    return []
-  }
-}
-function saveWishlist(ids) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ids))
-}
-
-// Seed demo wishlist on first visit
-function ensureDemoWishlist() {
-  if (!localStorage.getItem(STORAGE_KEY)) {
-    saveWishlist([1, 2, 4, 6])
-  }
-}
+import { wishlistService } from '../services/wishlistService'
 
 // ── Sort options ─────────────────────────────────────────────
 const SORT_OPTIONS = [
@@ -38,44 +17,69 @@ const SORT_OPTIONS = [
 
 // ── Component ────────────────────────────────────────────────
 export default function WishlistPage({ user }) {
-  const [ids,    setIds]    = useState(() => { ensureDemoWishlist(); return getWishlist() })
   const [sort,   setSort]   = useState('date')
   const [search, setSearch] = useState('')
   const [removing, setRemoving] = useState(null)
+  const [items, setItems] = useState([])
+
+  useEffect(() => {
+    let active = true
+
+    wishlistService.list()
+      .then((data) => {
+        if (!active) return
+        setItems(data.map((property) => ({
+          ...property,
+          price: property.price ?? property.pricePerNight,
+          image: property.image ?? (property.images?.length ? property.images[0] : null),
+          period: property.period || (property.pricePerNight != null ? 'nuit' : 'mois'),
+        })))
+      })
+      .catch(() => {
+        if (!active) return
+        setItems([])
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   if (!user) return <Navigate to="/" replace />
 
   const handleRemove = (id) => {
     setRemoving(id)
-    setTimeout(() => {
-      const next = ids.filter(i => i !== id)
-      setIds(next)
-      saveWishlist(next)
-      setRemoving(null)
-    }, 300)
+    wishlistService.remove(id)
+      .then((data) => {
+        setItems(data.map((property) => ({
+          ...property,
+          price: property.price ?? property.pricePerNight,
+          image: property.image ?? (property.images?.length ? property.images[0] : null),
+          period: property.period || (property.pricePerNight != null ? 'nuit' : 'mois'),
+        })))
+      })
+      .catch(() => {})
+      .finally(() => setTimeout(() => setRemoving(null), 300))
   }
 
-  // Resolve property objects
-  let items = ids
-    .map(id => PROPERTIES.find(p => p.id === id))
-    .filter(Boolean)
+  let filteredItems = [...items]
 
   // Search
   if (search.trim()) {
     const q = search.toLowerCase()
-    items = items.filter(p =>
-      p.title.toLowerCase().includes(q) ||
-      p.location.toLowerCase().includes(q) ||
-      p.type.toLowerCase().includes(q)
+    filteredItems = filteredItems.filter(p =>
+      (p.title || '').toLowerCase().includes(q) ||
+      (p.location || '').toLowerCase().includes(q) ||
+      (p.type || '').toLowerCase().includes(q)
     )
   }
 
   // Sort
-  if (sort === 'price-asc')  items.sort((a, b) => a.price - b.price)
-  if (sort === 'price-desc') items.sort((a, b) => b.price - a.price)
-  if (sort === 'rating')     items.sort((a, b) => b.rating - a.rating)
+  if (sort === 'price-asc')  filteredItems.sort((a, b) => (a.price || 0) - (b.price || 0))
+  if (sort === 'price-desc') filteredItems.sort((a, b) => (b.price || 0) - (a.price || 0))
+  if (sort === 'rating')     filteredItems.sort((a, b) => (b.rating || 0) - (a.rating || 0))
 
-  const totalValue = items.reduce((s, p) => s + p.price, 0)
+  const totalValue = filteredItems.reduce((s, p) => s + (p.price || 0), 0)
 
   return (
     <section className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
@@ -94,7 +98,7 @@ export default function WishlistPage({ user }) {
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-primary-900">Mes Favoris</h1>
               <p className="text-sm text-primary-500">
-                {ids.length} {ids.length > 1 ? 'propriétés sauvegardées' : 'propriété sauvegardée'}
+                {items.length} {items.length > 1 ? 'propriétés sauvegardées' : 'propriété sauvegardée'}
               </p>
             </div>
           </div>
@@ -141,7 +145,7 @@ export default function WishlistPage({ user }) {
         </motion.div>
 
         {/* ── Empty state ───────────────────────────────────── */}
-        {items.length === 0 && (
+        {filteredItems.length === 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -170,11 +174,11 @@ export default function WishlistPage({ user }) {
         )}
 
         {/* ── Grid ──────────────────────────────────────────── */}
-        {items.length > 0 && (
+        {filteredItems.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               <AnimatePresence mode="popLayout">
-                {items.map((p, i) => (
+                {filteredItems.map((p, i) => (
                   <motion.div
                     key={p.id}
                     layout
@@ -197,7 +201,7 @@ export default function WishlistPage({ user }) {
               className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-primary-100 border border-primary-200 p-4 sm:px-6"
             >
               <p className="text-sm text-primary-600">
-                <span className="font-bold text-primary-800">{items.length}</span> propriété{items.length > 1 ? 's' : ''} • Valeur totale&nbsp;
+                <span className="font-bold text-primary-800">{filteredItems.length}</span> propriété{filteredItems.length > 1 ? 's' : ''} • Valeur totale&nbsp;
                 <span className="font-bold text-primary-800">{totalValue.toLocaleString('fr-TN')} TND</span>/mois
               </p>
               <Link
