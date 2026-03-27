@@ -209,25 +209,47 @@ function LoginForm({ onSwitch, onClose, onSuccess }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <div>
-        <h2 className="text-2xl font-extrabold text-primary-900">Bon retour ! 👋</h2>
-        <p className="text-sm text-primary-500 mt-1">Connectez-vous à votre compte Maskan</p>
-      </div>
+    <motion.form 
+      onSubmit={handleSubmit} 
+      className="flex flex-col gap-5"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+      >
+        <h2 className="text-3xl font-extrabold text-primary-900">Bon retour ! 👋</h2>
+        <p className="text-sm text-primary-500 mt-2">Connectez-vous à votre compte Maskan</p>
+      </motion.div>
 
-      <Field
-        label="Adresse email" icon={Mail}
-        placeholder="vous@exemple.com" value={email}
-        onChange={setEmail} error={errors.email}
-      />
-      <Field
-        label="Mot de passe" icon={Lock} type={showPwd ? 'text' : 'password'}
-        placeholder="Votre mot de passe" value={password}
-        onChange={setPassword} error={errors.password}
-        toggle={() => setShowPwd((v) => !v)}
-      />
+      <motion.div
+        className="space-y-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
+      >
+        <Field
+          label="Adresse email" icon={Mail}
+          placeholder="vous@exemple.com" value={email}
+          onChange={setEmail} error={errors.email}
+        />
+        <Field
+          label="Mot de passe" icon={Lock} type={showPwd ? 'text' : 'password'}
+          placeholder="Votre mot de passe" value={password}
+          onChange={setPassword} error={errors.password}
+          toggle={() => setShowPwd((v) => !v)}
+        />
+      </motion.div>
 
-      <div className="flex items-center justify-between">
+      <motion.div 
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
+      >
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" className="w-3.5 h-3.5 rounded text-primary-500 accent-primary-500" />
           <span className="text-xs text-primary-700">Se souvenir de moi</span>
@@ -235,17 +257,20 @@ function LoginForm({ onSwitch, onClose, onSuccess }) {
         <button type="button" className="text-xs font-semibold text-primary-600 hover:underline">
           Mot de passe oublié ?
         </button>
-      </div>
+      </motion.div>
 
       <motion.button
         type="submit"
         whileHover={!loading && !success ? { scale: 1.02, boxShadow: '0 10px 28px rgba(164,131,116,0.35)' } : {}}
         whileTap={!loading && !success ? { scale: 0.98 } : {}}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25, duration: 0.4 }}
         className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold text-sm text-primary-50
                     transition-all duration-200 ${
                       success
                         ? 'bg-primary-500'
-                        : 'bg-gradient-to-r from-primary-500 to-primary-600 shadow-md'
+                        : 'bg-gradient-to-r from-primary-500 to-primary-600 shadow-md hover:shadow-lg'
                     }`}
       >
         {loading  ? <Loader2 className="w-4 h-4 animate-spin" /> :
@@ -255,18 +280,34 @@ function LoginForm({ onSwitch, onClose, onSuccess }) {
       </motion.button>
 
       {submitError && (
-        <p className="text-xs text-red-500 font-semibold text-center">{submitError}</p>
+        <motion.p 
+          className="text-xs text-red-500 font-semibold text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {submitError}
+        </motion.p>
       )}
 
       {/* Divider */}
-      <div className="flex items-center gap-3">
+      <motion.div 
+        className="flex items-center gap-3"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.4 }}
+      >
         <div className="flex-1 h-px bg-primary-200" />
         <span className="text-xs text-primary-400 font-medium">Ou continuer avec</span>
         <div className="flex-1 h-px bg-primary-200" />
-      </div>
+      </motion.div>
 
       {/* OAuth buttons */}
-      <div className="grid grid-cols-2 gap-3">
+      <motion.div 
+        className="grid grid-cols-2 gap-3"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.4 }}
+      >
         {['Google', 'Facebook'].map((provider) => (
           <motion.button
             key={provider}
@@ -292,19 +333,24 @@ function LoginForm({ onSwitch, onClose, onSuccess }) {
             {provider}
           </motion.button>
         ))}
-      </div>
+      </motion.div>
 
-      <p className="text-center text-xs text-primary-500">
+      <motion.p 
+        className="text-center text-xs text-primary-500"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
+      >
         Pas encore de compte ?{' '}
         <button
           type="button"
           onClick={onSwitch}
-          className="font-bold text-primary-600 hover:underline"
+          className="font-bold text-primary-600 hover:underline transition-colors"
         >
           S'inscrire gratuitement
         </button>
-      </p>
-    </form>
+      </motion.p>
+    </motion.form>
   )
 }
 
@@ -377,15 +423,36 @@ function RegisterForm({ onSwitch, onClose, onSuccess }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-2xl font-extrabold text-primary-900">Créez votre compte 🏠</h2>
-        <p className="text-sm text-primary-500 mt-1">Rejoignez des milliers d'utilisateurs sur Maskan</p>
-      </div>
+    <motion.form 
+      onSubmit={handleSubmit} 
+      className="flex flex-col gap-5"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.4 }}
+      >
+        <h2 className="text-3xl font-extrabold text-primary-900">Créez votre compte 🏠</h2>
+        <p className="text-sm text-primary-500 mt-2">Rejoignez des milliers d'utilisateurs sur Maskan</p>
+      </motion.div>
 
-      <RoleSelector role={role} setRole={setRole} />
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.4 }}
+      >
+        <RoleSelector role={role} setRole={setRole} />
+      </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <motion.div 
+        className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
+      >
         <Field
           label="Nom complet" icon={User}
           placeholder="Mohamed Ben Ali" value={name}
@@ -396,54 +463,79 @@ function RegisterForm({ onSwitch, onClose, onSuccess }) {
           placeholder="+216 XX XXX XXX" value={phone}
           onChange={setPhone}
         />
-      </div>
+      </motion.div>
 
-      <Field
-        label="Adresse email" icon={Mail}
-        placeholder="vous@exemple.com" value={email}
-        onChange={setEmail} error={errors.email}
-      />
-      <Field
-        label="Mot de passe" icon={Lock} type={showPwd ? 'text' : 'password'}
-        placeholder="Min. 8 caractères" value={password}
-        onChange={setPassword} error={errors.password}
-        toggle={() => setShowPwd((v) => !v)}
-      />
-      <Field
-        label="Confirmer le mot de passe" icon={Lock} type={showPwd ? 'text' : 'password'}
-        placeholder="Répétez le mot de passe" value={confirm}
-        onChange={setConfirm} error={errors.confirm}
-      />
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25, duration: 0.4 }}
+      >
+        <Field
+          label="Adresse email" icon={Mail}
+          placeholder="vous@exemple.com" value={email}
+          onChange={setEmail} error={errors.email}
+        />
+      </motion.div>
+
+      <motion.div
+        className="space-y-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.4 }}
+      >
+        <Field
+          label="Mot de passe" icon={Lock} type={showPwd ? 'text' : 'password'}
+          placeholder="Min. 8 caractères" value={password}
+          onChange={setPassword} error={errors.password}
+          toggle={() => setShowPwd((v) => !v)}
+        />
+        <Field
+          label="Confirmer le mot de passe" icon={Lock} type={showPwd ? 'text' : 'password'}
+          placeholder="Répétez le mot de passe" value={confirm}
+          onChange={setConfirm} error={errors.confirm}
+        />
+      </motion.div>
 
       {/* Password strength */}
-      {password.length > 0 && (
-        <div className="flex gap-1.5 mt-0.5">
-          {[0,1,2,3].map((i) => {
-            const strength =
-              password.length >= 12 ? 4 :
-              password.length >= 8  ? 3 :
-              password.length >= 6  ? 2 : 1
-            return (
-              <motion.div
-                key={i}
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                className={`flex-1 h-1 rounded-full ${
-                  i < strength
-                    ? strength <= 1 ? 'bg-red-400'
-                    : strength <= 2 ? 'bg-amber-400'
-                    : strength <= 3 ? 'bg-primary-400'
-                    :                 'bg-primary-500'
-                    : 'bg-primary-200'
-                }`}
-              />
-            )
-          })}
-        </div>
-      )}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.35, duration: 0.4 }}
+      >
+        {password.length > 0 && (
+          <div className="flex gap-1.5 mt-2">
+            {[0,1,2,3].map((i) => {
+              const strength =
+                password.length >= 12 ? 4 :
+                password.length >= 8  ? 3 :
+                password.length >= 6  ? 2 : 1
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  className={`flex-1 h-1.5 rounded-full ${
+                    i < strength
+                      ? strength <= 1 ? 'bg-red-400'
+                      : strength <= 2 ? 'bg-amber-400'
+                      : strength <= 3 ? 'bg-emerald-400'
+                      :                 'bg-emerald-500'
+                      : 'bg-primary-200'
+                  }`}
+                />
+              )
+            })}
+          </div>
+        )}
+      </motion.div>
 
       {/* Terms */}
-      <label className="flex items-start gap-2 cursor-pointer group">
+      <motion.label 
+        className="flex items-start gap-2 cursor-pointer group"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
+      >
         <input
           type="checkbox"
           checked={agreed}
@@ -460,17 +552,20 @@ function RegisterForm({ onSwitch, onClose, onSuccess }) {
             politique de confidentialité
           </a>
         </span>
-      </label>
+      </motion.label>
 
       <motion.button
         type="submit"
         whileHover={!loading && !success ? { scale: 1.02, boxShadow: '0 10px 28px rgba(164,131,116,0.35)' } : {}}
         whileTap={!loading && !success ? { scale: 0.98 } : {}}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45, duration: 0.4 }}
         className={`flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold text-sm text-primary-50
                     transition-all duration-200 ${
                       success
                         ? 'bg-primary-500'
-                        : 'bg-gradient-to-r from-primary-500 to-primary-600 shadow-md'
+                        : 'bg-gradient-to-r from-primary-500 to-primary-600 shadow-md hover:shadow-lg'
                     }`}
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> :
@@ -480,20 +575,31 @@ function RegisterForm({ onSwitch, onClose, onSuccess }) {
       </motion.button>
 
       {submitError && (
-        <p className="text-xs text-red-500 font-semibold text-center">{submitError}</p>
+        <motion.p 
+          className="text-xs text-red-500 font-semibold text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {submitError}
+        </motion.p>
       )}
 
-      <p className="text-center text-xs text-primary-500">
+      <motion.p 
+        className="text-center text-xs text-primary-500"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.4 }}
+      >
         Déjà un compte ?{' '}
         <button
           type="button"
           onClick={onSwitch}
-          className="font-bold text-primary-600 hover:underline"
+          className="font-bold text-primary-600 hover:underline transition-colors"
         >
           Se connecter
         </button>
-      </p>
-    </form>
+      </motion.p>
+    </motion.form>
   )
 }
 
@@ -522,12 +628,14 @@ function LeftPanel({ quoteIdx }) {
       <div className="absolute inset-0 bg-auth-gradient opacity-50" />
 
       {/* Logo */}
-      <div className="absolute top-8 left-8 flex items-center gap-2">
-        <div className="w-9 h-9 bg-primary-50/20 backdrop-blur rounded-xl flex items-center justify-center">
-          <Building2 className="w-5 h-5 text-primary-50" strokeWidth={2.5} />
-        </div>
-        <span className="text-xl font-bold text-primary-50">Maskan</span>
+      <div className="absolute top-8 left-8">
+        <img 
+          src="/maskan no name logo.png" 
+          alt="Maskan Logo"
+          className="h-10 object-contain drop-shadow-lg"
+        />
       </div>
+  
 
       {/* Trust pills */}
       <div className="absolute top-8 right-8 flex flex-col gap-2">
@@ -569,9 +677,9 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
   const switchToRegister = () => setMode('register')
 
   const formVariants = {
-    enter: (dir) => ({ opacity: 0, x: dir > 0 ? 40 : -40 }),
-    center:       ({ opacity: 1, x: 0,  transition: { duration: 0.4, ease: [0.22,1,0.36,1] } }),
-    exit:  (dir) => ({ opacity: 0, x: dir > 0 ? -40 : 40, transition: { duration: 0.28 } }),
+    enter: (dir) => ({ opacity: 0, x: dir > 0 ? 400 : -400 }),
+    center: { opacity: 1, x: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } },
+    exit: (dir) => ({ opacity: 0, x: dir > 0 ? -400 : 400, transition: { duration: 0.25 } }),
   }
 
   const dir = mode === 'login' ? -1 : 1
@@ -593,64 +701,90 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
         animate={{ opacity: 1, scale: 1,    y: 0  }}
         exit  ={{ opacity: 0, scale: 0.93,  y: 16 }}
         transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-4xl bg-primary-100 rounded-3xl shadow-2xl overflow-hidden
-                   grid grid-cols-1 lg:grid-cols-2 max-h-[95vh]"
+        className="relative w-full max-w-5xl bg-primary-100 rounded-3xl shadow-2xl overflow-hidden
+                   max-h-[95vh]"
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-primary-100
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-primary-100/80
                      flex items-center justify-center text-primary-500 hover:bg-primary-200
                      transition-colors duration-150"
         >
           <X className="w-4 h-4" />
         </button>
 
-        {/* Left — Visual panel */}
-        <LeftPanel quoteIdx={mode === 'login' ? 0 : 1} />
-
-        {/* Right — Form panel */}
-        <div className="relative overflow-hidden flex flex-col justify-center
-                        px-8 py-10 sm:px-10 bg-primary-100 max-h-[95vh] overflow-y-auto">
-
-          {/* Ambient orb */}
-          <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary-100 rounded-full blur-3xl pointer-events-none opacity-50" />
-          <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-primary-100 rounded-full blur-3xl pointer-events-none opacity-40" />
-
-          {/* Form swap animation */}
-          <AnimatePresence mode="wait" custom={dir}>
+        {/* Container with responsive layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 h-full max-h-[95vh]">
+          {/* Left panel - Image on login, Form on register */}
+          <motion.div
+            key={mode === 'login' ? 'image' : 'form-left'}
+            initial={{ opacity: 0, x: mode === 'login' ? -400 : 400 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: mode === 'login' ? 400 : -400 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
             {mode === 'login' ? (
-              <motion.div
-                key="login"
-                custom={dir}
-                variants={formVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-              >
-                <LoginForm
-                  onSwitch={switchToRegister}
-                  onSuccess={onSuccess}
-                  onClose={onClose}
-                />
-              </motion.div>
+              <LeftPanel quoteIdx={0} />
             ) : (
-              <motion.div
-                key="register"
-                custom={dir}
-                variants={formVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-              >
-                <RegisterForm
-                  onSwitch={switchToLogin}
-                  onSuccess={onSuccess}
-                  onClose={onClose}
-                />
-              </motion.div>
+              <div className="relative overflow-hidden flex flex-col justify-center
+                              px-8 py-10 sm:px-10 bg-primary-100 min-h-[480px] lg:min-h-full">
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary-100 rounded-full blur-3xl pointer-events-none opacity-50" />
+                <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-primary-100 rounded-full blur-3xl pointer-events-none opacity-40" />
+                <AnimatePresence mode="wait" custom={dir}>
+                  <motion.div
+                    key="register"
+                    custom={dir}
+                    variants={formVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                  >
+                    <RegisterForm
+                      onSwitch={switchToLogin}
+                      onSuccess={onSuccess}
+                      onClose={onClose}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             )}
-          </AnimatePresence>
+          </motion.div>
+
+          {/* Right panel - Form on login, Image on register */}
+          <motion.div
+            key={mode === 'login' ? 'form-right' : 'image'}
+            initial={{ opacity: 0, x: mode === 'login' ? 400 : -400 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: mode === 'login' ? -400 : 400 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {mode === 'login' ? (
+              <div className="relative overflow-hidden flex flex-col justify-center
+                              px-8 py-10 sm:px-10 bg-primary-100 min-h-[480px] lg:min-h-full max-h-[95vh] overflow-y-auto">
+                <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary-100 rounded-full blur-3xl pointer-events-none opacity-50" />
+                <div className="absolute -bottom-20 -left-10 w-48 h-48 bg-primary-100 rounded-full blur-3xl pointer-events-none opacity-40" />
+                <AnimatePresence mode="wait" custom={dir}>
+                  <motion.div
+                    key="login"
+                    custom={dir}
+                    variants={formVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                  >
+                    <LoginForm
+                      onSwitch={switchToRegister}
+                      onSuccess={onSuccess}
+                      onClose={onClose}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            ) : (
+              <LeftPanel quoteIdx={1} />
+            )}
+          </motion.div>
         </div>
       </motion.div>
     </motion.div>
