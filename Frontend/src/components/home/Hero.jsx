@@ -1,4 +1,5 @@
 ﻿import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, Shield, TrendingUp, ChevronDown } from 'lucide-react'
 import SearchBar from './SearchBar'
@@ -43,7 +44,9 @@ const itemVar = {
 }
 
 export default function Hero({ onSearch }) {
+  const navigate = useNavigate()
   const [bg, setBg] = useState(0)
+  const [popularCities, setPopularCities] = useState([])
   const [stats, setStats] = useState([
     { label: 'Propriétés listées', value: '0' },
     { label: 'Villes couvertes', value: '0' },
@@ -71,6 +74,19 @@ export default function Hero({ onSearch }) {
           { label: 'Disponibles', value: String(availableCount) },
           { label: 'Prix moyen', value: `${avgPrice.toLocaleString('fr-TN')} TND` },
         ])
+
+        // Get popular cities (top 5 by property count)
+        const cityCounts = {}
+        data.forEach((p) => {
+          if (p.location) {
+            cityCounts[p.location] = (cityCounts[p.location] || 0) + 1
+          }
+        })
+        const topCities = Object.entries(cityCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([city]) => city)
+        setPopularCities(topCities)
       })
       .catch(() => {})
 
@@ -177,17 +193,25 @@ export default function Hero({ onSearch }) {
 
           {/* Search Bar */}
           <motion.div variants={itemVar} className="relative z-30 w-full flex justify-center">
-            <SearchBar onSearch={onSearch} />
+            <SearchBar onSearch={(params) => {
+              const query = new URLSearchParams()
+              if (params.location) query.set('location', params.location)
+              if (params.checkIn) query.set('checkIn', params.checkIn)
+              if (params.checkOut) query.set('checkOut', params.checkOut)
+              if (params.guests) query.set('guests', String(params.guests))
+              navigate(`/explorer?${query.toString()}`)
+            }} />
           </motion.div>
 
           {/* Popular Searches */}
           <motion.div variants={itemVar} className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-primary-50/50 text-xs font-medium mr-1">Populaire :</span>
-            {['Tunis', 'Hammamet', 'La Marsa', 'Djerba', 'Sfax'].map((city) => (
+            {(popularCities.length > 0 ? popularCities : ['Tunis', 'Hammamet', 'La Marsa', 'Djerba', 'Sfax']).map((city) => (
               <motion.button
                 key={city}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.96 }}
+                onClick={() => navigate(`/explorer?location=${encodeURIComponent(city)}`)}
                 className="px-3.5 py-1.5 rounded-full text-xs font-medium
                            bg-primary-50/10 backdrop-blur-sm border border-primary-200/20
                            text-primary-50/80 hover:bg-primary-50/20 hover:text-primary-50

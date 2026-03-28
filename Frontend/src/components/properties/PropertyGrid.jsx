@@ -35,7 +35,7 @@ const normalizeProperty = (p) => ({
   period: p.period || (p.pricePerNight != null ? 'nuit' : 'mois'),
 })
 
-export default function PropertyGrid({ title = 'Propriétés en vedette', searchResult = null }) {
+export default function PropertyGrid({ title = 'Propriétés en vedette', searchResult = null, searchFilters = null }) {
   const [sort,    setSort]    = useState('default')
   const [type,    setType]    = useState('Tous')
   const [layout,  setLayout]  = useState('grid') // 'grid' | 'list'
@@ -54,10 +54,45 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
     return () => { active = false }
   }, [])
 
+  // Helper function to check if property matches search filters
+  function matchesSearchFilters(property, filters) {
+    if (!filters) return true
+    
+    if (filters.location) {
+      if (!property.location || !property.location.toLowerCase().includes(filters.location.toLowerCase())) {
+        return false
+      }
+    }
+    
+    if (filters.checkIn && filters.checkOut) {
+      // Check if property is available during the dates
+      const checkInDate = new Date(filters.checkIn)
+      const checkOutDate = new Date(filters.checkOut)
+      
+      // For now, we'll just check if property is marked as available
+      // In a real app, this would check against booked dates
+      if (property.available === false) {
+        return false
+      }
+    }
+    
+    if (filters.guests && property.maxGuests) {
+      if (parseInt(filters.guests) > parseInt(property.maxGuests)) {
+        return false
+      }
+    }
+    
+    return true
+  }
+
   const source   = searchResult ?? apiData ?? []
-  const propertyTypes = ['Tous', ...Array.from(new Set(source.map((p) => p.type).filter(Boolean)))]
-  const filtered = filterProperties(source, type)
-  const sorted   = sortProperties(filtered, sort)
+  const filtered = searchFilters 
+    ? source.filter(p => matchesSearchFilters(p, searchFilters)) 
+    : source
+  
+  const propertyTypes = ['Tous', ...Array.from(new Set(filtered.map((p) => p.type).filter(Boolean)))]
+  const typeFiltered = filterProperties(filtered, type)
+  const sorted   = sortProperties(typeFiltered, sort)
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">

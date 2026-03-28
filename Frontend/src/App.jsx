@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import Layout         from './components/layout/Layout'
 import HomePage       from './pages/HomePage'
@@ -39,11 +39,20 @@ const normalizeUser = (user) => ({
   avatar: user?.avatar || '',
 })
 
-// -- Explorer Page ---------------------------------------------
+// -- Explorer Page with Search -----------------------------------------------
 function ExplorerPage() {
+  const [searchParams] = useSearchParams()
+  const location = searchParams.get('location')
+  const checkIn = searchParams.get('checkIn')
+  const checkOut = searchParams.get('checkOut')
+  const guests = searchParams.get('guests')
+
   return (
     <div className="pt-24">
-      <PropertyGrid title="Explorer toutes les propriétés" />
+      <PropertyGrid 
+        title={location ? `Propriétés à ${location}` : 'Explorer toutes les propriétés'}
+        searchFilters={{ location, checkIn, checkOut, guests: guests ? parseInt(guests) : null }}
+      />
     </div>
   )
 }
