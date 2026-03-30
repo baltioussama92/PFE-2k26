@@ -31,14 +31,14 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    @PreAuthorize("hasRole('GUEST')")
+    @PreAuthorize("hasAnyRole('GUEST','TENANT')")
     public ResponseEntity<BookingResponse> create(@Valid @RequestBody BookingRequest request,
                                                   @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.createBooking(request, principal.getUsername()));
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<BookingResponse> updateStatus(@PathVariable String id,
                                                         @Valid @RequestBody BookingStatusUpdateRequest request,
                                                         @AuthenticationPrincipal UserDetails principal) {
@@ -46,7 +46,7 @@ public class BookingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('GUEST','ADMIN')")
+    @PreAuthorize("hasAnyRole('GUEST','TENANT','ADMIN')")
     public ResponseEntity<Void> cancel(@PathVariable String id,
                                        @AuthenticationPrincipal UserDetails principal) {
         bookingService.cancelBooking(id, principal.getUsername());
@@ -54,13 +54,13 @@ public class BookingController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasRole('GUEST')")
+    @PreAuthorize("hasAnyRole('GUEST','TENANT')")
     public ResponseEntity<List<BookingResponse>> myBookings(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.getMyBookings(principal.getUsername()));
     }
 
     @GetMapping("/owner")
-    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<List<BookingResponse>> ownerBookings(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.getOwnerBookings(principal.getUsername()));
     }

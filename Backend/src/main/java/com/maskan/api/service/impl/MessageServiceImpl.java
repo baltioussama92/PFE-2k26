@@ -2,6 +2,7 @@ package com.maskan.api.service.impl;
 
 import com.maskan.api.dto.MessageRequest;
 import com.maskan.api.dto.MessageResponse;
+import com.maskan.api.dto.ConversationSummaryResponse;
 import com.maskan.api.entity.Message;
 import com.maskan.api.entity.User;
 import com.maskan.api.exception.NotFoundException;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +57,45 @@ public class MessageServiceImpl implements MessageService {
         return messageRepository.findBySenderIdOrderByCreatedAtDesc(user.getId()).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MessageResponse> conversation(String email, String otherUserId) {
+        User user = getUserByEmail(email);
+        return messageRepository
+                .findBySenderIdAndReceiverIdOrReceiverIdAndSenderIdOrderByCreatedAtAsc(
+                        user.getId(),
+                        otherUserId,
+                        user.getId(),
+                        otherUserId
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConversationSummaryResponse> conversations(String email) {
+        User user = getUserByEmail(email);
+        List<Message> messages = messageRepository.findBySenderIdOrReceiverIdOrderByCreatedAtDesc(user.getId(), user.getId());
+
+        Map<String, ConversationSummaryResponse> summaries = new LinkedHashMap<>();
+        for (Message message : messages) {
+            String otherUserId = user.getId().equals(message.getSenderId()) ? message.getReceiverId() : message.getSenderId();
+            if (otherUserId == null || summaries.containsKey(otherUserId)) {
+                continue;
+            }
+
+            summaries.put(otherUserId, ConversationSummaryResponse.builder()
+                    .userId(otherUserId)
+                    .lastMessage(message.getContent())
+                    .lastMessageAt(message.getCreatedAt())
+                    .build());
+        }
+
+        return summaries.values().stream().toList();
     }
 
     private MessageResponse toResponse(Message message) {

@@ -4,6 +4,7 @@ import com.maskan.api.dto.PropertyRequest;
 import com.maskan.api.dto.PropertyResponse;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface PropertyService {
@@ -13,7 +14,15 @@ public interface PropertyService {
     List<PropertyResponse> findAll();
     List<PropertyResponse> findMine(String email);
     PropertyResponse findById(String id);
-    List<PropertyResponse> search(String location, BigDecimal minPrice, BigDecimal maxPrice, Boolean available);
+    List<PropertyResponse> search(String location,
+                                  BigDecimal minPrice,
+                                  BigDecimal maxPrice,
+                                  Boolean available,
+                                  LocalDate checkInDate,
+                                  LocalDate checkOutDate,
+                                  String type,
+                                  Integer bedrooms,
+                                  List<String> amenities);
     List<PropertyResponse> findPendingApproval();
 }
 

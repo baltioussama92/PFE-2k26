@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -40,7 +42,7 @@ public class PropertyController {
     }
 
     @GetMapping("/owner/me")
-    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<List<PropertyResponse>> getMyProperties(@AuthenticationPrincipal UserDetails authenticatedUser) {
         return ResponseEntity.ok(propertyService.findMine(authenticatedUser.getUsername()));
     }
@@ -50,8 +52,48 @@ public class PropertyController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
-            @RequestParam(required = false) Boolean available) {
-        List<PropertyResponse> listings = propertyService.search(location, minPrice, maxPrice, available);
+            @RequestParam(required = false) Boolean available,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer bedrooms,
+            @RequestParam(required = false) List<String> amenities) {
+        List<PropertyResponse> listings = propertyService.search(
+                location,
+                minPrice,
+                maxPrice,
+                available,
+                checkInDate,
+                checkOutDate,
+                type,
+                bedrooms,
+                amenities
+        );
+        return ResponseEntity.ok(listings);
+    }
+
+    @GetMapping("/search/advanced")
+    public ResponseEntity<List<PropertyResponse>> advancedSearchProperties(
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Boolean available,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) Integer bedrooms,
+            @RequestParam(required = false) List<String> amenities) {
+        List<PropertyResponse> listings = propertyService.search(
+                location,
+                minPrice,
+                maxPrice,
+                available,
+                checkInDate,
+                checkOutDate,
+                type,
+                bedrooms,
+                amenities
+        );
         return ResponseEntity.ok(listings);
     }
 
@@ -62,7 +104,7 @@ public class PropertyController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('HOST')")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR')")
     public ResponseEntity<PropertyResponse> createProperty(
             @Valid @RequestBody PropertyRequest request,
             @AuthenticationPrincipal UserDetails authenticatedUser) {
@@ -78,7 +120,7 @@ public class PropertyController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<PropertyResponse> updateProperty(
             @PathVariable String id,
             @Valid @RequestBody PropertyRequest request,
@@ -88,7 +130,7 @@ public class PropertyController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<Void> deleteProperty(
             @PathVariable String id,
             @AuthenticationPrincipal UserDetails authenticatedUser) {

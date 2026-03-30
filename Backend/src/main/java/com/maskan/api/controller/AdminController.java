@@ -50,5 +50,10 @@ public class AdminController {
     public ResponseEntity<AdminGrowthMetricsResponse> growthMetrics() {
         return ResponseEntity.ok(adminService.growthMetrics());
     }
+
+    @GetMapping("/stats")
+    public ResponseEntity<AdminGrowthMetricsResponse> stats() {
+        return ResponseEntity.ok(adminService.growthMetrics());
+    }
 }
 

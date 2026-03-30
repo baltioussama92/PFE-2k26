@@ -2,6 +2,8 @@ package com.maskan.api.service.impl;
 
 import com.maskan.api.dto.PropertyRequest;
 import com.maskan.api.dto.PropertyResponse;
+import com.maskan.api.entity.Booking;
+import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.Role;
 import com.maskan.api.entity.User;
@@ -17,8 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -109,7 +114,15 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PropertyResponse> search(String location, BigDecimal minPrice, BigDecimal maxPrice, Boolean available) {
+    public List<PropertyResponse> search(String location,
+                                         BigDecimal minPrice,
+                                         BigDecimal maxPrice,
+                                         Boolean available,
+                                         LocalDate checkInDate,
+                                         LocalDate checkOutDate,
+                                         String type,
+                                         Integer bedrooms,
+                                         List<String> amenities) {
         List<Criteria> criteriaList = new ArrayList<>();
 
         if (location != null && !location.isBlank()) {
@@ -129,6 +142,37 @@ public class PropertyServiceImpl implements PropertyService {
 
         if (available != null) {
             criteriaList.add(Criteria.where("available").is(available));
+        }
+
+        if (type != null && !type.isBlank()) {
+            criteriaList.add(Criteria.where("type").regex(type, "i"));
+        }
+
+        if (bedrooms != null && bedrooms > 0) {
+            criteriaList.add(Criteria.where("bedrooms").gte(bedrooms));
+        }
+
+        if (amenities != null && !amenities.isEmpty()) {
+            criteriaList.add(Criteria.where("amenities").all(amenities));
+        }
+
+        if (checkInDate != null && checkOutDate != null && checkOutDate.isAfter(checkInDate)) {
+            Query bookingOverlapQuery = new Query();
+            bookingOverlapQuery.addCriteria(new Criteria().andOperator(
+                    Criteria.where("status").in(BookingStatus.PENDING, BookingStatus.CONFIRMED),
+                    Criteria.where("checkInDate").lt(checkOutDate),
+                    Criteria.where("checkOutDate").gt(checkInDate)
+            ));
+
+            Set<String> unavailableListingIds = mongoTemplate.find(bookingOverlapQuery, Booking.class)
+                    .stream()
+                    .map(Booking::getListingId)
+                    .filter(id -> id != null && !id.isBlank())
+                    .collect(Collectors.toSet());
+
+            if (!unavailableListingIds.isEmpty()) {
+                criteriaList.add(Criteria.where("_id").nin(unavailableListingIds));
+            }
         }
 
         Query query = new Query();

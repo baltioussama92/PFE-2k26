@@ -23,13 +23,13 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping("/tenant/summary")
-    @PreAuthorize("hasRole('GUEST')")
+    @PreAuthorize("hasAnyRole('GUEST','TENANT')")
     public ResponseEntity<TenantDashboardSummaryResponse> tenantSummary(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(dashboardService.getTenantSummary(principal.getUsername()));
     }
 
     @GetMapping("/host/summary")
-    @PreAuthorize("hasAnyRole('HOST','ADMIN')")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<HostDashboardSummaryResponse> hostSummary(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(dashboardService.getHostSummary(principal.getUsername()));
     }
