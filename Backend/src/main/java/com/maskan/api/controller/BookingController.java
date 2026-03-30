@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/bookings")
+@RequestMapping({"/api/bookings", "/api/reservations"})
 @CrossOrigin(origins = "${app.cors.allowed-origin:http://localhost:5173}")
 @RequiredArgsConstructor
 public class BookingController {
@@ -38,6 +39,7 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/status")
+    @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<BookingResponse> updateStatus(@PathVariable String id,
                                                         @Valid @RequestBody BookingStatusUpdateRequest request,

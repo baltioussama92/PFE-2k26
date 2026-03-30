@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -30,6 +32,22 @@ public class UserServiceImpl implements UserService {
         user.setName(request.getFullName());
         User updated = userRepository.save(user);
         return toDto(updated);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserDto> searchUsers(String query, String currentUserEmail) {
+        String normalized = query == null ? "" : query.trim();
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+
+        User currentUser = findByEmail(currentUserEmail);
+        return userRepository.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(normalized, normalized)
+                .stream()
+                .filter(user -> !user.getId().equals(currentUser.getId()))
+                .map(this::toDto)
+                .toList();
     }
 
     private User findByEmail(String email) {

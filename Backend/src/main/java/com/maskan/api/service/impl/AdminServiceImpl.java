@@ -51,6 +51,11 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    public UserDto blockUser(String userId) {
+        return banUser(userId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<BookingResponse> listBookings() {
         return bookingRepository.findAll().stream()
@@ -64,6 +69,15 @@ public class AdminServiceImpl implements AdminService {
         return propertyRepository.findByPendingApprovalTrue().stream()
             .map(this::toPropertyResponse)
             .toList();
+        }
+
+        @Override
+        public PropertyResponse verifyProperty(String propertyId) {
+        Property property = propertyRepository.findById(propertyId)
+            .orElseThrow(() -> new NotFoundException("Property not found"));
+        property.setPendingApproval(Boolean.FALSE);
+        Property saved = propertyRepository.save(property);
+        return toPropertyResponse(saved);
         }
 
         @Override

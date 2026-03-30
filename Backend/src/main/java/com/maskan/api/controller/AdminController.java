@@ -36,6 +36,11 @@ public class AdminController {
         return ResponseEntity.ok(adminService.banUser(id));
     }
 
+    @PutMapping("/users/{id}/block")
+    public ResponseEntity<UserDto> blockUser(@PathVariable String id) {
+        return ResponseEntity.ok(adminService.blockUser(id));
+    }
+
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingResponse>> bookings() {
         return ResponseEntity.ok(adminService.listBookings());
@@ -44,6 +49,11 @@ public class AdminController {
     @GetMapping("/pending-listings")
     public ResponseEntity<List<PropertyResponse>> pendingListings() {
         return ResponseEntity.ok(adminService.listPendingListings());
+    }
+
+    @PutMapping("/properties/{id}/verify")
+    public ResponseEntity<PropertyResponse> verifyProperty(@PathVariable String id) {
+        return ResponseEntity.ok(adminService.verifyProperty(id));
     }
 
     @GetMapping("/growth-metrics")

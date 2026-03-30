@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,5 +36,12 @@ public class UserController {
     public ResponseEntity<UserDto> updateMe(@AuthenticationPrincipal UserDetails principal,
                                             @Valid @RequestBody UpdateUserProfileRequest request) {
         return ResponseEntity.ok(userService.updateMe(principal.getUsername(), request));
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<java.util.List<UserDto>> searchUsers(@AuthenticationPrincipal UserDetails principal,
+                                                               @RequestParam("q") String query) {
+        return ResponseEntity.ok(userService.searchUsers(query, principal.getUsername()));
     }
 }

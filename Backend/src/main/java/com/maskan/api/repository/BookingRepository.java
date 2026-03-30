@@ -14,5 +14,6 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
 	long countByListingIdInAndStatus(List<String> listingIds, BookingStatus status);
 	long countByGuestIdAndStatus(String guestId, BookingStatus status);
 	long countByStatus(BookingStatus status);
+	boolean existsByGuestIdAndListingIdAndStatus(String guestId, String listingId, BookingStatus status);
 }
 

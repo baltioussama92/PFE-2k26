@@ -71,58 +71,76 @@ export default function BookingsPage({ user }) {
   const [allBookings, setAllBookings] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const loadBookings = async (active = true, silent = false) => {
+    if (!silent) {
+      setLoading(true)
+    }
+    try {
+      const data = await bookingService.getMine()
+      if (!active) return
+      let propertyIndex = new Map()
+      try {
+        const listings = await propertyService.list()
+        propertyIndex = new Map(
+          listings.map((property) => [String(property.id), {
+            ...property,
+            price: property.price ?? property.pricePerNight,
+            image: property.image ?? (property.images?.length ? property.images[0] : null),
+          }])
+        )
+      } catch {
+        propertyIndex = new Map()
+      }
+
+      const enriched = await Promise.all(data.map(async (b) => {
+        let property = propertyIndex.get(String(b.listingId))
+        if (!property) {
+          try {
+            const p = await propertyService.getById(b.listingId)
+            property = {
+              ...p,
+              price: p.price ?? p.pricePerNight,
+              image: p.image ?? (p.images?.length ? p.images[0] : null),
+            }
+          } catch { /* property not resolvable */ }
+        }
+        const nights = Math.max(1, Math.round((new Date(b.checkOutDate) - new Date(b.checkInDate)) / 86400000))
+        return {
+          id: b.id,
+          propertyId: b.listingId,
+          checkIn: b.checkInDate,
+          checkOut: b.checkOutDate,
+          guests: 1,
+          totalPrice: (property?.price ?? 0) * nights,
+          status: (b.status || '').toLowerCase(),
+          createdAt: b.checkInDate,
+          property: property || { title: 'Propriété', location: 'Non disponible', image: '' },
+        }
+      }))
+      setAllBookings(enriched)
+    } catch {
+      if (active) {
+        setAllBookings([])
+      }
+    } finally {
+      if (active && !silent) setLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!user) return
     let active = true
-    setLoading(true)
-    bookingService.getMine()
-      .then(async (data) => {
-        if (!active) return
-        let propertyIndex = new Map()
-        try {
-          const listings = await propertyService.list()
-          propertyIndex = new Map(
-            listings.map((property) => [String(property.id), {
-              ...property,
-              price: property.price ?? property.pricePerNight,
-              image: property.image ?? (property.images?.length ? property.images[0] : null),
-            }])
-          )
-        } catch {
-          propertyIndex = new Map()
-        }
+    loadBookings(active)
 
-        // Resolve property details for each booking
-        const enriched = await Promise.all(data.map(async (b) => {
-          let property = propertyIndex.get(String(b.listingId))
-          if (!property) {
-            try {
-              const p = await propertyService.getById(b.listingId)
-              property = {
-                ...p,
-                price: p.price ?? p.pricePerNight,
-                image: p.image ?? (p.images?.length ? p.images[0] : null),
-              }
-            } catch { /* property not resolvable */ }
-          }
-          const nights = Math.max(1, Math.round((new Date(b.checkOutDate) - new Date(b.checkInDate)) / 86400000))
-          return {
-            id: b.id,
-            propertyId: b.listingId,
-            checkIn: b.checkInDate,
-            checkOut: b.checkOutDate,
-            guests: 1,
-            totalPrice: (property?.price ?? 0) * nights,
-            status: (b.status || '').toLowerCase(),
-            createdAt: b.checkInDate,
-            property: property || { title: 'Propriété', location: 'Non disponible', image: '' },
-          }
-        }))
-        setAllBookings(enriched)
-      })
-      .catch(() => setAllBookings([]))
-      .finally(() => { if (active) setLoading(false) })
-    return () => { active = false }
+    const timer = window.setInterval(() => loadBookings(active, true), 8000)
+    const onStatusUpdated = () => loadBookings(active, true)
+    window.addEventListener('booking:status-updated', onStatusUpdated)
+
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener('booking:status-updated', onStatusUpdated)
+    }
   }, [user])
 
   if (!user) return <Navigate to="/" replace />

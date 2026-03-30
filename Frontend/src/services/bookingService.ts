@@ -19,7 +19,7 @@ export const bookingService = {
   },
 
   async updateStatus(id: number | string, payload: BookingStatusUpdateRequest): Promise<BookingResponse> {
-    const { data } = await apiClient.put<BookingResponse>(ENDPOINTS.bookings.updateStatus(id), payload)
+    const { data } = await apiClient.patch<BookingResponse>(ENDPOINTS.bookings.updateStatus(id), payload)
     return data
   },
 }

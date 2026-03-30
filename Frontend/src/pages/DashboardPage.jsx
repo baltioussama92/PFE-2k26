@@ -16,7 +16,7 @@ function normalizeDashboardRole(role) {
 function DashboardRoutes({ role }) {
   if (role === 'PROPRIETAIRE') return <Navigate to="/my-properties" replace />
   if (role === 'TENANT')       return <Navigate to="/bookings" replace />
-  if (role === 'ADMIN')        return <Navigate to="/host-bookings" replace />
+  if (role === 'ADMIN')        return <Navigate to="/admin-control" replace />
   return null
 }
 

@@ -156,6 +156,21 @@ export interface MessageResponse {
   createdAt: string
 }
 
+export type ConnectionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED'
+
+export interface ConnectionRequestActionRequest {
+  targetUserId: string
+}
+
+export interface ConnectionRequestResponse {
+  id: string
+  requesterId: string
+  receiverId: string
+  status: ConnectionStatus
+  createdAt?: string
+  respondedAt?: string
+}
+
 // ── Admin ────────────────────────────────────────────────────
 export interface UpdateUserProfileRequest {
   fullName: string

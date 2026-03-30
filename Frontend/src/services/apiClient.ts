@@ -1,7 +1,9 @@
-// ── Lightweight HTTP client with JWT injection ──────────────
+import axios from 'axios'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const AUTH_TOKEN_KEY = 'authToken'
+const USER_STORAGE_KEY = 'user'
+const ROLE_STORAGE_KEY = 'userRole'
 
 export function getStoredAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY)
@@ -20,46 +22,68 @@ interface ApiResponse<T> {
   status: number
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}/api${path}`
-  const headers: Record<string, string> = {
+const axiosInstance = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  headers: {
     'Content-Type': 'application/json',
-  }
+  },
+})
 
+axiosInstance.interceptors.request.use((config) => {
   const token = getStoredAuthToken()
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`
   }
+  return config
+})
 
-  const res = await fetch(url, {
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status
+    if (status === 401 || status === 403) {
+      const message = status === 403
+        ? 'Votre compte est bloqué ou l’accès est interdit.'
+        : 'Votre session a expiré. Veuillez vous reconnecter.'
+
+      clearStoredAuthToken()
+      localStorage.removeItem(USER_STORAGE_KEY)
+      localStorage.removeItem(ROLE_STORAGE_KEY)
+
+      window.dispatchEvent(new CustomEvent('app:notify', {
+        detail: {
+          type: 'error',
+          message,
+        },
+      }))
+      sessionStorage.setItem('appAuthError', message)
+
+      if (!window.location.search.includes('auth=login')) {
+        window.location.href = '/?auth=login'
+      }
+    }
+
+    return Promise.reject(error)
+  },
+)
+
+async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<ApiResponse<T>> {
+  const response = await axiosInstance.request<T>({
     method,
-    headers,
-    body: body != null ? JSON.stringify(body) : undefined,
+    url: path,
+    data: body,
   })
 
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`
-    try {
-      const payload = await res.json()
-      if (payload?.message) message = payload.message
-    } catch { /* ignore parse errors */ }
-    const err: any = new Error(message)
-    err.status = res.status
-    throw err
+  return {
+    data: response.data,
+    status: response.status,
   }
-
-  // 204 No Content
-  if (res.status === 204) {
-    return { data: undefined as unknown as T, status: 204 }
-  }
-
-  const data: T = await res.json()
-  return { data, status: res.status }
 }
 
 export const apiClient = {
-  get:    <T>(path: string) => request<T>('GET', path),
-  post:   <T>(path: string, body?: unknown) => request<T>('POST', path, body),
-  put:    <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
+  get: <T>(path: string) => request<T>('GET', path),
+  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
+  patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
 }

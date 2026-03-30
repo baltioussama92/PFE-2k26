@@ -8,6 +8,7 @@ import com.maskan.api.entity.User;
 import com.maskan.api.exception.NotFoundException;
 import com.maskan.api.repository.MessageRepository;
 import com.maskan.api.repository.UserRepository;
+import com.maskan.api.service.ConnectionService;
 import com.maskan.api.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,12 +25,17 @@ public class MessageServiceImpl implements MessageService {
 
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final ConnectionService connectionService;
 
     @Override
     public MessageResponse send(MessageRequest request, String email) {
         User sender = getUserByEmail(email);
         User receiver = userRepository.findById(request.getReceiverId())
                 .orElseThrow(() -> new NotFoundException("Receiver not found"));
+
+        if (!connectionService.areUsersConnected(sender.getId(), receiver.getId())) {
+            throw new IllegalArgumentException("Connection request must be accepted before messaging");
+        }
 
         Message message = Message.builder()
             .senderId(sender.getId())
@@ -63,6 +69,9 @@ public class MessageServiceImpl implements MessageService {
     @Transactional(readOnly = true)
     public List<MessageResponse> conversation(String email, String otherUserId) {
         User user = getUserByEmail(email);
+        if (!connectionService.areUsersConnected(user.getId(), otherUserId)) {
+            throw new IllegalArgumentException("Connection request must be accepted before opening conversation");
+        }
         return messageRepository
                 .findBySenderIdAndReceiverIdOrReceiverIdAndSenderIdOrderByCreatedAtAsc(
                         user.getId(),

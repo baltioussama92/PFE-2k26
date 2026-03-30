@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { MessageSquare, Send, Search, Loader2 } from 'lucide-react'
+import { MessageSquare, Send, Search, Loader2, UserPlus, CheckCircle2 } from 'lucide-react'
 import { messageService } from '../services/messageService'
+import { userService } from '../services/userService'
+import { connectionService } from '../services/connectionService'
+import { useNotifications } from '../context/NotificationContext'
 
 const formatTime = (value) => {
   if (!value) return ''
@@ -9,11 +12,56 @@ const formatTime = (value) => {
 }
 
 export default function MessagesPage({ user }) {
+  const { notify } = useNotifications()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [userSearch, setUserSearch] = useState('')
+  const [userResults, setUserResults] = useState([])
+  const [pendingRequests, setPendingRequests] = useState([])
+  const [connections, setConnections] = useState([])
   const [draft, setDraft] = useState('')
   const [activeContactId, setActiveContactId] = useState(null)
   const [messages, setMessages] = useState([])
+  const [conversations, setConversations] = useState([])
+
+  const connectedIds = useMemo(() => {
+    const currentUserId = String(user?.id)
+    const ids = new Set()
+    connections.forEach((request) => {
+      if (String(request.requesterId) === currentUserId) {
+        ids.add(String(request.receiverId))
+      } else {
+        ids.add(String(request.requesterId))
+      }
+    })
+    return ids
+  }, [connections, user])
+
+  const loadConnections = async () => {
+    const [allConnections, pending] = await Promise.all([
+      connectionService.list(),
+      connectionService.listPending(),
+    ])
+    setConnections(allConnections)
+    setPendingRequests(pending)
+  }
+
+  const loadConversations = async () => {
+    const data = await messageService.conversations()
+    setConversations(data)
+    if (!activeContactId && data.length) {
+      setActiveContactId(String(data[0].userId))
+    }
+  }
+
+  const loadActiveConversation = async (contactId) => {
+    if (!contactId) {
+      setMessages([])
+      return
+    }
+    const data = await messageService.conversation(contactId)
+    setMessages(data)
+  }
 
   useEffect(() => {
     if (!user) return
@@ -22,66 +70,73 @@ export default function MessagesPage({ user }) {
     const load = async () => {
       setLoading(true)
       try {
-        const [inbox, outbox] = await Promise.all([messageService.inbox(), messageService.outbox()])
+        await Promise.all([
+          loadConnections(),
+          loadConversations(),
+        ])
         if (!active) return
-        const combined = [...inbox, ...outbox]
-          .sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt))
-        setMessages(combined)
-
-        if (!activeContactId && combined.length) {
-          const first = combined[combined.length - 1]
-          const currentUserId = String(user?.id)
-          const counterpartId = String(first.senderId) === currentUserId ? String(first.receiverId) : String(first.senderId)
-          setActiveContactId(counterpartId)
-        }
       } catch {
         if (!active) return
-        setMessages([])
+        notify('Chargement des conversations impossible.', 'error')
       } finally {
         if (active) setLoading(false)
       }
     }
 
     load()
+
+    const timer = window.setInterval(() => {
+      if (!active) return
+      loadConversations().catch(() => {})
+      if (activeContactId) {
+        loadActiveConversation(activeContactId).catch(() => {})
+      }
+    }, 5000)
+
     return () => {
       active = false
+      window.clearInterval(timer)
     }
   }, [user])
 
+  useEffect(() => {
+    if (!user || !activeContactId) return
+    loadActiveConversation(activeContactId).catch(() => {
+      setMessages([])
+    })
+  }, [activeContactId, user])
+
+  useEffect(() => {
+    if (!user || !userSearch.trim()) {
+      setUserResults([])
+      return
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const data = await userService.search(userSearch.trim())
+        setUserResults(data)
+      } catch {
+        setUserResults([])
+      }
+    }, 300)
+
+    return () => window.clearTimeout(timer)
+  }, [userSearch, user])
+
   if (!user) return <Navigate to="/" replace />
 
-  const currentUserId = String(user?.id)
-
-  const contacts = useMemo(() => {
-    const map = new Map()
-    messages.forEach((message) => {
-      const counterpartId = String(message.senderId) === currentUserId
-        ? String(message.receiverId)
-        : String(message.senderId)
-
-      const previous = map.get(counterpartId)
-      if (!previous || new Date(message.createdAt) > new Date(previous.lastMessage.createdAt)) {
-        map.set(counterpartId, {
-          id: counterpartId,
-          name: `Utilisateur #${counterpartId}`,
-          lastMessage: message,
-        })
-      }
-    })
-
-    return Array.from(map.values())
-      .sort((left, right) => new Date(right.lastMessage.createdAt) - new Date(left.lastMessage.createdAt))
-  }, [messages, currentUserId])
+  const contacts = useMemo(() => conversations.map((conversation) => ({
+    id: String(conversation.userId),
+    name: `Utilisateur #${conversation.userId}`,
+    lastMessage: {
+      content: conversation.lastMessage || 'Conversation active',
+      createdAt: conversation.lastMessageAt,
+      senderId: conversation.userId,
+    },
+  })), [conversations])
 
   const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(search.toLowerCase()))
-
-  const activeMessages = messages.filter((message) => {
-    if (!activeContactId) return false
-    const sender = String(message.senderId)
-    const receiver = String(message.receiverId)
-    return (sender === currentUserId && receiver === String(activeContactId))
-      || (receiver === currentUserId && sender === String(activeContactId))
-  })
 
   const handleSend = async (event) => {
     event.preventDefault()
@@ -92,8 +147,32 @@ export default function MessagesPage({ user }) {
       const sent = await messageService.send({ receiverId: activeContactId, content })
       setMessages((prev) => [...prev, sent])
       setDraft('')
+      loadConversations().catch(() => {})
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || 'Envoi impossible.'
+      notify(message, 'error')
+    }
+  }
+
+  const handleAddConnection = async (targetUserId) => {
+    try {
+      await connectionService.request({ targetUserId: String(targetUserId) })
+      notify('Demande de connexion envoyée.', 'success')
+      setUserSearch('')
+      setUserResults([])
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || 'Demande impossible.'
+      notify(message, 'error')
+    }
+  }
+
+  const handleAcceptConnection = async (requestId) => {
+    try {
+      await connectionService.accept(requestId)
+      notify('Connexion acceptée. Vous pouvez discuter.', 'success')
+      await loadConnections()
     } catch {
-      // no-op, keep UX simple
+      notify('Acceptation impossible.', 'error')
     }
   }
 
@@ -116,6 +195,53 @@ export default function MessagesPage({ user }) {
               />
             </div>
 
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
+              <input
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                placeholder="Chercher un utilisateur (nom/email)..."
+                className="w-full pl-9 pr-3 py-2 rounded-xl border border-primary-200 bg-white text-sm text-primary-900 outline-none"
+              />
+            </div>
+
+            {userResults.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {userResults.slice(0, 5).map((entry) => (
+                  <div key={entry.id} className="p-2 rounded-xl bg-white border border-primary-100 flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold text-primary-900">{entry.fullName || entry.name || `Utilisateur #${entry.id}`}</p>
+                      <p className="text-[11px] text-primary-500">{entry.email}</p>
+                    </div>
+                    <button
+                      onClick={() => handleAddConnection(entry.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Add Friend
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {pendingRequests.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {pendingRequests.map((entry) => (
+                  <div key={entry.id} className="p-2 rounded-xl bg-white border border-primary-100 flex items-center justify-between gap-2">
+                    <p className="text-xs text-primary-700">Nouvelle demande de contact: #{entry.requesterId}</p>
+                    <button
+                      onClick={() => handleAcceptConnection(entry.id)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-primary-500 text-white hover:bg-primary-600"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Accept
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-primary-400" />
@@ -136,7 +262,6 @@ export default function MessagesPage({ user }) {
                   >
                     <p className="text-sm font-semibold text-primary-900">{contact.name}</p>
                     <p className="text-xs text-primary-500 truncate">
-                      {String(contact.lastMessage.senderId) === currentUserId ? 'Vous: ' : ''}
                       {contact.lastMessage.content}
                     </p>
                     <p className="text-[10px] text-primary-400 mt-1">{formatTime(contact.lastMessage.createdAt)}</p>
@@ -151,15 +276,21 @@ export default function MessagesPage({ user }) {
               <p className="text-sm font-bold text-primary-900">
                 {activeContactId ? `Conversation avec Utilisateur #${activeContactId}` : 'Sélectionnez une conversation'}
               </p>
+              {activeContactId && !connectedIds.has(String(activeContactId)) && (
+                <p className="text-xs text-amber-700 mt-1">
+                  En attente de connexion acceptée pour démarrer la conversation.
+                </p>
+              )}
             </div>
 
             <div className="flex-1 p-4 space-y-2 overflow-y-auto">
               {!activeContactId ? (
                 <p className="text-sm text-primary-500">Choisissez une conversation à gauche.</p>
-              ) : activeMessages.length === 0 ? (
+              ) : messages.length === 0 ? (
                 <p className="text-sm text-primary-500">Aucun message pour cette conversation.</p>
               ) : (
-                activeMessages.map((message) => {
+                messages.map((message) => {
+                  const currentUserId = String(user?.id)
                   const mine = String(message.senderId) === currentUserId
                   return (
                     <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
@@ -178,12 +309,12 @@ export default function MessagesPage({ user }) {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 placeholder={activeContactId ? 'Écrire un message...' : 'Sélectionnez une conversation'}
-                disabled={!activeContactId}
+                disabled={!activeContactId || !connectedIds.has(String(activeContactId))}
                 className="flex-1 px-3 py-2 rounded-xl border border-primary-200 bg-primary-50 text-sm outline-none disabled:opacity-60"
               />
               <button
                 type="submit"
-                disabled={!activeContactId || !draft.trim()}
+                disabled={!activeContactId || !draft.trim() || !connectedIds.has(String(activeContactId))}
                 className="px-4 py-2 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-60 inline-flex items-center gap-1"
               >
                 <Send className="w-4 h-4" /> Envoyer

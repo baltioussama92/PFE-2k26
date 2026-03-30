@@ -4,6 +4,7 @@ import com.maskan.api.entity.User;
 import com.maskan.api.entity.Role;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends MongoRepository<User, String> {
@@ -11,5 +12,6 @@ public interface UserRepository extends MongoRepository<User, String> {
     boolean existsByEmail(String email);
     long countByRole(Role role);
     long countByBanned(Boolean banned);
+    List<User> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String name, String email);
 }
 

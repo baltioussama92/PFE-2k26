@@ -5,7 +5,9 @@ import com.maskan.api.dto.ReviewResponse;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.Review;
 import com.maskan.api.entity.User;
+import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.exception.NotFoundException;
+import com.maskan.api.repository.BookingRepository;
 import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.repository.ReviewRepository;
 import com.maskan.api.repository.UserRepository;
@@ -24,12 +26,23 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     public ReviewResponse createReview(ReviewRequest request, String email) {
         Property property = propertyRepository.findById(request.getListingId())
                 .orElseThrow(() -> new NotFoundException("Property not found"));
         User user = getUserByEmail(email);
+
+        boolean isVerifiedTenant = bookingRepository.existsByGuestIdAndListingIdAndStatus(
+            user.getId(),
+            property.getId(),
+            BookingStatus.COMPLETED
+        );
+
+        if (!isVerifiedTenant) {
+            throw new IllegalArgumentException("Only tenants with completed bookings can post reviews");
+        }
 
         Review review = Review.builder()
             .listingId(property.getId())

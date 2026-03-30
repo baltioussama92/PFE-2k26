@@ -92,7 +92,10 @@ public class PropertyServiceImpl implements PropertyService {
     @Override
     @Transactional(readOnly = true)
     public List<PropertyResponse> findAll() {
-        return propertyRepository.findAll().stream().map(this::toResponse).toList();
+        return propertyRepository.findAll().stream()
+                .filter(property -> !Boolean.TRUE.equals(property.getPendingApproval()))
+                .map(this::toResponse)
+                .toList();
     }
 
     @Override
@@ -155,6 +158,8 @@ public class PropertyServiceImpl implements PropertyService {
         if (amenities != null && !amenities.isEmpty()) {
             criteriaList.add(Criteria.where("amenities").all(amenities));
         }
+
+        criteriaList.add(Criteria.where("pendingApproval").ne(Boolean.TRUE));
 
         if (checkInDate != null && checkOutDate != null && checkOutDate.isAfter(checkInDate)) {
             Query bookingOverlapQuery = new Query();

@@ -10,8 +10,10 @@ import java.util.List;
 public interface AdminService {
     List<UserDto> listUsers();
     UserDto banUser(String userId);
+    UserDto blockUser(String userId);
     List<BookingResponse> listBookings();
     List<PropertyResponse> listPendingListings();
+    PropertyResponse verifyProperty(String propertyId);
     AdminGrowthMetricsResponse growthMetrics();
 }
 

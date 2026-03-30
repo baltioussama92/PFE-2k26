@@ -15,6 +15,7 @@ import SettingsPage       from './pages/SettingsPage'
 import AddPropertyPage    from './pages/AddPropertyPage'
 import MyPropertiesPage   from './pages/MyPropertiesPage'
 import HostBookingsPage   from './pages/HostBookingsPage'
+import AdminControlPage   from './pages/AdminControlPage'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const AUTH_TOKEN_KEY = 'authToken'
@@ -83,6 +84,13 @@ function AppRoutes() {
   const location = useLocation()
   const navigate = useNavigate()
   const isDash   = location.pathname.startsWith('/dashboard')
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('auth') === 'login') {
+      setAuthModal('login')
+    }
+  }, [location.search])
 
   useEffect(() => {
     const verifySession = async () => {
@@ -155,6 +163,7 @@ function AppRoutes() {
             <Route path="/add-property"    element={<AddPropertyPage user={user} />} />
             <Route path="/my-properties"   element={<MyPropertiesPage user={user} />} />
             <Route path="/host-bookings"   element={<HostBookingsPage user={user} />} />
+            <Route path="/admin-control"   element={<AdminControlPage user={user} />} />
             <Route path="*"         element={<NotFound     />} />
           </Routes>
         </Layout>

@@ -96,7 +96,11 @@ export default function HostBookingsPage({ user }) {
     if (!user) return
     let active = true
     loadBookings(active)
-    return () => { active = false }
+    const timer = window.setInterval(() => loadBookings(active), 8000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
   }, [user])
 
   if (!user || (user.role !== 'PROPRIETOR' && user.role !== 'ADMIN')) {
@@ -110,6 +114,12 @@ export default function HostBookingsPage({ user }) {
     try {
       const updated = await bookingService.updateStatus(id, { status: newStatus.toUpperCase() })
       setBookings(prev => prev.map(b => b.id === id ? { ...b, status: String(updated.status || newStatus).toLowerCase() } : b))
+      window.dispatchEvent(new CustomEvent('booking:status-updated', {
+        detail: {
+          bookingId: id,
+          status: String(updated.status || newStatus).toUpperCase(),
+        },
+      }))
       await loadBookings(true)
     } catch (error) {
       const apiMessage = error?.response?.data?.message || error?.message
