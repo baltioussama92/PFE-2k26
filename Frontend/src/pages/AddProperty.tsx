@@ -1,9 +1,9 @@
-﻿import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Navbar from '../components/Navbar'
+import Navbar from '../components/ui/Navbar'
 import Footer from '../components/Footer'
 import { propertyService } from '../services/propertyService'
-import type { ApiError } from '../types/contracts'
+import type { ApiError } from '../utils/contracts'
 import './AddProperty.css'
 
 interface PropertyFormData {

@@ -75,17 +75,13 @@ const NAV_CONFIG = {
       {
         title: 'Contrôle',
         items: [
-          { to: '/dashboard',            icon: BarChart3,       label: 'Vue Globale'    },
-          { to: '/dashboard/users',      icon: Users,           label: 'Utilisateurs',  badge: '18k' },
-          { to: '/dashboard/properties', icon: Building2,       label: 'Propriétés',    badge: '3'   },
-          { to: '/dashboard/reports',    icon: Flag,            label: 'Signalements',  badge: '7', badgeAlert: true },
-        ],
-      },
-      {
-        title: 'Système',
-        items: [
-          { to: '/dashboard/logs',     icon: FileText,   label: 'Journaux'      },
-          { to: '/dashboard/settings', icon: Settings,   label: 'Configuration' },
+          { to: '/dashboard',            icon: LayoutDashboard, label: 'Dashboard'           },
+          { to: '/dashboard/users',      icon: Users,           label: 'Users Management'    },
+          { to: '/dashboard/houses',     icon: Building2,       label: 'Houses Management'   },
+          { to: '/dashboard/bookings',   icon: CalendarCheck,   label: 'Bookings'            },
+          { to: '/dashboard/reports',    icon: Flag,            label: 'Reports', badge: '7', badgeAlert: true },
+          { to: '/dashboard/analytics',  icon: BarChart3,       label: 'Analytics'           },
+          { to: '/dashboard/settings',   icon: Settings,        label: 'Settings'            },
         ],
       },
     ],

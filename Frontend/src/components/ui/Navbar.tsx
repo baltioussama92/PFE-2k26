@@ -1,14 +1,14 @@
-﻿/**
+/**
  * Navbar.tsx
  * ------------------------------------------------------------------------------
  * Glassmorphism navigation bar that becomes frosted on scroll.
  *
  * Features:
- *   • Transparent ? blurred glass transition on scroll
- *   • Animated mobile drawer (Framer Motion)
- *   • Notification bell with unread badge
- *   • User profile dropdown with role-aware links
- *   • Connect `isLoggedIn` / `user` / `unreadCount` to your AuthContext later
+ *   � Transparent ? blurred glass transition on scroll
+ *   � Animated mobile drawer (Framer Motion)
+ *   � Notification bell with unread badge
+ *   � User profile dropdown with role-aware links
+ *   � Connect `isLoggedIn` / `user` / `unreadCount` to your AuthContext later
  * ------------------------------------------------------------------------------
  */
 
@@ -32,8 +32,8 @@ import {
   PlusSquare,
   ShieldCheck,
 } from 'lucide-react'
-import { AUTH_TOKEN_KEY } from '../services/apiClient'
-import { authService } from '../services/authService'
+import { AUTH_TOKEN_KEY } from '../../api/apiClient'
+import { authService } from '../../services/authService'
 
 // --- Types --------------------------------------------------------------------
 interface NavUser {
@@ -226,7 +226,7 @@ const Navbar: React.FC = () => {
             {/* -- Right-side actions -------------------------------------- */}
             <div className="flex items-center gap-2">
 
-              {/* Notification bell — only when logged in */}
+              {/* Notification bell � only when logged in */}
               {isLoggedIn && (
                 <>
                   <Link

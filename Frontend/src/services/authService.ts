@@ -1,6 +1,7 @@
-import { apiClient, clearStoredAuthToken, setStoredAuthToken } from './apiClient'
-import { ENDPOINTS } from './endpoints'
-import type { AuthResponse, LoginRequest, RegisterRequest, UserDto } from '../types/contracts'
+import { apiClient, clearStoredAuthToken, setStoredAuthToken } from '../api/apiClient'
+import { ENDPOINTS } from '../api/endpoints'
+import type { AuthResponse, LoginRequest, RegisterRequest, UserDto } from '../utils/contracts'
+import { DEMO_MODE, DEMO_CREDENTIALS } from '../data/demo'
 
 const USER_STORAGE_KEY = 'user'
 const ROLE_STORAGE_KEY = 'userRole'

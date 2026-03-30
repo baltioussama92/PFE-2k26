@@ -1,18 +1,18 @@
-﻿import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { SlidersHorizontal, Grid3X3, List, TrendingUp, Loader2 } from 'lucide-react'
 import PropertyCard from './PropertyCard'
 import { propertyService } from '../../services/propertyService'
 
-// ── Sort Options ─────────────────────────────────────────────
+// -- Sort Options ---------------------------------------------
 const SORT_OPTIONS = [
-  { value: 'default',   label: 'Recommandés'          },
+  { value: 'default',   label: 'Recommand�s'          },
   { value: 'price_asc', label: 'Prix croissant'        },
-  { value: 'price_desc', label: 'Prix décroissant'     },
-  { value: 'rating',    label: 'Mieux notés'           },
+  { value: 'price_desc', label: 'Prix d�croissant'     },
+  { value: 'rating',    label: 'Mieux not�s'           },
 ]
 
-// ── Sort function ─────────────────────────────────────────────
+// -- Sort function ---------------------------------------------
 function sortProperties(props, sort) {
   const arr = [...props]
   if (sort === 'price_asc')  return arr.sort((a, b) => a.price - b.price)
@@ -26,7 +26,7 @@ function filterProperties(props, type) {
   return props.filter((p) => p.type === type)
 }
 
-// Normalize backend → frontend property shape
+// Normalize backend ? frontend property shape
 const normalizeProperty = (p) => ({
   ...p,
   price: p.price ?? p.pricePerNight,
@@ -35,7 +35,7 @@ const normalizeProperty = (p) => ({
   period: p.period || (p.pricePerNight != null ? 'nuit' : 'mois'),
 })
 
-export default function PropertyGrid({ title = 'Propriétés en vedette', searchResult = null, searchFilters = null }) {
+export default function PropertyGrid({ title = 'Propri�t�s en vedette', searchResult = null, searchFilters = null }) {
   const [sort,    setSort]    = useState('default')
   const [type,    setType]    = useState('Tous')
   const [layout,  setLayout]  = useState('grid') // 'grid' | 'list'
@@ -54,50 +54,19 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
     return () => { active = false }
   }, [])
 
-  // Helper function to check if property matches search filters
-  function matchesSearchFilters(property, filters) {
-    if (!filters) return true
-    
-    if (filters.location) {
-      if (!property.location || !property.location.toLowerCase().includes(filters.location.toLowerCase())) {
-        return false
-      }
-    }
-    
-    if (filters.checkIn && filters.checkOut) {
-      // Check if property is available during the dates
-      const checkInDate = new Date(filters.checkIn)
-      const checkOutDate = new Date(filters.checkOut)
-      
-      // For now, we'll just check if property is marked as available
-      // In a real app, this would check against booked dates
-      if (property.available === false) {
-        return false
-      }
-    }
-    
-    if (filters.guests && property.maxGuests) {
-      if (parseInt(filters.guests) > parseInt(property.maxGuests)) {
-        return false
-      }
-    }
-    
-    return true
-  }
+  const normalizedSearchResult = Array.isArray(searchResult)
+    ? searchResult.map(normalizeProperty)
+    : null
 
-  const source   = searchResult ?? apiData ?? []
-  const filtered = searchFilters 
-    ? source.filter(p => matchesSearchFilters(p, searchFilters)) 
-    : source
-  
-  const propertyTypes = ['Tous', ...Array.from(new Set(filtered.map((p) => p.type).filter(Boolean)))]
-  const typeFiltered = filterProperties(filtered, type)
-  const sorted   = sortProperties(typeFiltered, sort)
+  const source   = normalizedSearchResult ?? apiData ?? []
+  const propertyTypes = ['Tous', ...new Set(source.map((p) => p.type).filter(Boolean))]
+  const filtered = filterProperties(source, type)
+  const sorted   = sortProperties(filtered, sort)
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
 
-      {/* ── Section Header ──────────────────────────────────── */}
+      {/* -- Section Header ------------------------------------ */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
           <motion.span
@@ -166,7 +135,7 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
         </motion.div>
       </div>
 
-      {/* ── Type Filter Pills ──────────────────────────────── */}
+      {/* -- Type Filter Pills -------------------------------- */}
       <div className="flex flex-wrap gap-2 mb-8">
         {propertyTypes.map((t) => (
           <motion.button
@@ -192,11 +161,11 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
           </motion.button>
         ))}
         <span className="ml-auto text-xs text-primary-400 self-center">
-          {sorted.length} résultat{sorted.length !== 1 ? 's' : ''}
+          {sorted.length} r�sultat{sorted.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      {/* ── Property Grid ─────────────────────────────────── */}
+      {/* -- Property Grid ----------------------------------- */}
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="w-7 h-7 text-primary-400 animate-spin" />
@@ -207,7 +176,7 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
           animate={{ opacity: 1 }}
           className="text-center py-20 text-primary-400"
         >
-          <p className="text-lg font-semibold">Aucune propriété trouvée</p>
+          <p className="text-lg font-semibold">Aucune propri�t� trouv�e</p>
           <p className="text-sm mt-1">Essayez de modifier vos filtres</p>
         </motion.div>
       ) : (
@@ -228,14 +197,14 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
         </div>
       )}
 
-      {/* ── Load More ─────────────────────────────────────── */}
+      {/* -- Load More --------------------------------------- */}
       <div className="flex justify-center mt-12">
         <motion.button
           whileHover={{ scale: 1.04, boxShadow: '0 8px 24px rgba(164,131,116,0.25)' }}
           whileTap={{ scale: 0.97 }}
           className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-100 px-5 py-3 text-sm font-semibold text-primary-700 shadow-sm transition hover:border-primary-300 hover:bg-primary-50"
         >
-          Voir plus de propriétés
+          Voir plus de propri�t�s
         </motion.button>
       </div>
     </section>

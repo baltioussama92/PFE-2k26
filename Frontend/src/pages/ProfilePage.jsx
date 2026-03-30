@@ -5,6 +5,7 @@ import {
   Camera, Edit3, X, Check, Mail, User, AtSign,
   FileText, Shield, Loader2, Home, ArrowRight,
 } from 'lucide-react'
+import { DEMO_MODE } from '../data/demo'
 
 const USER_STORAGE_KEY = 'user'
 

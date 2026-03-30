@@ -1,5 +1,5 @@
-import { apiClient } from './apiClient'
-import { ENDPOINTS } from './endpoints'
+import { apiClient } from '../api/apiClient'
+import { ENDPOINTS } from '../api/endpoints'
 import type { ConnectionRequestActionRequest, ConnectionRequestResponse } from '../types/contracts'
 
 export const connectionService = {

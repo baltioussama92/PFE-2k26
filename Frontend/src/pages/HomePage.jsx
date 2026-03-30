@@ -4,6 +4,7 @@ import { Search, ShieldCheck, Headphones, BadgePercent, Star, ArrowRight } from 
 import Hero from '../components/home/Hero'
 import PropertyGrid from '../components/properties/PropertyGrid'
 import AuthModal  from '../components/auth/AuthModal'
+import { propertyService } from '../services/propertyService'
 
 // ── Why Maskan Features ──────────────────────────────────────
 const FEATURES = [
@@ -69,11 +70,22 @@ const cardVar = {
 
 export default function HomePage() {
   const [authModal, setAuthModal] = useState(null) // null | 'login' | 'register'
+  const [searchResult, setSearchResult] = useState(null)
+
+  const handleSearch = async ({ location }) => {
+    try {
+      const query = location ? { location } : {}
+      const data = await propertyService.list(query)
+      setSearchResult(data)
+    } catch {
+      setSearchResult([])
+    }
+  }
 
   return (
     <>
       {/* ── Hero ──────────────────────────────────────────────── */}
-      <Hero onAuthClick={setAuthModal} />
+      <Hero onSearch={handleSearch} />
 
       {/* ── Why Maskan ────────────────────────────────────────── */}
       <section className="bg-primary-50 py-20">
@@ -135,7 +147,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Featured Properties ───────────────────────────────── */}
-      <PropertyGrid title="Propriétés en vedette" />
+      <PropertyGrid title="Propriétés en vedette" searchResult={searchResult} />
 
       {/* ── Testimonials ─────────────────────────────────────── */}
       <section className="bg-gradient-to-b from-primary-50 to-white py-20">

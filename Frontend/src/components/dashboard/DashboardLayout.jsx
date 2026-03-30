@@ -4,20 +4,22 @@ import Sidebar from './Sidebar'
 import Topbar  from './Topbar'
 
 const PAGE_TITLES = {
-  '/dashboard':            'Vue GÉnÉrale',
-  '/dashboard/properties': 'Mes PropriÉtÉs',
-  '/dashboard/bookings':   'RÉservations',
-  '/dashboard/revenue':    'Revenus',
+  '/dashboard':            'Dashboard',
+  '/dashboard/properties': 'My Properties',
+  '/dashboard/bookings':   'Bookings',
+  '/dashboard/revenue':    'Revenue',
   '/dashboard/messages':   'Messages',
-  '/dashboard/reviews':    'Avis',
-  '/dashboard/stays':      'Mes SÉjours',
-  '/dashboard/wishlist':   'Favoris',
-  '/dashboard/searches':   'Historique de recherche',
-  '/dashboard/users':      'Gestion utilisateurs',
-  '/dashboard/reports':    'Signalements',
-  '/dashboard/settings':   'Paramètres',
-  '/dashboard/logs':       'Journaux système',
-  '/dashboard/help':       "Centre d'aide",
+  '/dashboard/reviews':    'Reviews',
+  '/dashboard/stays':      'My Stays',
+  '/dashboard/wishlist':   'Wishlist',
+  '/dashboard/searches':   'Search History',
+  '/dashboard/users':      'Users Management',
+  '/dashboard/reports':    'Reports',
+  '/dashboard/settings':   'Settings',
+  '/dashboard/houses':     'Houses Management',
+  '/dashboard/analytics':  'Analytics',
+  '/dashboard/logs':       'System Logs',
+  '/dashboard/help':       'Help Center',
 }
 
 const pageVar = {

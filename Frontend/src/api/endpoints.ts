@@ -11,11 +11,11 @@ export const ENDPOINTS = {
     byId: (id: number | string) => `/listings/${id}`,
   },
   bookings: {
-    listMine: '/reservations/me',
-    listOwner: '/reservations/owner',
-    create: '/reservations',
-    updateStatus: (id: number | string) => `/reservations/${id}/status`,
-    delete: (id: number | string) => `/reservations/${id}`,
+    listMine: '/bookings/me',
+    listOwner: '/bookings/owner',
+    create: '/bookings',
+    updateStatus: (id: number | string) => `/bookings/${id}/status`,
+    delete: (id: number | string) => `/bookings/${id}`,
   },
   reviews: {
     create: '/reviews',

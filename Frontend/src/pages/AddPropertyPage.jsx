@@ -21,8 +21,7 @@ export default function AddPropertyPage({ user }) {
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-  const [imageError, setImageError] = useState('')
+  const [submitError, setSubmitError] = useState('')
 
   const [form, setForm] = useState({
     title: '',
@@ -76,6 +75,7 @@ export default function AddPropertyPage({ user }) {
       : !!form.imagePreview
 
   const handleSubmit = async () => {
+    setSubmitError('')
     setSubmitting(true)
     setError('')
     try {
@@ -94,7 +94,11 @@ export default function AddPropertyPage({ user }) {
       })
       setSuccess(true)
     } catch (err) {
-      setError('Publication échouée. Vérifiez les données puis réessayez.')
+      if (err?.status === 401 || err?.status === 403) {
+        setSubmitError('Only host/admin accounts can add properties. Please log in with a host account.')
+      } else {
+        setSubmitError('Could not publish your property right now. Please try again.')
+      }
     } finally {
       setSubmitting(false)
     }
@@ -428,6 +432,9 @@ export default function AddPropertyPage({ user }) {
 
         {/* Navigation buttons */}
         <div className="flex items-center justify-between mt-6">
+          {submitError && (
+            <p className="text-sm font-semibold text-red-500">{submitError}</p>
+          )}
           {step > 1 ? (
             <button
               onClick={() => setStep(step - 1)}

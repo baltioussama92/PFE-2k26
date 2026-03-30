@@ -1,6 +1,6 @@
-import { apiClient } from './apiClient'
-import { ENDPOINTS } from './endpoints'
-import type { BookingRequest, BookingResponse, BookingStatusUpdateRequest } from '../types/contracts'
+import { apiClient } from '../api/apiClient'
+import { ENDPOINTS } from '../api/endpoints'
+import type { BookingRequest, BookingResponse, BookingStatusUpdateRequest } from '../utils/contracts'
 
 export const bookingService = {
   async create(payload: BookingRequest): Promise<BookingResponse> {

@@ -7,10 +7,16 @@ import {
   Plus, CalendarCheck,
 } from 'lucide-react'
 
-// -- Nav Link definition --------------------------------------
-const NAV_LINKS = [
+// -- Nav Link definitions -------------------------------------
+const DEFAULT_NAV_LINKS = [
   { to: '/',        label: 'Accueil',  icon: Home      },
   { to: '/explorer', label: 'Explorer', icon: Compass   },
+]
+
+const ADMIN_NAV_LINKS = [
+  { to: '/admin/dashboard', label: 'Dashboard', icon: Home },
+  { to: '/admin/users',     label: 'Users Management',  icon: User    },
+  { to: '/admin/reports',   label: 'Reports',           icon: Bell    },
 ]
 
 // -- User dropdown items (tenant) -----------------------------
@@ -32,6 +38,17 @@ const HOST_DROPDOWN = [
   { label: 'Paramètres',          icon: Settings,      to: '/settings'       },
 ]
 
+// -- Admin dropdown items -------------------------------------
+const ADMIN_DROPDOWN = [
+  { label: 'Dashboard',         icon: Building2,     to: '/admin/dashboard' },
+  { label: 'Users Management',  icon: User,          to: '/admin/users' },
+  { label: 'Listings',          icon: Building2,     to: '/admin/listings' },
+  { label: 'Bookings',          icon: CalendarCheck, to: '/admin/bookings' },
+  { label: 'Payments',          icon: Compass,       to: '/admin/payments' },
+  { label: 'Reports',           icon: Bell,          to: '/admin/reports' },
+  { label: 'Settings',          icon: Settings,      to: '/admin/settings' },
+]
+
 export default function Navbar({ user = null, onAuthClick, onLogout }) {
   const [scrolled,       setScrolled]       = useState(false)
   const [dropdownOpen,   setDropdownOpen]   = useState(false)
@@ -39,8 +56,10 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
   const dropdownRef = useRef(null)
   const location    = useLocation()
 
-  const isHost = user && (user.role === 'PROPRIETOR' || user.role === 'ADMIN')
-  const DROPDOWN_ITEMS = isHost ? HOST_DROPDOWN : TENANT_DROPDOWN
+  const isAdmin = user?.role === 'ADMIN'
+  const isHost = user?.role === 'PROPRIETOR'
+  const NAV_LINKS = isAdmin ? ADMIN_NAV_LINKS : DEFAULT_NAV_LINKS
+  const DROPDOWN_ITEMS = isAdmin ? ADMIN_DROPDOWN : isHost ? HOST_DROPDOWN : TENANT_DROPDOWN
 
   // -- Scroll listener --------------------------------------
   useEffect(() => {
@@ -148,7 +167,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                 Devenir Hôte
               </Link>
             )}
-            {user && (user.role === 'PROPRIETOR' || user.role === 'ADMIN') && (
+            {user && user.role === 'PROPRIETOR' && (
               <Link
                 to="/my-properties"
                 className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold
@@ -156,6 +175,17 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
               >
                 <Building2 className="w-4 h-4" />
                 Mes Propriétés
+              </Link>
+            )}
+
+            {user && user.role === 'ADMIN' && (
+              <Link
+                to="/admin/dashboard"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold
+                           text-primary-600 hover:text-primary-700 hover:bg-primary-100 transition-colors duration-150"
+              >
+                <Building2 className="w-4 h-4" />
+                Admin Dashboard
               </Link>
             )}
 
@@ -309,6 +339,16 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                   </button>
                 </div>
               )}
+
+                {user?.role === 'ADMIN' && (
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-primary-100 hover:bg-primary-50/10"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Admin Dashboard
+                  </Link>
+                )}
             </motion.div>
           </>
         )}

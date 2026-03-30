@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import Navbar from '../components/Navbar'
+import Navbar from '../components/ui/Navbar'
 import Footer from '../components/Footer'
 import { messageService } from '../services/messageService'
-import type { MessageResponse } from '../types/contracts'
+import type { MessageResponse } from '../utils/contracts'
 import './MessagesPage.css'
 
 interface ChatPreview {

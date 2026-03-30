@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
-import Layout         from './components/layout/Layout'
+import Layout         from './layout/Layout'
 import HomePage       from './pages/HomePage'
 import DashboardPage  from './pages/DashboardPage'
 import AuthModal      from './components/auth/AuthModal'
@@ -16,6 +16,15 @@ import AddPropertyPage    from './pages/AddPropertyPage'
 import MyPropertiesPage   from './pages/MyPropertiesPage'
 import HostBookingsPage   from './pages/HostBookingsPage'
 import AdminControlPage   from './pages/AdminControlPage'
+import AdminLayout from './admin/components/AdminLayout'
+import AdminDashboardPage from './admin/pages/Dashboard'
+import AdminUsersPage from './admin/pages/Users'
+import AdminListingsPage from './admin/pages/Listings'
+import AdminBookingsPage from './admin/pages/Bookings'
+import AdminPaymentsPage from './admin/pages/Payments'
+import AdminReportsPage from './admin/pages/Reports'
+import AdminSettingsPage from './admin/pages/Settings'
+import { DEMO_MODE } from './data/demo'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const AUTH_TOKEN_KEY = 'authToken'
@@ -71,7 +80,7 @@ function NotFound() {
         to="/"
         className="inline-flex items-center justify-center rounded-xl bg-primary-500 px-5 py-3 text-sm font-semibold text-primary-50 shadow-md shadow-primary-500/25 transition hover:bg-primary-600 hover:shadow-primary-500/35"
       >
-        ? Retour à l'accueil
+        Retour à l'accueil
       </Link>
     </div>
   )
@@ -84,6 +93,7 @@ function AppRoutes() {
   const location = useLocation()
   const navigate = useNavigate()
   const isDash   = location.pathname.startsWith('/dashboard')
+  const isAdminArea = location.pathname.startsWith('/admin')
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -148,6 +158,20 @@ function AppRoutes() {
       {isDash ? (
         <Routes>
           <Route path="/dashboard/*" element={<DashboardPage />} />
+        </Routes>
+      ) : isAdminArea ? (
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="listings" element={<AdminListingsPage />} />
+            <Route path="bookings" element={<AdminBookingsPage />} />
+            <Route path="payments" element={<AdminPaymentsPage />} />
+            <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+          </Route>
         </Routes>
       ) : (
         <Layout user={user} onAuthClick={setAuthModal} onLogout={handleLogout}>

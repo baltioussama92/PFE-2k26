@@ -1,5 +1,15 @@
 # Maskan – Travail Restant
 
+## Frontend - Admin Dashboard (Implemented)
+
+- [x] Built feature-based admin module under `Frontend/src/admin/` with `pages`, `components`, `services`, and `hooks`.
+- [x] Added protected admin routes: `/admin/dashboard`, `/admin/users`, `/admin/listings`, `/admin/bookings`, `/admin/payments`, `/admin/reports`, `/admin/settings`.
+- [x] Added `useAdminAuth()` route protection and redirect to `/` for non-admin users.
+- [x] Added reusable admin UI components: `AdminLayout`, `Sidebar`, `Topbar`, `Table`, `Card`, `Modal`.
+- [x] Implemented mock API layer (`adminApi.ts`) with async fake data and actions.
+- [x] Implemented loading states, empty states, confirmation modals, and toast notifications across admin pages.
+- [x] Updated frontend navbar admin links to use the new `/admin/*` navigation.
+
 ## Frontend – Ce qu'il reste à faire
 
 ### Pages & Fonctionnalités manquantes

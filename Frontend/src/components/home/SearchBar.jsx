@@ -7,7 +7,7 @@ import { propertyService } from '../../services/propertyService'
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }) : null
 
-const panelClass = 'absolute top-full mt-3 w-72 rounded-2xl border border-primary-200/50 bg-primary-50/85 shadow-glass-lg backdrop-blur-xl z-[120]'
+const panelClass = 'absolute top-full mt-3 left-0 right-0 md:right-auto md:w-72 rounded-2xl border border-primary-200/50 bg-primary-50/85 shadow-glass-lg backdrop-blur-xl z-[120]'
 const inputClass = 'w-full rounded-xl border border-primary-200 bg-primary-100 px-4 py-3 text-sm text-primary-900 outline-none transition focus:border-primary-400 focus:ring-2 focus:ring-primary-200'
 
 // ── Pill Divider ─────────────────────────────────────────────
@@ -143,7 +143,7 @@ function GuestsDropdown({ adults, setAdults, children, setChildren, onClose }) {
       animate={{ opacity: 1, y: 0,  scale: 1     }}
       exit  ={{ opacity: 0, y: 10, scale: 0.97   }}
       transition={{ duration: 0.18 }}
-      className={`${panelClass} right-0 p-4`}
+      className={`${panelClass} md:left-auto md:right-0 p-4`}
     >
       <Counter
         label="Adultes" hint="13 ans et plus"
@@ -224,7 +224,7 @@ export default function SearchBar({ onSearch, className = '' }) {
       ref={barRef}
       onSubmit={handleSubmit}
       className={`relative z-[110] flex flex-col md:flex-row items-stretch md:items-center
-                  rounded-full border border-primary-200/50 bg-primary-50/75 shadow-glass-lg backdrop-blur-xl p-1.5 gap-1 w-full max-w-3xl
+          rounded-3xl md:rounded-full border border-primary-200/50 bg-primary-50/75 shadow-glass-lg backdrop-blur-xl p-1.5 gap-1 w-full max-w-3xl
                   ${className}`}
     >
       {/* Location */}
@@ -253,7 +253,7 @@ export default function SearchBar({ onSearch, className = '' }) {
       <Divider />
 
       {/* Check-in */}
-      <div className="relative">
+      <div className="relative w-full md:w-auto">
         <SearchField
           label="Arrivée"
           icon={Calendar}
@@ -277,7 +277,7 @@ export default function SearchBar({ onSearch, className = '' }) {
       <Divider />
 
       {/* Check-out */}
-      <div className="relative">
+      <div className="relative w-full md:w-auto">
         <SearchField
           label="Départ"
           icon={Calendar}
@@ -302,7 +302,7 @@ export default function SearchBar({ onSearch, className = '' }) {
       <Divider />
 
       {/* Guests */}
-      <div className="relative">
+      <div className="relative w-full md:w-auto">
         <SearchField
           label="Voyageurs"
           icon={Users}
@@ -327,12 +327,12 @@ export default function SearchBar({ onSearch, className = '' }) {
         whileHover={{ scale: 1.06, boxShadow: '0 10px 30px rgba(164,131,116,0.4)' }}
         whileTap={{ scale: 0.96 }}
         type="submit"
-        className="ml-1 flex items-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm text-primary-50
+        className="ml-0 md:ml-1 w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm text-primary-50
                    bg-gradient-to-r from-primary-500 to-primary-600
                    shadow-lg transition-all duration-200 shrink-0"
       >
         <Search className="w-4 h-4" />
-        <span className="hidden sm:inline">Rechercher</span>
+        <span>Rechercher</span>
       </motion.button>
     </form>
   )
