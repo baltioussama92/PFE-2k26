@@ -1,7 +1,17 @@
 package com.maskan.api.service;
 
+import com.maskan.api.dto.AdminActionResponse;
 import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.AdminGrowthMetricsResponse;
+import com.maskan.api.dto.AdminHistoryEventResponse;
+import com.maskan.api.dto.AdminUpdateUserPasswordRequest;
+import com.maskan.api.dto.AdminUpdateUserRequest;
+import com.maskan.api.dto.AdminUserBookingResponse;
+import com.maskan.api.dto.AdminUserEarningsResponse;
+import com.maskan.api.dto.AdminUserListingResponse;
+import com.maskan.api.dto.AdminUserMessageResponse;
+import com.maskan.api.dto.AdminUserOverviewResponse;
+import com.maskan.api.dto.AdminUserPermissionsResponse;
 import com.maskan.api.dto.PropertyResponse;
 import com.maskan.api.dto.UserDto;
 
@@ -15,5 +25,16 @@ public interface AdminService {
     List<PropertyResponse> listPendingListings();
     PropertyResponse verifyProperty(String propertyId);
     AdminGrowthMetricsResponse growthMetrics();
+
+    AdminUserOverviewResponse userOverview(String userId);
+    List<AdminHistoryEventResponse> userHistory(String userId, int limit, String cursor);
+    List<AdminUserMessageResponse> userMessages(String userId, int limit, String cursor, String direction, String withUserId);
+    List<AdminUserListingResponse> userListings(String userId);
+    List<AdminUserBookingResponse> userBookings(String userId, String role);
+    AdminUserEarningsResponse userEarnings(String userId);
+    UserDto updateUser(String userId, AdminUpdateUserRequest request);
+    AdminActionResponse updateUserPassword(String userId, AdminUpdateUserPasswordRequest request);
+    AdminActionResponse deleteUser(String userId);
+    AdminUserPermissionsResponse userPermissions(String userId);
 }
 
