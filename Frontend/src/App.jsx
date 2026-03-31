@@ -19,6 +19,7 @@ import AdminControlPage   from './pages/AdminControlPage'
 import AdminLayout from './admin/components/AdminLayout'
 import AdminDashboardPage from './admin/pages/Dashboard'
 import AdminUsersPage from './admin/pages/Users'
+import AdminUserDetailsPage from './admin/pages/UserDetails'
 import AdminListingsPage from './admin/pages/Listings'
 import AdminBookingsPage from './admin/pages/Bookings'
 import AdminPaymentsPage from './admin/pages/Payments'
@@ -165,6 +166,7 @@ function AppRoutes() {
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="users/:userId" element={<AdminUserDetailsPage />} />
             <Route path="listings" element={<AdminListingsPage />} />
             <Route path="bookings" element={<AdminBookingsPage />} />
             <Route path="payments" element={<AdminPaymentsPage />} />

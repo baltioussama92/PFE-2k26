@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import Card from '../components/Card'
 import Modal from '../components/Modal'
 import Table, { type TableColumn } from '../components/Table'
@@ -6,11 +7,12 @@ import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type AdminUser } from '../services/adminApi'
 
 export default function Users() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const { showToast } = useAdminToast()
   const [loading, setLoading] = useState(true)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [selected, setSelected] = useState<AdminUser | null>(null)
-  const [detailsUser, setDetailsUser] = useState<AdminUser | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
@@ -27,6 +29,15 @@ export default function Users() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    const deletedUserId = location.state?.deletedUserId
+    if (!deletedUserId) return
+
+    setUsers((prev) => prev.filter((user) => user.id !== Number(deletedUserId)))
+    showToast('User removed from frontend view.')
+    navigate('/admin/users', { replace: true, state: null })
+  }, [location.state, navigate, showToast])
 
   const columns = useMemo<TableColumn<AdminUser>[]>(() => [
     { key: 'name', header: 'Name', render: (row) => row.name },
@@ -57,7 +68,7 @@ export default function Users() {
           <button
             type="button"
             className="rounded-lg border border-[#CBAD8D]/70 px-2.5 py-1 text-xs font-medium text-[#3A2D28] hover:bg-[#EBE3DB]"
-            onClick={() => setDetailsUser(row)}
+            onClick={() => navigate(`/admin/users/${row.id}`, { state: { user: row } })}
           >
             View details
           </button>
@@ -109,18 +120,6 @@ export default function Users() {
         isLoading={actionLoading}
         onCancel={() => setSelected(null)}
         onConfirm={onConfirmBanToggle}
-      />
-
-      <Modal
-        open={Boolean(detailsUser)}
-        title="User details"
-        message={detailsUser
-          ? `${detailsUser.name} (${detailsUser.email}) is a ${detailsUser.role} account and is currently ${detailsUser.status}.`
-          : ''}
-        confirmLabel="Done"
-        cancelLabel="Close"
-        onCancel={() => setDetailsUser(null)}
-        onConfirm={() => setDetailsUser(null)}
       />
     </>
   )

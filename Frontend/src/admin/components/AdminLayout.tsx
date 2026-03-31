@@ -19,11 +19,17 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 const titleByPath: Record<string, string> = {
   '/admin/dashboard': 'Dashboard',
   '/admin/users': 'Users',
+  '/admin/users/details': 'User Details',
   '/admin/listings': 'Listings',
   '/admin/bookings': 'Bookings',
   '/admin/payments': 'Payments',
   '/admin/reports': 'Reports',
   '/admin/settings': 'Settings',
+}
+
+const resolveTitle = (pathname: string): string => {
+  if (/^\/admin\/users\/[^/]+$/.test(pathname)) return titleByPath['/admin/users/details']
+  return titleByPath[pathname] || 'Admin'
 }
 
 export function useAdminToast() {
@@ -83,7 +89,7 @@ export default function AdminLayout() {
       <div className="flex min-h-screen bg-[#EBE3DB]">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar title={titleByPath[location.pathname] || 'Admin'} />
+          <Topbar title={resolveTitle(location.pathname)} />
           <main className="flex-1 p-6">
             <Outlet />
           </main>

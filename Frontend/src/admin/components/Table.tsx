@@ -54,7 +54,7 @@ export default function Table<T>({
             rows.map((row) => (
               <tr key={rowKey(row)} className="border-t border-[#CBAD8D]/25">
                 {columns.map((column) => (
-                  <td key={column.key} className={`px-4 py-3 text-sm text-[#3A2D28] ${column.className || ''}`}>
+                  <td key={`${rowKey(row)}-${column.key}`} className={`px-4 py-3 text-sm text-[#3A2D28] ${column.className || ''}`}>
                     {column.render(row)}
                   </td>
                 ))}
