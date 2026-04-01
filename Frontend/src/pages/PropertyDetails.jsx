@@ -4,10 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft, Heart, Share2, MapPin, Star, Bed, Bath, Maximize2,
   Wifi, Car, Waves, Shield, TreePine, Wind, ChefHat, Building,
-  CalendarDays, Users, X, Check, Loader2, ChevronLeft, ChevronRight,
+  CalendarDays, Users, X, Check, Loader2, ChevronLeft, ChevronRight, AlertTriangle,
 } from 'lucide-react'
 import { propertyService } from '../services/propertyService'
 import { bookingService } from '../services/bookingService'
+
+function isIdentityApproved(user) {
+  const identityStatus = user?.identityStatus
+  return identityStatus === 'approved' || identityStatus === 'verified'
+}
 
 // ── Amenity icon map ──────────────────────────────────────────
 const AMENITY_ICONS = {
@@ -123,7 +128,7 @@ function ImageGallery({ images, title }) {
 }
 
 // ── Booking Sidebar ───────────────────────────────────────────
-function BookingSidebar({ property, user, onAuthClick }) {
+function BookingSidebar({ property, user, onAuthClick, onRequireVerification }) {
   const [checkIn, setCheckIn]   = useState('')
   const [checkOut, setCheckOut] = useState('')
   const [guests, setGuests]     = useState(1)
@@ -146,6 +151,12 @@ function BookingSidebar({ property, user, onAuthClick }) {
       onAuthClick?.('login')
       return
     }
+
+    if (!isIdentityApproved(user)) {
+      onRequireVerification?.()
+      return
+    }
+
     if (!checkIn || !checkOut || nights <= 0) {
       setError('Veuillez sélectionner des dates valides.')
       return
@@ -291,6 +302,8 @@ function BookingSidebar({ property, user, onAuthClick }) {
               'Indisponible'
             ) : !user ? (
               'Se connecter pour réserver'
+            ) : !isIdentityApproved(user) ? (
+              'Verifier votre identite pour reserver'
             ) : (
               'Réserver maintenant'
             )}
@@ -312,6 +325,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
   const [liked, setLiked] = useState(false)
   const [property, setProperty] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -561,10 +575,55 @@ export default function PropertyDetails({ user, onAuthClick }) {
 
           {/* Right: Booking sidebar */}
           <div className="order-first lg:order-last">
-            <BookingSidebar property={property} user={user} onAuthClick={onAuthClick} />
+            <BookingSidebar
+              property={property}
+              user={user}
+              onAuthClick={onAuthClick}
+              onRequireVerification={() => setShowVerificationPrompt(true)}
+            />
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showVerificationPrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-primary-900/60 p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              className="w-full max-w-md rounded-2xl border border-primary-200 bg-primary-50 p-6 shadow-xl"
+            >
+              <div className="mb-3 inline-flex rounded-xl bg-amber-100 p-2 text-amber-700">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-bold text-primary-900">Verification requise</h3>
+              <p className="mt-2 text-sm text-primary-600">
+                Pour reserver, vous devez terminer la verification invite : email, telephone et identite.
+              </p>
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setShowVerificationPrompt(false)}
+                  className="flex-1 rounded-xl border border-primary-200 px-4 py-2.5 text-sm font-semibold text-primary-700 hover:bg-primary-100"
+                >
+                  Plus tard
+                </button>
+                <button
+                  onClick={() => navigate('/guest-verification?context=booking')}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 px-4 py-2.5 text-sm font-bold text-primary-50"
+                >
+                  Verifier maintenant
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

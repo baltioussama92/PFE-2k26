@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Camera, Edit3, X, Check, Mail, User, AtSign,
-  FileText, Shield, Loader2, Home, ArrowRight,
+  FileText, Shield, Loader2, Home, ArrowRight, Phone, BadgeCheck, AlertCircle,
 } from 'lucide-react'
 import { DEMO_MODE } from '../data/demo'
 
@@ -70,12 +70,12 @@ function InfoField({ icon: Icon, label, value, isEditing, name, onChange, type =
 
 // ── Main Profile Page ─────────────────────────────────────────
 export default function ProfilePage({ user, onUserUpdate }) {
+  const navigate = useNavigate()
   const fileInputRef = useRef(null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState(null)
-  const [switching, setSwitching] = useState(false)
   const [showHostConfirm, setShowHostConfirm] = useState(false)
 
   // Form state – initialised from user
@@ -145,16 +145,13 @@ export default function ProfilePage({ user, onUserUpdate }) {
   }
 
   const handleBecomeHost = async () => {
-    setSwitching(true)
-    const updatedUser = { ...user, role: 'PROPRIETOR' }
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser))
-    localStorage.setItem('userRole', 'PROPRIETOR')
-    onUserUpdate?.(updatedUser)
-    setSwitching(false)
-    setShowHostConfirm(false)
+    // Navigate to host verification form instead of directly switching role
+    navigate('/host-verification')
   }
 
   const isTenant = user.role === 'TENANT' || user.role === 'CLIENT' || user.role === 'USER'
+  const identityApproved = user.identityStatus === 'approved' || user.identityStatus === 'verified'
+  const identityPending = user.identityStatus === 'pending'
 
   const displayAvatar = avatarPreview || form.avatar || user.avatar
 
@@ -250,6 +247,60 @@ export default function ProfilePage({ user, onUserUpdate }) {
                 <Shield className="w-3 h-3" />
                 {user.role}
               </span>
+            </div>
+          )}
+
+          {!editing && (
+            <div className="mb-6 space-y-2 rounded-2xl border border-primary-200 bg-primary-100/70 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary-500">Guest verification</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="flex items-center justify-between rounded-xl border border-primary-200 bg-primary-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-primary-500" />
+                    <span className="text-xs font-semibold text-primary-800">Email</span>
+                  </div>
+                  {user.emailVerified ? (
+                    <BadgeCheck className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-primary-200 bg-primary-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-primary-500" />
+                    <span className="text-xs font-semibold text-primary-800">Phone</span>
+                  </div>
+                  {user.phoneVerified ? (
+                    <BadgeCheck className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-primary-200 bg-primary-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary-500" />
+                    <span className="text-xs font-semibold text-primary-800">Identity</span>
+                  </div>
+                  {identityApproved ? (
+                    <BadgeCheck className="h-4 w-4 text-emerald-600" />
+                  ) : identityPending ? (
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Pending</span>
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                  )}
+                </div>
+              </div>
+
+              {!identityApproved && (
+                <button
+                  onClick={() => navigate('/guest-verification')}
+                  className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-bold text-primary-700 transition hover:bg-primary-100"
+                >
+                  Complete guest verification
+                </button>
+              )}
             </div>
           )}
 
@@ -374,7 +425,7 @@ export default function ProfilePage({ user, onUserUpdate }) {
                     exit={{ opacity: 0 }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowHostConfirm(true)}
+                    onClick={handleBecomeHost}
                     className="mt-5 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-sm font-bold text-primary-50 shadow-md hover:shadow-lg transition-all"
                   >
                     Devenir Propriétaire <ArrowRight className="w-4 h-4" />
@@ -388,25 +439,23 @@ export default function ProfilePage({ user, onUserUpdate }) {
                     className="mt-5 p-4 rounded-xl bg-primary-100 border border-primary-200"
                   >
                     <p className="text-sm font-semibold text-primary-800 text-center mb-3">
-                      Confirmer le passage en mode Propriétaire ?
+                      Vous allez être redirigé vers le formulaire de vérification d'identité.
                     </p>
                     <div className="flex gap-3">
                       <button
                         onClick={() => setShowHostConfirm(false)}
-                        disabled={switching}
-                        className="flex-1 py-2.5 rounded-xl border border-primary-200 text-sm font-semibold text-primary-700 hover:bg-primary-50 transition-colors disabled:opacity-50"
+                        className="flex-1 py-2.5 rounded-xl border border-primary-200 text-sm font-semibold text-primary-700 hover:bg-primary-50 transition-colors"
                       >
                         Annuler
                       </button>
                       <motion.button
-                        whileHover={!switching ? { scale: 1.02 } : {}}
-                        whileTap={!switching ? { scale: 0.98 } : {}}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={handleBecomeHost}
-                        disabled={switching}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-sm font-bold text-primary-50 shadow-md transition-all disabled:opacity-70"
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-sm font-bold text-primary-50 shadow-md transition-all"
                       >
-                        {switching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                        {switching ? 'En cours...' : 'Confirmer'}
+                        <Check className="w-4 h-4" />
+                        Continuer
                       </motion.button>
                     </div>
                   </motion.div>

@@ -49,6 +49,11 @@ const normalizeUser = (user, roleOverride) => ({
   username: user?.username || '',
   bio: user?.bio || '',
   avatar: user?.avatar || '',
+  emailVerified: Boolean(user?.emailVerified),
+  phoneVerified: Boolean(user?.phoneVerified),
+  identityStatus: user?.identityStatus || 'not_verified',
+  verificationLevel: user?.verificationLevel,
+  rejectionReason: user?.rejectionReason,
 })
 
 const persistSession = (payload) => {

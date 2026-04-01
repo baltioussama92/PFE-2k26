@@ -8,6 +8,8 @@ import AuthModal      from './components/auth/AuthModal'
 import PropertyGrid   from './components/properties/PropertyGrid'
 import PropertyDetails from './pages/PropertyDetails'
 import ProfilePage    from './pages/ProfilePage'
+import HostVerificationPage from './pages/HostVerificationPage'
+import GuestVerificationPage from './pages/GuestVerificationPage'
 import WishlistPage       from './pages/WishlistPage'
 import BookingsPage       from './pages/BookingsPage'
 import MessagesPage       from './pages/MessagesPage'
@@ -49,6 +51,11 @@ const normalizeUser = (user) => ({
   username: user?.username || '',
   bio: user?.bio || '',
   avatar: user?.avatar || '',
+  emailVerified: Boolean(user?.emailVerified),
+  phoneVerified: Boolean(user?.phoneVerified),
+  identityStatus: user?.identityStatus || 'not_verified',
+  verificationLevel: user?.verificationLevel,
+  rejectionReason: user?.rejectionReason,
 })
 
 // -- Explorer Page with Search -----------------------------------------------
@@ -184,6 +191,8 @@ function AppRoutes() {
             <Route path="/explorer" element={<ExplorerPage />} />
             <Route path="/property/:id" element={<PropertyDetails user={user} onAuthClick={setAuthModal} />} />
             <Route path="/profile"  element={<ProfilePage user={user} onUserUpdate={setUser} />} />
+            <Route path="/host-verification" element={<HostVerificationPage user={user} onUserUpdate={setUser} />} />
+            <Route path="/guest-verification" element={<GuestVerificationPage user={user} onUserUpdate={setUser} />} />
             <Route path="/favorites" element={<WishlistPage user={user} />} />
             <Route path="/bookings"  element={<BookingsPage user={user} />} />
             <Route path="/messages"  element={<MessagesPage user={user} />} />

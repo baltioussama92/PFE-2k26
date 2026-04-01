@@ -67,4 +67,12 @@ export const ENDPOINTS = {
     request: '/connections/request',
     accept: (id: number | string) => `/connections/${id}/accept`,
   },
+  verifications: {
+    guestStatus: '/verifications/guest/status',
+    sendEmailOtp: '/verifications/guest/email/send-otp',
+    verifyEmailOtp: '/verifications/guest/email/verify-otp',
+    sendPhoneOtp: '/verifications/guest/phone/send-otp',
+    verifyPhoneOtp: '/verifications/guest/phone/verify-otp',
+    submitIdentity: '/verifications/guest/identity',
+  },
 } as const

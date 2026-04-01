@@ -31,6 +31,16 @@ export interface RegisterRequest {
   role: BackendRole
 }
 
+export type VerificationStatus = 'not_verified' | 'pending' | 'approved' | 'rejected'
+
+export interface GuestVerificationSummary {
+  emailVerified: boolean
+  phoneVerified: boolean
+  identityStatus: VerificationStatus
+  verificationLevel: 0 | 1 | 2 | 3
+  rejectionReason?: string
+}
+
 export interface UserDto {
   id: string | number
   fullName?: string
@@ -40,6 +50,10 @@ export interface UserDto {
   createdAt?: string
   isVerified?: boolean
   banned?: boolean
+  emailVerified?: boolean
+  phoneVerified?: boolean
+  identityStatus?: VerificationStatus
+  verificationLevel?: 0 | 1 | 2 | 3
   // frontend-only extras
   username?: string
   bio?: string
