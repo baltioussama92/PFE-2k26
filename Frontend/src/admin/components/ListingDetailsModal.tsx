@@ -21,8 +21,21 @@ export default function ListingDetailsModal({
   const [isEditing, setIsEditing] = useState(false)
   const [listing, setListing] = useState<ListingDetails | null>(null)
   const [editData, setEditData] = useState<Partial<ListingDetails>>({})
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string>('')
+  const [existingImages, setExistingImages] = useState<string[]>([])
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([])
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([])
+  const [selectedImage, setSelectedImage] = useState<string>('')
+
+  const toDataUrl = (file: File): Promise<string> => (
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result || ''))
+      reader.onerror = () => reject(new Error('Failed to read image'))
+      reader.readAsDataURL(file)
+    })
+  )
+
+  const allImages = [...existingImages, ...newImagePreviews]
 
   useEffect(() => {
     if (open && listingId) {
@@ -34,6 +47,11 @@ export default function ListingDetailsModal({
           if (data) {
             setListing(data)
             setEditData(data)
+            const initialImages = data.images || []
+            setExistingImages(initialImages)
+            setNewImageFiles([])
+            setNewImagePreviews([])
+            setSelectedImage(initialImages[0] || '')
           }
         })
         .catch(() => {
@@ -45,22 +63,39 @@ export default function ListingDetailsModal({
     }
   }, [open, listingId, backendId])
 
+  useEffect(() => {
+    if (allImages.length === 0) {
+      if (selectedImage !== '') {
+        setSelectedImage('')
+      }
+      return
+    }
+
+    if (!allImages.includes(selectedImage)) {
+      setSelectedImage(allImages[0])
+    }
+  }, [allImages, selectedImage])
+
   const handleSave = async () => {
     if (!listing) return
     setSaving(true)
     try {
-      const updated = await adminApi.updateListing(listing.id, { 
-        ...editData, 
+      const updated = await adminApi.updateListing(listing.id, {
+        ...editData,
         backendId,
-        imageFile: imageFile || undefined,
-        imagePreview: imagePreview || undefined
+        images: existingImages,
+        imageFiles: newImageFiles.length > 0 ? newImageFiles : undefined,
       })
       if (updated) {
         setListing(updated)
+        setEditData(updated)
         onUpdate?.(updated)
         setIsEditing(false)
-        setImageFile(null)
-        setImagePreview('')
+        const updatedImages = updated.images || []
+        setExistingImages(updatedImages)
+        setNewImageFiles([])
+        setNewImagePreviews([])
+        setSelectedImage(updatedImages[0] || '')
       }
     } catch {
       console.error('Failed to update listing')
@@ -72,21 +107,47 @@ export default function ListingDetailsModal({
   const handleCancel = () => {
     setEditData(listing || {})
     setIsEditing(false)
-    setImageFile(null)
-    setImagePreview('')
+    const initialImages = listing?.images || []
+    setExistingImages(initialImages)
+    setNewImageFiles([])
+    setNewImagePreviews([])
+    setSelectedImage(initialImages[0] || '')
   }
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const result = event.target?.result as string
-        setImagePreview(result)
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    try {
+      const previews = await Promise.all(files.map((file) => toDataUrl(file)))
+      setNewImageFiles((prev) => [...prev, ...files])
+      setNewImagePreviews((prev) => [...prev, ...previews])
+      if (!selectedImage && previews[0]) {
+        setSelectedImage(previews[0])
       }
-      reader.readAsDataURL(file)
+    } finally {
+      e.target.value = ''
     }
+  }
+
+  const removeExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
+  const removeNewImage = (index: number) => {
+    setNewImageFiles((prev) => prev.filter((_, idx) => idx !== index))
+    setNewImagePreviews((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
+  const startEditing = () => {
+    if (!listing) return
+    setEditData(listing)
+    const initialImages = listing.images || []
+    setExistingImages(initialImages)
+    setNewImageFiles([])
+    setNewImagePreviews([])
+    setSelectedImage(initialImages[0] || '')
+    setIsEditing(true)
   }
 
   if (!open) return null
@@ -103,7 +164,7 @@ export default function ListingDetailsModal({
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
-            ✕
+            X
           </button>
         </div>
 
@@ -117,13 +178,28 @@ export default function ListingDetailsModal({
           ) : listing ? (
             <div className="space-y-6">
               {/* Main Image */}
-              {listing.images && listing.images.length > 0 && (
+              {allImages.length > 0 && (
                 <div className="aspect-video w-full overflow-hidden rounded-lg bg-gray-100">
                   <img
-                    src={imagePreview || listing.images[0]}
+                    src={selectedImage || allImages[0]}
                     alt={listing.title}
                     className="h-full w-full object-cover"
                   />
+                </div>
+              )}
+
+              {allImages.length > 1 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {allImages.map((image, idx) => (
+                    <button
+                      key={`${image}-${idx}`}
+                      type="button"
+                      onClick={() => setSelectedImage(image)}
+                      className={`overflow-hidden rounded-lg border ${selectedImage === image ? 'border-[#CBAD8D]' : 'border-gray-200'}`}
+                    >
+                      <img src={image} alt={`Listing image ${idx + 1}`} className="h-16 w-full object-cover" />
+                    </button>
+                  ))}
                 </div>
               )}
 
@@ -131,11 +207,12 @@ export default function ListingDetailsModal({
               {isEditing && (
                 <div className="rounded-lg border-2 border-dashed border-[#CBAD8D] bg-[#FBF7F3] p-4">
                   <label className="block">
-                    <span className="text-sm font-medium text-gray-700 mb-2 block">Change Image</span>
+                    <span className="text-sm font-medium text-gray-700 mb-2 block">Add Images</span>
                     <div className="relative">
                       <input
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleImageSelect}
                         className="hidden"
                         id="image-upload"
@@ -144,14 +221,45 @@ export default function ListingDetailsModal({
                         htmlFor="image-upload"
                         className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[#CBAD8D] bg-white py-6 cursor-pointer hover:bg-[#FBF7F3] transition"
                       >
-                        <span className="text-2xl">📸</span>
+                        <span className="text-2xl">IMG</span>
                         <span className="text-sm font-medium text-[#3A2D28]">
-                          {imageFile ? imageFile.name : 'Click to upload a new image'}
+                          Click to upload one or more images
                         </span>
-                        <span className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</span>
+                        <span className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</span>
                       </label>
                     </div>
                   </label>
+
+                  {allImages.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {existingImages.map((image, idx) => (
+                        <div key={`existing-${idx}`} className="relative overflow-hidden rounded-lg border border-gray-200">
+                          <img src={image} alt={`Existing image ${idx + 1}`} className="h-24 w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeExistingImage(idx)}
+                            className="absolute right-1 top-1 rounded bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/75"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+
+                      {newImagePreviews.map((image, idx) => (
+                        <div key={`new-${idx}`} className="relative overflow-hidden rounded-lg border border-[#CBAD8D]">
+                          <img src={image} alt={`New image ${idx + 1}`} className="h-24 w-full object-cover" />
+                          <span className="absolute left-1 top-1 rounded bg-[#CBAD8D] px-2 py-1 text-xs text-white">New</span>
+                          <button
+                            type="button"
+                            onClick={() => removeNewImage(idx)}
+                            className="absolute right-1 top-1 rounded bg-black/60 px-2 py-1 text-xs text-white hover:bg-black/75"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -169,7 +277,7 @@ export default function ListingDetailsModal({
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Rating</p>
-                  <p className="text-lg font-semibold">⭐ {listing.rating?.toFixed(1) ?? 'N/A'}</p>
+                  <p className="text-lg font-semibold">* {listing.rating?.toFixed(1) ?? 'N/A'}</p>
                 </div>
               </div>
 
@@ -245,7 +353,7 @@ export default function ListingDetailsModal({
                         className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#CBAD8D] focus:outline-none"
                       />
                     ) : (
-                      <p className="mt-1 text-gray-700">{listing.area} m²</p>
+                      <p className="mt-1 text-gray-700">{listing.area} m2</p>
                     )}
                   </div>
                   <div>
@@ -348,7 +456,7 @@ export default function ListingDetailsModal({
                   Close
                 </button>
                 <button
-                  onClick={() => setIsEditing(true)}
+                  onClick={startEditing}
                   className="rounded-lg bg-[#CBAD8D] px-4 py-2 text-sm font-medium text-white hover:bg-[#CBAD8D]/90"
                 >
                   Edit Listing

@@ -38,12 +38,30 @@ const AMENITY_ICONS = {
 
 // ── Gallery images (generate variants from the main image) ────
 function getGalleryImages(property) {
-  const base = property.image
+  const images = Array.isArray(property?.images)
+    ? property.images.filter(Boolean)
+    : []
+
+  if (images.length > 1) {
+    return images
+  }
+
+  const base = images[0] || property?.image
+  if (!base) {
+    return ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=90']
+  }
+
+  // Do not append query params to data URLs or static uploaded file URLs.
+  if (base.startsWith('data:') || base.includes('/uploads/')) {
+    return [base]
+  }
+
+  const separator = base.includes('?') ? '&' : '?'
   return [
     base,
-    base.replace('w=800', 'w=900') + '&crop=top',
-    base.replace('w=800', 'w=850') + '&crop=center',
-    base.replace('w=800', 'w=750') + '&crop=bottom',
+    `${base}${separator}crop=top`,
+    `${base}${separator}crop=center`,
+    `${base}${separator}crop=bottom`,
   ]
 }
 

@@ -1,4 +1,4 @@
-import { apiClient } from '../../api/apiClient'
+﻿import { API_BASE_URL, apiClient, getStoredAuthToken } from '../../api/apiClient'
 import { ENDPOINTS } from '../../api/endpoints'
 import type { BookingResponse, PropertyResponse, UserDto } from '../../utils/contracts'
 
@@ -37,6 +37,7 @@ export interface AdminListing {
   area?: number
   amenities?: string[]
   rating?: number
+  imageFiles?: File[]
   imageFile?: File
   imagePreview?: string
 }
@@ -534,6 +535,33 @@ async function fetchPendingListings(): Promise<PropertyResponse[]> {
   return data
 }
 
+async function uploadPropertyImage(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const token = getStoredAuthToken()
+  const response = await fetch(`${API_BASE_URL}/api/uploads/images`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error('Image upload failed')
+  }
+
+  const data = await response.json() as { url?: string }
+  if (!data.url) {
+    throw new Error('Image upload response is missing URL')
+  }
+
+  return data.url
+}
+
+async function uploadPropertyImages(files: File[]): Promise<string[]> {
+  return Promise.all(files.map((file) => uploadPropertyImage(file)))
+}
+
 export const adminApi = {
   async getUsers(): Promise<AdminUser[]> {
     return withFallback(async () => {
@@ -612,13 +640,20 @@ export const adminApi = {
       if (payload.area !== undefined) updateData.area = payload.area
       if (payload.amenities !== undefined) updateData.amenities = payload.amenities
 
-      // Handle image upload if provided
-      if (payload.imageFile || payload.imagePreview) {
-        // Use base64 or FormData depending on backend preference
-        // For now, using base64 encoded image preview
-        if (payload.imagePreview) {
-          updateData.images = [payload.imagePreview]
-        }
+      let finalImages: string[] | undefined = payload.images ? [...payload.images] : undefined
+
+      if (payload.imageFiles && payload.imageFiles.length > 0) {
+        const uploadedUrls = await uploadPropertyImages(payload.imageFiles)
+        finalImages = [...(finalImages || []), ...uploadedUrls]
+      } else if (payload.imageFile) {
+        const uploadedUrl = await uploadPropertyImage(payload.imageFile)
+        finalImages = [...(finalImages || []), uploadedUrl]
+      } else if (payload.imagePreview) {
+        finalImages = [...(finalImages || []), payload.imagePreview]
+      }
+
+      if (finalImages !== undefined) {
+        updateData.images = finalImages
       }
 
       // Use backendId if available for real API calls
@@ -626,15 +661,6 @@ export const adminApi = {
       const { data } = await apiClient.put<PropertyResponse>(ENDPOINTS.properties.byId(idToUse), updateData)
       return mapListing(data, false)
     } catch {
-      const mockListing = mockListings.find((item) => item.id === listingId)
-      if (mockListing) {
-        // If image preview is provided, update the mock listing's images
-        const updated = { ...mockListing, ...payload }
-        if (payload.imagePreview) {
-          updated.images = [payload.imagePreview]
-        }
-        return updated
-      }
       return null
     }
   },
@@ -1056,3 +1082,4 @@ export async function approveHostDemand(demandId: number | string): Promise<Host
 export async function rejectHostDemand(demandId: number | string, reason?: string): Promise<void> {
   return adminApi.rejectHostDemand(demandId, reason)
 }
+
