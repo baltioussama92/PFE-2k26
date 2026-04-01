@@ -11,6 +11,11 @@ export interface AdminUser {
   email: string
   role: UserRole
   status: UserStatus
+  username?: string
+  bio?: string
+  avatar?: string
+  createdAt?: string
+  isVerified?: boolean
 }
 
 export type ListingStatus = 'pending' | 'approved'
@@ -308,8 +313,12 @@ const mapUser = (user: UserDto): AdminUser => ({
   email: user.email,
   role: mapUserRole(user.role),
   status: user.banned ? 'banned' : 'active',
+  username: user.username || undefined,
+  bio: user.bio || undefined,
+  avatar: user.avatar || undefined,
+  createdAt: user.createdAt ? String(user.createdAt) : undefined,
+  isVerified: typeof user.isVerified === 'boolean' ? user.isVerified : undefined,
 })
-
 const mapListing = (listing: PropertyResponse, isPending: boolean): AdminListing => ({
   id: toNumberId(listing.id),
   title: listing.title,

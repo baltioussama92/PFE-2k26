@@ -42,6 +42,13 @@ const prettyWhen = (value: string): string => {
   return parsed.toLocaleString()
 }
 
+const getInitials = (name: string): string => {
+  const parts = name.split(' ').filter(Boolean)
+  if (parts.length === 0) return 'U'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+}
+
 export default function UserDetails() {
   const navigate = useNavigate()
   const { userId } = useParams()
@@ -227,11 +234,49 @@ export default function UserDetails() {
 
       {activeTab === 'overview' && (
         <Card title="Overview" subtitle="Global summary of this user account">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat title="Listings" value={String(overview.listings)} />
-            <Stat title="Bookings" value={String(overview.bookings)} />
-            <Stat title="Paid Bookings" value={String(overview.paidBookings)} />
-            <Stat title="Total Earnings" value={money.format(overview.earnings)} />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
+            <div className="rounded-2xl border border-[#CBAD8D]/40 bg-[#FFFFFF] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#3A2D28]/60">Profile Snapshot</p>
+
+              <div className="mt-3 flex items-center gap-3">
+                {user.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={`${user.name} avatar`}
+                    className="h-14 w-14 rounded-full border border-[#CBAD8D]/45 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-[#CBAD8D]/45 bg-[#EBE3DB] text-lg font-bold text-[#3A2D28]">
+                    {getInitials(user.name)}
+                  </div>
+                )}
+                <div>
+                  <p className="text-base font-bold text-[#3A2D28]">{user.name}</p>
+                  <p className="text-sm text-[#3A2D28]/75">{user.email}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2 text-sm text-[#3A2D28]/85">
+                <ProfileRow label="User ID" value={String(user.id)} />
+                <ProfileRow label="Username" value={user.username || 'Not set'} />
+                <ProfileRow label="Role" value={user.role} />
+                <ProfileRow label="Status" value={user.status} />
+                <ProfileRow label="Verified" value={typeof user.isVerified === 'boolean' ? (user.isVerified ? 'Yes' : 'No') : 'Unknown'} />
+                <ProfileRow label="Joined" value={user.createdAt ? prettyWhen(user.createdAt) : 'N/A'} />
+              </div>
+
+              <div className="mt-4 rounded-xl border border-[#CBAD8D]/35 bg-[#FAF7F3] p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#3A2D28]/60">Bio</p>
+                <p className="mt-1 text-sm text-[#3A2D28]/85">{user.bio || 'No bio provided by this user.'}</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Stat title="Listings" value={String(overview.listings)} />
+              <Stat title="Bookings" value={String(overview.bookings)} />
+              <Stat title="Paid Bookings" value={String(overview.paidBookings)} />
+              <Stat title="Total Earnings" value={money.format(overview.earnings)} />
+            </div>
           </div>
         </Card>
       )}
@@ -356,6 +401,14 @@ export default function UserDetails() {
 
           <Card title="Password & Danger Zone" subtitle="Change password or delete account">
             <div className="space-y-3">
+              <div className="rounded-xl border border-[#CBAD8D]/35 bg-[#FAF7F3] p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#3A2D28]/60">Current Password</p>
+                <p className="mt-1 text-sm font-semibold tracking-[0.2em] text-[#3A2D28]/80">••••••••••••</p>
+                <p className="mt-1 text-xs text-[#3A2D28]/70">
+                  Raw passwords are never returned by backend APIs for security reasons. Admin can only reset/change it.
+                </p>
+              </div>
+
               <label className="block text-xs font-semibold uppercase tracking-wide text-[#3A2D28]/70">
                 New Password
               </label>
@@ -406,6 +459,15 @@ function Stat({ title, value }: { title: string; value: string }) {
     <div className="rounded-xl border border-[#CBAD8D]/35 bg-[#FFFFFF] p-3">
       <p className="text-xs font-semibold uppercase tracking-wide text-[#3A2D28]/65">{title}</p>
       <p className="mt-1 text-lg font-bold text-[#3A2D28]">{value}</p>
+    </div>
+  )
+}
+
+function ProfileRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-[#CBAD8D]/25 bg-[#FCFAF8] px-3 py-2">
+      <span className="text-xs font-semibold uppercase tracking-wide text-[#3A2D28]/65">{label}</span>
+      <span className="text-sm font-medium text-[#3A2D28]">{value}</span>
     </div>
   )
 }
