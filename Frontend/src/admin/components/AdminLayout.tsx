@@ -26,6 +26,7 @@ const titleByPath: Record<string, string> = {
   '/admin/payments': 'Payments',
   '/admin/reports': 'Reports',
   '/admin/settings': 'Settings',
+  '/admin/host-demands': 'Host Demands',
 }
 
 const resolveTitle = (pathname: string): string => {

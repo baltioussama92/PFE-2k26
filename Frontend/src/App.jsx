@@ -25,6 +25,7 @@ import AdminBookingsPage from './admin/pages/Bookings'
 import AdminPaymentsPage from './admin/pages/Payments'
 import AdminReportsPage from './admin/pages/Reports'
 import AdminSettingsPage from './admin/pages/Settings'
+import AdminHostDemandsPage from './admin/pages/HostDemands'
 import { DEMO_MODE } from './data/demo'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
@@ -172,6 +173,7 @@ function AppRoutes() {
             <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="host-demands" element={<AdminHostDemandsPage />} />
             <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
           </Route>
         </Routes>

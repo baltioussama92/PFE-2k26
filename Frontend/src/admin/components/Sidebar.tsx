@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { BarChart3, BookOpen, Compass, CreditCard, FileWarning, Home, LogOut, Settings, Users } from 'lucide-react'
+import { BarChart3, BookOpen, Compass, CreditCard, FileWarning, Home, LogOut, Settings, Users, FileCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 const links = [
@@ -9,6 +9,7 @@ const links = [
   { to: '/admin/bookings', label: 'Bookings', icon: BarChart3 },
   { to: '/admin/payments', label: 'Payments', icon: CreditCard },
   { to: '/admin/reports', label: 'Reports', icon: FileWarning },
+  { to: '/admin/host-demands', label: 'Host Demands', icon: FileCheck },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
 ]
 

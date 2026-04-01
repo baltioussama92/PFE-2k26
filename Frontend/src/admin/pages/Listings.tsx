@@ -3,7 +3,8 @@ import Card from '../components/Card'
 import Modal from '../components/Modal'
 import Table, { type TableColumn } from '../components/Table'
 import { useAdminToast } from '../components/AdminLayout'
-import { adminApi, type AdminListing } from '../services/adminApi'
+import ListingDetailsModal from '../components/ListingDetailsModal'
+import { adminApi, type AdminListing, type ListingDetails } from '../services/adminApi'
 
 type ListingAction = 'approve' | 'reject' | 'delete'
 
@@ -14,6 +15,9 @@ export default function Listings() {
   const [target, setTarget] = useState<AdminListing | null>(null)
   const [action, setAction] = useState<ListingAction | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [viewingListingId, setViewingListingId] = useState<number | null>(null)
+  const [viewingListingBackendId, setViewingListingBackendId] = useState<string | undefined>()
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -53,6 +57,17 @@ export default function Listings() {
       header: 'Actions',
       render: (row) => (
         <div className="flex gap-2">
+          <button
+            type="button"
+            className="rounded-lg border border-[#CBAD8D]/70 px-2.5 py-1 text-xs font-medium text-[#3A2D28] hover:bg-[#EBE3DB]"
+            onClick={() => { 
+              setViewingListingId(row.id)
+              setViewingListingBackendId(row.backendId)
+              setShowDetailsModal(true)
+            }}
+          >
+            View
+          </button>
           <button
             type="button"
             className="rounded-lg border border-[#CBAD8D]/70 px-2.5 py-1 text-xs font-medium text-[#3A2D28] hover:bg-[#EBE3DB] disabled:opacity-50"
@@ -117,7 +132,7 @@ export default function Listings() {
 
   return (
     <>
-      <Card title="Listings Management" subtitle="Approve, reject, or remove property listings">
+      <Card title="Listings Management" subtitle="View, approve, reject, or remove property listings">
         <Table
           columns={columns}
           rows={listings}
@@ -135,6 +150,26 @@ export default function Listings() {
         onCancel={() => { setTarget(null); setAction(null) }}
         onConfirm={onConfirmAction}
         isLoading={actionLoading}
+      />
+
+      <ListingDetailsModal
+        listingId={viewingListingId}
+        backendId={viewingListingBackendId}
+        open={showDetailsModal}
+        onClose={() => {
+          setShowDetailsModal(false)
+          setViewingListingId(null)
+          setViewingListingBackendId(undefined)
+        }}
+        onUpdate={(updated) => {
+          setListings((prev) =>
+            prev.map((listing) =>
+              listing.id === updated.id
+                ? { ...listing, ...updated }
+                : listing
+            )
+          )
+        }}
       />
     </>
   )

@@ -9,6 +9,10 @@ const USER_STORAGE_KEY = 'user'
 const ROLE_STORAGE_KEY = 'userRole'
 const HOUSE_IMAGE_URL =
   'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1600&q=80'
+const BIRTH_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const BIRTH_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1))
+const CURRENT_YEAR = new Date().getFullYear()
+const BIRTH_YEARS = Array.from({ length: 100 }, (_, index) => String(CURRENT_YEAR - index))
 
 const formVariants = {
   initial: { opacity: 0, y: 12 },
@@ -64,10 +68,14 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [form, setForm] = useState({
-    fullName: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
-    phone: '',
+    birthMonth: '',
+    birthDay: '',
+    birthYear: '',
+    gender: '',
   })
 
   const title = useMemo(() => (mode === 'login' ? 'Sign in' : 'Create account'), [mode])
@@ -119,10 +127,9 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fullName: form.fullName,
+        fullName: `${form.firstName} ${form.lastName}`.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
-        phone: form.phone,
       }),
     })
 
@@ -243,23 +250,32 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
                 exit="exit"
               >
                 {mode === 'register' && (
-                  <motion.input
-                    variants={fieldVariants}
-                    type="text"
-                    value={form.fullName}
-                    onChange={updateField('fullName')}
-                    placeholder="Full name"
-                    className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-                    required
-                  />
+                  <motion.div variants={fieldVariants} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <input
+                      type="text"
+                      value={form.firstName}
+                      onChange={updateField('firstName')}
+                      placeholder="First name"
+                      className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                      required
+                    />
+                    <input
+                      type="text"
+                      value={form.lastName}
+                      onChange={updateField('lastName')}
+                      placeholder="Last name"
+                      className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                      required
+                    />
+                  </motion.div>
                 )}
 
                 <motion.input
                   variants={fieldVariants}
-                  type="email"
+                  type="text"
                   value={form.email}
                   onChange={updateField('email')}
-                  placeholder="Email"
+                  placeholder="Mobile number or email"
                   className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
                   required
                 />
@@ -269,20 +285,85 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
                   type="password"
                   value={form.password}
                   onChange={updateField('password')}
-                  placeholder="Password"
+                  placeholder="New password"
                   className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
                   required
                 />
 
                 {mode === 'register' && (
-                  <motion.input
-                    variants={fieldVariants}
-                    type="tel"
-                    value={form.phone}
-                    onChange={updateField('phone')}
-                    placeholder="Phone (optional)"
-                    className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
-                  />
+                  <>
+                    <motion.label variants={fieldVariants} className="mb-0.5 block text-sm font-medium text-primary-700">
+                      Birthday
+                    </motion.label>
+                    <motion.div variants={fieldVariants} className="grid grid-cols-3 gap-2">
+                      <select
+                        value={form.birthMonth}
+                        onChange={updateField('birthMonth')}
+                        className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                        required
+                      >
+                        <option value="">Month</option>
+                        {BIRTH_MONTHS.map((month) => (
+                          <option key={month} value={month}>
+                            {month}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={form.birthDay}
+                        onChange={updateField('birthDay')}
+                        className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                        required
+                      >
+                        <option value="">Day</option>
+                        {BIRTH_DAYS.map((day) => (
+                          <option key={day} value={day}>
+                            {day}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={form.birthYear}
+                        onChange={updateField('birthYear')}
+                        className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                        required
+                      >
+                        <option value="">Year</option>
+                        {BIRTH_YEARS.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
+                        ))}
+                      </select>
+                    </motion.div>
+
+                    <motion.label variants={fieldVariants} className="mb-0.5 block text-sm font-medium text-primary-700">
+                      Gender
+                    </motion.label>
+                    <motion.div variants={fieldVariants} className="grid grid-cols-2 gap-2">
+                      {['Female', 'Male'].map((option) => (
+                        <label
+                          key={option}
+                          className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                            form.gender === option
+                              ? 'border-primary-500 bg-primary-100 text-primary-900'
+                              : 'border-primary-200 bg-primary-50 text-primary-700 hover:border-primary-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="gender"
+                            value={option}
+                            checked={form.gender === option}
+                            onChange={updateField('gender')}
+                            className="h-4 w-4 accent-primary-600"
+                            required
+                          />
+                          {option}
+                        </label>
+                      ))}
+                    </motion.div>
+                  </>
                 )}
 
                 {submitError && <p className="pt-1 text-xs font-medium text-red-600">{submitError}</p>}

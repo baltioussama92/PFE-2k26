@@ -7,6 +7,10 @@ import { authService } from '../services/authService'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^[0-9+()\-\s]{8,20}$/
+const BIRTH_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const BIRTH_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1))
+const CURRENT_YEAR = new Date().getFullYear()
+const BIRTH_YEARS = Array.from({ length: 100 }, (_, index) => String(CURRENT_YEAR - index))
 
 const formVariants = {
   enter: (direction) => ({ opacity: 0, x: direction > 0 ? 42 : -42 }),
@@ -30,10 +34,14 @@ const staggerItem = {
 }
 
 const initialRegister = {
-  fullName: '',
+  firstName: '',
+  lastName: '',
   email: '',
-  phoneNumber: '',
   password: '',
+  birthMonth: '',
+  birthDay: '',
+  birthYear: '',
+  gender: '',
   agencyName: '',
 }
 
@@ -69,10 +77,14 @@ const AuthPage = () => {
 
   const registerErrors = useMemo(() => {
     return {
-      fullName: registerData.fullName.trim().length < 2,
+      firstName: registerData.firstName.trim().length < 2,
+      lastName: registerData.lastName.trim().length < 2,
       email: !EMAIL_REGEX.test(registerData.email.trim()),
-      phoneNumber: !PHONE_REGEX.test(registerData.phoneNumber.trim()),
       password: registerData.password.length < 8,
+      birthMonth: registerData.birthMonth.trim() === '',
+      birthDay: registerData.birthDay.trim() === '',
+      birthYear: registerData.birthYear.trim() === '',
+      gender: registerData.gender.trim() === '',
     }
   }, [registerData])
 
@@ -135,12 +147,12 @@ const AuthPage = () => {
       setIsLoading(true)
 
       if (mode === 'register') {
+        const fullName = `${registerData.firstName} ${registerData.lastName}`.trim()
         await authService.register({
-          fullName: registerData.fullName.trim(),
+          fullName,
           email: registerData.email.trim().toLowerCase(),
           password: registerData.password,
           role: selectedRole,
-          phoneNumber: registerData.phoneNumber.trim(),
           agencyName: selectedRole === 'PROPRIETOR' ? registerData.agencyName.trim() : undefined,
         })
       } else {
@@ -253,39 +265,125 @@ const AuthPage = () => {
                     </motion.div>
 
                     <motion.div variants={staggerItem}>
-                      <label className="mb-1.5 block text-sm font-medium text-primary-700">Full Name</label>
-                      <input
-                        type="text"
-                        value={registerData.fullName}
-                        onBlur={() => markTouched('fullName')}
-                        onChange={(event) => setRegisterData((current) => ({ ...current, fullName: event.target.value }))}
-                        placeholder="Enter your full name"
-                        className={inputClass(showFieldError('fullName', registerErrors.fullName))}
-                      />
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <input
+                          type="text"
+                          value={registerData.firstName}
+                          onBlur={() => markTouched('firstName')}
+                          onChange={(event) => setRegisterData((current) => ({ ...current, firstName: event.target.value }))}
+                          placeholder="First name"
+                          className={inputClass(showFieldError('firstName', registerErrors.firstName))}
+                        />
+                        <input
+                          type="text"
+                          value={registerData.lastName}
+                          onBlur={() => markTouched('lastName')}
+                          onChange={(event) => setRegisterData((current) => ({ ...current, lastName: event.target.value }))}
+                          placeholder="Last name"
+                          className={inputClass(showFieldError('lastName', registerErrors.lastName))}
+                        />
+                      </div>
                     </motion.div>
 
                     <motion.div variants={staggerItem}>
-                      <label className="mb-1.5 block text-sm font-medium text-primary-700">Email</label>
+                      <label className="mb-1.5 block text-sm font-medium text-primary-700">Mobile number or email</label>
                       <input
                         type="email"
                         value={registerData.email}
                         onBlur={() => markTouched('registerEmail')}
                         onChange={(event) => setRegisterData((current) => ({ ...current, email: event.target.value }))}
-                        placeholder="you@example.com"
+                        placeholder="Mobile number or email"
                         className={inputClass(showFieldError('registerEmail', registerErrors.email))}
                       />
                     </motion.div>
 
                     <motion.div variants={staggerItem}>
-                      <label className="mb-1.5 block text-sm font-medium text-primary-700">Phone Number</label>
+                      <label className="mb-1.5 block text-sm font-medium text-primary-700">New password</label>
                       <input
-                        type="tel"
-                        value={registerData.phoneNumber}
-                        onBlur={() => markTouched('phoneNumber')}
-                        onChange={(event) => setRegisterData((current) => ({ ...current, phoneNumber: event.target.value }))}
-                        placeholder="+212 600 000 000"
-                        className={inputClass(showFieldError('phoneNumber', registerErrors.phoneNumber))}
+                        type="password"
+                        value={registerData.password}
+                        onBlur={() => markTouched('registerPassword')}
+                        onChange={(event) => setRegisterData((current) => ({ ...current, password: event.target.value }))}
+                        placeholder="New password"
+                        className={inputClass(showFieldError('registerPassword', registerErrors.password))}
                       />
+                    </motion.div>
+
+                    <motion.div variants={staggerItem}>
+                      <label className="mb-1.5 block text-sm font-medium text-primary-700">Birthday</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <select
+                          value={registerData.birthMonth}
+                          onBlur={() => markTouched('birthMonth')}
+                          onChange={(event) => setRegisterData((current) => ({ ...current, birthMonth: event.target.value }))}
+                          className={inputClass(showFieldError('birthMonth', registerErrors.birthMonth))}
+                        >
+                          <option value="">Month</option>
+                          {BIRTH_MONTHS.map((month) => (
+                            <option key={month} value={month}>
+                              {month}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={registerData.birthDay}
+                          onBlur={() => markTouched('birthDay')}
+                          onChange={(event) => setRegisterData((current) => ({ ...current, birthDay: event.target.value }))}
+                          className={inputClass(showFieldError('birthDay', registerErrors.birthDay))}
+                        >
+                          <option value="">Day</option>
+                          {BIRTH_DAYS.map((day) => (
+                            <option key={day} value={day}>
+                              {day}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={registerData.birthYear}
+                          onBlur={() => markTouched('birthYear')}
+                          onChange={(event) => setRegisterData((current) => ({ ...current, birthYear: event.target.value }))}
+                          className={inputClass(showFieldError('birthYear', registerErrors.birthYear))}
+                        >
+                          <option value="">Year</option>
+                          {BIRTH_YEARS.map((year) => (
+                            <option key={year} value={year}>
+                              {year}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </motion.div>
+
+                    <motion.div variants={staggerItem}>
+                      <label className="mb-2 block text-sm font-medium text-primary-700">Gender</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['Female', 'Male'].map((genderOption) => (
+                          <label
+                            key={genderOption}
+                            className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                              registerData.gender === genderOption
+                                ? 'border-primary-500 bg-primary-100 text-primary-900'
+                                : 'border-primary-200 bg-primary-50/70 text-primary-700 hover:border-primary-300'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="gender"
+                              value={genderOption}
+                              checked={registerData.gender === genderOption}
+                              onChange={(event) => {
+                                markTouched('gender')
+                                setRegisterData((current) => ({ ...current, gender: event.target.value }))
+                              }}
+                              className="h-4 w-4 accent-primary-600"
+                            />
+                            {genderOption}
+                          </label>
+                        ))}
+                      </div>
+                      {showFieldError('gender', registerErrors.gender) && (
+                        <p className="mt-1 text-xs text-red-600">Please select a gender.</p>
+                      )}
                     </motion.div>
 
                     {selectedRole === 'PROPRIETOR' && (
@@ -301,17 +399,6 @@ const AuthPage = () => {
                       </motion.div>
                     )}
 
-                    <motion.div variants={staggerItem}>
-                      <label className="mb-1.5 block text-sm font-medium text-primary-700">Password</label>
-                      <input
-                        type="password"
-                        value={registerData.password}
-                        onBlur={() => markTouched('registerPassword')}
-                        onChange={(event) => setRegisterData((current) => ({ ...current, password: event.target.value }))}
-                        placeholder="At least 8 characters"
-                        className={inputClass(showFieldError('registerPassword', registerErrors.password))}
-                      />
-                    </motion.div>
                   </motion.div>
 
                   <motion.button

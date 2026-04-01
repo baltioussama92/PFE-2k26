@@ -22,12 +22,27 @@ export type ListingStatus = 'pending' | 'approved'
 
 export interface AdminListing {
   id: number
+  backendId?: string // Original MongoDB ObjectId for API calls
   title: string
   host: string
   hostId?: number
   location: string
   status: ListingStatus
   createdAt?: string
+  description?: string
+  pricePerNight?: number
+  images?: string[]
+  bedrooms?: number
+  bathrooms?: number
+  area?: number
+  amenities?: string[]
+  rating?: number
+  imageFile?: File
+  imagePreview?: string
+}
+
+export interface ListingDetails extends AdminListing {
+  reviews?: number
 }
 
 export type BookingStatus = 'confirmed' | 'pending' | 'cancelled'
@@ -102,6 +117,28 @@ export interface AdminSettings {
   enableNewHostOnboarding: boolean
   emailNotifications: boolean
   inAppNotifications: boolean
+}
+
+export type HostDemandStatus = 'pending' | 'approved' | 'rejected'
+export type IdVerificationStatus = 'pending' | 'verified' | 'rejected'
+
+export interface HostDemand {
+  id: number
+  backendId?: string
+  userId: string
+  userName: string
+  userEmail: string
+  userPhone?: string
+  status: HostDemandStatus
+  submittedDate: string
+  documents: string[]
+  idDocument: string
+  idVerificationStatus: IdVerificationStatus
+  housePictures: string[]
+  proposedPrice: number
+  proposedLocation: string
+  bio?: string
+  notes?: string
 }
 
 export interface DashboardStats {
@@ -266,6 +303,67 @@ const mockReports: AdminReport[] = [
   },
 ]
 
+const mockHostDemands: HostDemand[] = [
+  {
+    id: 501,
+    userId: '102',
+    userName: 'Yassine Amrani',
+    userEmail: 'yassine@maskan.com',
+    userPhone: '+212 612 345 678',
+    status: 'pending',
+    submittedDate: '2026-03-28T14:30:00Z',
+    documents: ['https://via.placeholder.com/300x200?text=Tax+Return', 'https://via.placeholder.com/300x200?text=Bank+Statement'],
+    idDocument: 'https://via.placeholder.com/300x400?text=National+ID',
+    idVerificationStatus: 'verified',
+    housePictures: [
+      'https://via.placeholder.com/400x300?text=Living+Room',
+      'https://via.placeholder.com/400x300?text=Bedroom',
+      'https://via.placeholder.com/400x300?text=Kitchen',
+    ],
+    proposedPrice: 85,
+    proposedLocation: 'Marrakech, Morocco',
+    bio: 'Experienced property manager with 5 years in hospitality industry',
+  },
+  {
+    id: 502,
+    userId: '103',
+    userName: 'Sara Benali',
+    userEmail: 'sara@maskan.com',
+    userPhone: '+212 698 765 432',
+    status: 'pending',
+    submittedDate: '2026-03-29T09:15:00Z',
+    documents: [],
+    idDocument: 'https://via.placeholder.com/300x400?text=ID+Card',
+    idVerificationStatus: 'pending',
+    housePictures: [
+      'https://via.placeholder.com/400x300?text=Exterior',
+    ],
+    proposedPrice: 65,
+    proposedLocation: 'Casablanca, Morocco',
+    bio: 'New host with beautiful apartment near the beach',
+  },
+  {
+    id: 503,
+    userId: '104',
+    userName: 'Karim El Fassi',
+    userEmail: 'karim@maskan.com',
+    userPhone: '+212 654 321 098',
+    status: 'approved',
+    submittedDate: '2026-03-15T11:20:00Z',
+    documents: ['https://via.placeholder.com/300x200?text=License', 'https://via.placeholder.com/300x200?text=Insurance'],
+    idDocument: 'https://via.placeholder.com/300x400?text=Approved+ID',
+    idVerificationStatus: 'verified',
+    housePictures: [
+      'https://via.placeholder.com/400x300?text=Modern+Villa',
+      'https://via.placeholder.com/400x300?text=Pool',
+      'https://via.placeholder.com/400x300?text=Terrace',
+    ],
+    proposedPrice: 125,
+    proposedLocation: 'Agadir, Morocco',
+    bio: 'Luxury property manager with premium listings',
+  },
+]
+
 const sleep = (ms: number) => new Promise((resolve) => {
   window.setTimeout(resolve, ms)
 })
@@ -321,12 +419,21 @@ const mapUser = (user: UserDto): AdminUser => ({
 })
 const mapListing = (listing: PropertyResponse, isPending: boolean): AdminListing => ({
   id: toNumberId(listing.id),
+  backendId: String(listing.id), // Preserve original backend ID
   title: listing.title,
   host: listing.hostId ? `Host #${listing.hostId}` : 'Unknown host',
   hostId: toNumberId(listing.hostId),
   location: listing.location,
   status: isPending ? 'pending' : 'approved',
   createdAt: String(listing.createdAt || ''),
+  description: listing.description || '',
+  pricePerNight: Number(listing.pricePerNight || listing.price || 0),
+  images: listing.images || [],
+  bedrooms: Number(listing.bedrooms || 0),
+  bathrooms: Number(listing.bathrooms || 0),
+  area: Number(listing.area || 0),
+  amenities: listing.amenities || [],
+  rating: Number(listing.rating || 0),
 })
 
 const mapAdminListingStatus = (status: string | undefined): ListingStatus => {
@@ -469,6 +576,67 @@ export const adminApi = {
       await sleep(220)
       return [...mockListings]
     })
+  },
+
+  async getListingDetails(listingId: number, backendId?: string): Promise<ListingDetails | null> {
+    try {
+      // Use backendId if available (for real backend calls), otherwise use listingId (for mock)
+      const idToFetch = backendId || listingId
+      const { data } = await apiClient.get<PropertyResponse>(ENDPOINTS.properties.byId(idToFetch))
+      const listing = mapListing(data, false)
+      return {
+        ...listing,
+        reviews: Number(data.reviewCount || 0),
+      }
+    } catch {
+      const mockListing = mockListings.find((item) => item.id === listingId)
+      if (mockListing) {
+        return {
+          ...mockListing,
+          reviews: 5,
+        }
+      }
+      return null
+    }
+  },
+
+  async updateListing(listingId: number, payload: Partial<AdminListing>): Promise<AdminListing | null> {
+    try {
+      const updateData: Record<string, unknown> = {}
+      if (payload.title !== undefined) updateData.title = payload.title
+      if (payload.description !== undefined) updateData.description = payload.description
+      if (payload.location !== undefined) updateData.location = payload.location
+      if (payload.pricePerNight !== undefined) updateData.pricePerNight = payload.pricePerNight
+      if (payload.bedrooms !== undefined) updateData.bedrooms = payload.bedrooms
+      if (payload.bathrooms !== undefined) updateData.bathrooms = payload.bathrooms
+      if (payload.area !== undefined) updateData.area = payload.area
+      if (payload.amenities !== undefined) updateData.amenities = payload.amenities
+
+      // Handle image upload if provided
+      if (payload.imageFile || payload.imagePreview) {
+        // Use base64 or FormData depending on backend preference
+        // For now, using base64 encoded image preview
+        if (payload.imagePreview) {
+          updateData.images = [payload.imagePreview]
+        }
+      }
+
+      // Use backendId if available for real API calls
+      const idToUse = payload.backendId || listingId
+      const { data } = await apiClient.put<PropertyResponse>(ENDPOINTS.properties.byId(idToUse), updateData)
+      return mapListing(data, false)
+    } catch {
+      const mockListing = mockListings.find((item) => item.id === listingId)
+      if (mockListing) {
+        // If image preview is provided, update the mock listing's images
+        const updated = { ...mockListing, ...payload }
+        if (payload.imagePreview) {
+          updated.images = [payload.imagePreview]
+        }
+        return updated
+      }
+      return null
+    }
   },
 
   async getBookings(): Promise<AdminBooking[]> {
@@ -822,4 +990,69 @@ export const adminApi = {
     writeStoredSettings(nextSettings)
     return { ...nextSettings }
   },
+
+  async getHostDemands(): Promise<HostDemand[]> {
+    return withFallback(async () => {
+      // TODO: Replace with actual API call when backend endpoint is ready
+      // const { data } = await apiClient.get<HostDemand[]>(ENDPOINTS.admin.hostDemands)
+      // return data
+      await sleep(300)
+      return [...mockHostDemands]
+    }, async () => {
+      await sleep(300)
+      return [...mockHostDemands]
+    })
+  },
+
+  async getHostDemandById(demandId: number | string): Promise<HostDemand | null> {
+    const demands = await this.getHostDemands()
+    return demands.find((demand) => demand.id === demandId || demand.backendId === String(demandId)) || null
+  },
+
+  async approveHostDemand(demandId: number | string): Promise<HostDemand | null> {
+    try {
+      // TODO: Replace with actual API call when backend endpoint is ready
+      // const { data } = await apiClient.put<HostDemand>(ENDPOINTS.admin.approveHostDemand(demandId))
+      // return data
+      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
+      if (!demand) return null
+      demand.status = 'approved'
+      return { ...demand }
+    } catch {
+      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
+      if (!demand) return null
+      demand.status = 'approved'
+      return { ...demand }
+    }
+  },
+
+  async rejectHostDemand(demandId: number | string, reason?: string): Promise<void> {
+    try {
+      // TODO: Replace with actual API call when backend endpoint is ready
+      // await apiClient.put(ENDPOINTS.admin.rejectHostDemand(demandId), { reason })
+      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
+      if (demand) {
+        demand.status = 'rejected'
+        demand.notes = reason || 'No reason provided'
+      }
+    } catch {
+      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
+      if (demand) {
+        demand.status = 'rejected'
+        demand.notes = reason || 'No reason provided'
+      }
+    }
+  },
+}
+
+export async function getHostDemands(): Promise<HostDemand[]> {
+  return adminApi.getHostDemands()
+}
+
+export async function approveHostDemand(demandId: number | string): Promise<HostDemand | null> {
+  return adminApi.approveHostDemand(demandId)
+}
+
+export async function rejectHostDemand(demandId: number | string, reason?: string): Promise<void> {
+  return adminApi.rejectHostDemand(demandId, reason)
 }
