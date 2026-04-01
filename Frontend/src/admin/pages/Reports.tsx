@@ -21,6 +21,9 @@ export default function Reports() {
       .then((data) => {
         if (active) setReports(data)
       })
+      .catch(() => {
+        showToast('Failed to load reports.', 'error')
+      })
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -74,23 +77,29 @@ export default function Reports() {
   const onConfirm = async () => {
     if (!target || !action) return
     setActionLoading(true)
-
-    if (action === 'resolve') {
-      const updated = await adminApi.resolveReport(target.id)
-      if (updated) {
-        setReports((prev) => prev.map((report) => (report.id === updated.id ? updated : report)))
-        showToast('Report resolved.')
+    try {
+      if (action === 'resolve') {
+        const updated = await adminApi.resolveReport(target.id)
+        if (updated) {
+          setReports((prev) => prev.map((report) => (report.id === updated.id ? updated : report)))
+          showToast('Report resolved.')
+        } else {
+          showToast('Unable to resolve this report.', 'error')
+        }
       }
-    }
 
-    if (action === 'ban') {
-      await adminApi.banUserFromReport(target.id)
-      showToast('Target user banned.')
-    }
+      if (action === 'ban') {
+        await adminApi.banUserFromReport(target.id)
+        showToast('Target user banned.')
+      }
 
-    setActionLoading(false)
-    setAction(null)
-    setTarget(null)
+      setAction(null)
+      setTarget(null)
+    } catch {
+      showToast(`Failed to ${action === 'resolve' ? 'resolve report' : 'ban user'}.`, 'error')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const confirmLabel = action === 'resolve' ? 'Resolve report' : 'Ban user'

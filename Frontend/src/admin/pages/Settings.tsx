@@ -46,6 +46,10 @@ export default function Settings() {
       .then((data) => {
         if (active) setSettings(data)
       })
+      .catch(() => {
+        showToast('Failed to load settings, using defaults.', 'error')
+        if (active) setSettings(defaultSettings)
+      })
       .finally(() => {
         if (active) setLoading(false)
       })

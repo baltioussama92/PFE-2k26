@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import Card from '../components/Card'
 import Table, { type TableColumn } from '../components/Table'
+import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type AdminPayment } from '../services/adminApi'
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
 export default function Payments() {
+  const { showToast } = useAdminToast()
   const [loading, setLoading] = useState(true)
   const [payments, setPayments] = useState<AdminPayment[]>([])
 
@@ -15,6 +17,9 @@ export default function Payments() {
       .then((data) => {
         if (active) setPayments(data)
       })
+      .catch(() => {
+        showToast('Failed to load payments.', 'error')
+      })
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -22,7 +27,7 @@ export default function Payments() {
     return () => {
       active = false
     }
-  }, [])
+  }, [showToast])
 
   const totalRevenue = payments
     .filter((payment) => payment.status === 'paid')

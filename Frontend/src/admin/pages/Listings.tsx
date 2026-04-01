@@ -21,6 +21,9 @@ export default function Listings() {
       .then((data) => {
         if (active) setListings(data)
       })
+      .catch(() => {
+        showToast('Failed to load listings.', 'error')
+      })
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -80,30 +83,34 @@ export default function Listings() {
   const onConfirmAction = async () => {
     if (!target || !action) return
     setActionLoading(true)
-
-    if (action === 'approve') {
-      const updated = await adminApi.approveListing(target.id)
-      if (updated) {
-        setListings((prev) => prev.map((listing) => (listing.id === updated.id ? updated : listing)))
-        showToast('Listing approved successfully.')
+    try {
+      if (action === 'approve') {
+        const updated = await adminApi.approveListing(target.id)
+        if (updated) {
+          setListings((prev) => prev.map((listing) => (listing.id === updated.id ? updated : listing)))
+          showToast('Listing approved successfully.')
+        }
       }
-    }
 
-    if (action === 'reject') {
-      await adminApi.rejectListing(target.id)
-      setListings((prev) => prev.filter((listing) => listing.id !== target.id))
-      showToast('Listing rejected.')
-    }
+      if (action === 'reject') {
+        await adminApi.rejectListing(target.id)
+        setListings((prev) => prev.filter((listing) => listing.id !== target.id))
+        showToast('Listing rejected.')
+      }
 
-    if (action === 'delete') {
-      await adminApi.deleteListing(target.id)
-      setListings((prev) => prev.filter((listing) => listing.id !== target.id))
-      showToast('Listing deleted.')
-    }
+      if (action === 'delete') {
+        await adminApi.deleteListing(target.id)
+        setListings((prev) => prev.filter((listing) => listing.id !== target.id))
+        showToast('Listing deleted.')
+      }
 
-    setActionLoading(false)
-    setTarget(null)
-    setAction(null)
+      setTarget(null)
+      setAction(null)
+    } catch {
+      showToast(`Failed to ${action} listing.`, 'error')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const actionTitle = action ? `${action[0].toUpperCase()}${action.slice(1)} listing` : 'Confirm action'

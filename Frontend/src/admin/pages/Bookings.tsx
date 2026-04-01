@@ -18,6 +18,9 @@ export default function Bookings() {
       .then((data) => {
         if (active) setBookings(data)
       })
+      .catch(() => {
+        showToast('Failed to load bookings.', 'error')
+      })
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -57,17 +60,22 @@ export default function Bookings() {
   const onCancelBooking = async () => {
     if (!target) return
     setActionLoading(true)
-    const updated = await adminApi.cancelBooking(target.id)
-    setActionLoading(false)
+    try {
+      const updated = await adminApi.cancelBooking(target.id)
 
-    if (!updated) {
+      if (!updated) {
+        showToast('Failed to cancel booking.', 'error')
+        return
+      }
+
+      setBookings((prev) => prev.map((booking) => (booking.id === updated.id ? updated : booking)))
+      setTarget(null)
+      showToast('Booking cancelled.')
+    } catch {
       showToast('Failed to cancel booking.', 'error')
-      return
+    } finally {
+      setActionLoading(false)
     }
-
-    setBookings((prev) => prev.map((booking) => (booking.id === updated.id ? updated : booking)))
-    setTarget(null)
-    showToast('Booking cancelled.')
   }
 
   return (

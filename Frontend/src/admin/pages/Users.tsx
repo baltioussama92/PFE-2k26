@@ -21,6 +21,9 @@ export default function Users() {
       .then((data) => {
         if (active) setUsers(data)
       })
+      .catch(() => {
+        showToast('Failed to load users.', 'error')
+      })
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -87,17 +90,22 @@ export default function Users() {
   const onConfirmBanToggle = async () => {
     if (!selected) return
     setActionLoading(true)
-    const updated = await adminApi.toggleUserBan(selected.id)
-    setActionLoading(false)
+    try {
+      const updated = await adminApi.toggleUserBan(selected.id)
 
-    if (!updated) {
-      showToast('User update failed.', 'error')
-      return
+      if (!updated) {
+        showToast('User update failed.', 'error')
+        return
+      }
+
+      setUsers((prev) => prev.map((user) => (user.id === updated.id ? updated : user)))
+      setSelected(null)
+      showToast(`User ${updated.status === 'banned' ? 'banned' : 'unbanned'} successfully.`)
+    } catch {
+      showToast('Failed to update user status.', 'error')
+    } finally {
+      setActionLoading(false)
     }
-
-    setUsers((prev) => prev.map((user) => (user.id === updated.id ? updated : user)))
-    setSelected(null)
-    showToast(`User ${updated.status === 'banned' ? 'banned' : 'unbanned'} successfully.`)
   }
 
   return (

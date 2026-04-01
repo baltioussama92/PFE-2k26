@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import Card from '../components/Card'
 import Table, { type TableColumn } from '../components/Table'
+import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type ActivityRow, type DashboardStats } from '../services/adminApi'
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
 export default function Dashboard() {
+  const { showToast } = useAdminToast()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [activity, setActivity] = useState<ActivityRow[]>([])
@@ -18,6 +20,9 @@ export default function Dashboard() {
         setStats(nextStats)
         setActivity(nextActivity)
       })
+      .catch(() => {
+        showToast('Failed to load dashboard data.', 'error')
+      })
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -25,7 +30,7 @@ export default function Dashboard() {
     return () => {
       active = false
     }
-  }, [])
+  }, [showToast])
 
   const activityColumns: TableColumn<ActivityRow>[] = [
     { key: 'action', header: 'Action', render: (row) => row.action },
