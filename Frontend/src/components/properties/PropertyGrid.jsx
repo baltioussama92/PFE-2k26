@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { SlidersHorizontal, Grid3X3, List, TrendingUp, Loader2 } from 'lucide-react'
 import PropertyCard from './PropertyCard'
 import { propertyService } from '../../services/propertyService'
+import { wishlistService } from '../../services/wishlistService'
 
 // -- Sort Options ---------------------------------------------
 const SORT_OPTIONS = [
@@ -35,12 +36,13 @@ const normalizeProperty = (p) => ({
   period: p.period || (p.pricePerNight != null ? 'nuit' : 'mois'),
 })
 
-export default function PropertyGrid({ title = 'Propri�t�s en vedette', searchResult = null, searchFilters = null }) {
+export default function PropertyGrid({ title = 'Propri�t�s en vedette', searchResult = null, searchFilters = null, user = null, onAuthClick = null }) {
   const [sort,    setSort]    = useState('default')
   const [type,    setType]    = useState('Tous')
   const [layout,  setLayout]  = useState('grid') // 'grid' | 'list'
   const [apiData, setApiData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [favoriteIds, setFavoriteIds] = useState(() => new Set())
 
   useEffect(() => {
     let active = true
@@ -53,6 +55,50 @@ export default function PropertyGrid({ title = 'Propri�t�s en vedette', sear
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set())
+      return
+    }
+
+    let active = true
+    wishlistService.list()
+      .then((items) => {
+        if (!active) return
+        setFavoriteIds(new Set(items.map((item) => String(item.id))))
+      })
+      .catch(() => {
+        if (!active) return
+        setFavoriteIds(new Set())
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user])
+
+  const handleToggleFavorite = async (property) => {
+    if (!property?.id) return
+
+    if (!user) {
+      onAuthClick?.('login')
+      return
+    }
+
+    const propertyId = String(property.id)
+    const isFavorite = favoriteIds.has(propertyId)
+
+    try {
+      const updated = isFavorite
+        ? await wishlistService.remove(propertyId)
+        : await wishlistService.add(propertyId)
+
+      setFavoriteIds(new Set(updated.map((item) => String(item.id))))
+    } catch {
+      // Keep current state unchanged if API call fails.
+    }
+  }
 
   const normalizedSearchResult = Array.isArray(searchResult)
     ? searchResult.map(normalizeProperty)
@@ -192,6 +238,8 @@ export default function PropertyGrid({ title = 'Propri�t�s en vedette', sear
               key={property.id}
               property={property}
               index={i}
+              liked={favoriteIds.has(String(property.id))}
+              onToggleLike={handleToggleFavorite}
             />
           ))}
         </div>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { propertyService } from '../services/propertyService'
 import { bookingService } from '../services/bookingService'
+import { wishlistService } from '../services/wishlistService'
 
 function isIdentityApproved(user) {
   const identityStatus = user?.identityStatus
@@ -367,6 +368,49 @@ export default function PropertyDetails({ user, onAuthClick }) {
     return () => { active = false }
   }, [id])
 
+  useEffect(() => {
+    if (!user || !property?.id) {
+      setLiked(false)
+      return
+    }
+
+    let active = true
+    wishlistService.list()
+      .then((items) => {
+        if (!active) return
+        const exists = items.some((item) => String(item.id) === String(property.id))
+        setLiked(exists)
+      })
+      .catch(() => {
+        if (!active) return
+        setLiked(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [user, property?.id])
+
+  const handleWishlistToggle = async () => {
+    if (!property?.id) return
+    if (!user) {
+      onAuthClick?.('login')
+      return
+    }
+
+    try {
+      if (liked) {
+        await wishlistService.remove(String(property.id))
+        setLiked(false)
+      } else {
+        await wishlistService.add(String(property.id))
+        setLiked(true)
+      }
+    } catch {
+      // Leave current state unchanged on failure.
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center pt-24">
@@ -404,7 +448,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
           </button>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setLiked(v => !v)}
+              onClick={handleWishlistToggle}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary-200 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-colors"
             >
               <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : ''}`} />

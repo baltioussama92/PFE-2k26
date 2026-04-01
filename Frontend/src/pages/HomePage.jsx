@@ -68,7 +68,7 @@ const cardVar = {
   show:   { opacity: 1, y:  0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } },
 }
 
-export default function HomePage() {
+export default function HomePage({ user = null, onAuthClick = null }) {
   const [authModal, setAuthModal] = useState(null) // null | 'login' | 'register'
   const [searchResult, setSearchResult] = useState(null)
 
@@ -147,7 +147,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Featured Properties ───────────────────────────────── */}
-      <PropertyGrid title="Propriétés en vedette" searchResult={searchResult} />
+      <PropertyGrid title="Propriétés en vedette" searchResult={searchResult} user={user} onAuthClick={onAuthClick} />
 
       {/* ── Testimonials ─────────────────────────────────────── */}
       <section className="bg-gradient-to-b from-primary-50 to-white py-20">

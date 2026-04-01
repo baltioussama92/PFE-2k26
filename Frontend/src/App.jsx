@@ -59,7 +59,7 @@ const normalizeUser = (user) => ({
 })
 
 // -- Explorer Page with Search -----------------------------------------------
-function ExplorerPage() {
+function ExplorerPage({ user = null, onAuthClick = null }) {
   const [searchParams] = useSearchParams()
   const location = searchParams.get('location')
   const checkIn = searchParams.get('checkIn')
@@ -71,6 +71,8 @@ function ExplorerPage() {
       <PropertyGrid 
         title={location ? `Propriétés à ${location}` : 'Explorer toutes les propriétés'}
         searchFilters={{ location, checkIn, checkOut, guests: guests ? parseInt(guests) : null }}
+        user={user}
+        onAuthClick={onAuthClick}
       />
     </div>
   )
@@ -187,8 +189,8 @@ function AppRoutes() {
       ) : (
         <Layout user={user} onAuthClick={setAuthModal} onLogout={handleLogout}>
           <Routes>
-            <Route path="/"         element={<HomePage     />} />
-            <Route path="/explorer" element={<ExplorerPage />} />
+            <Route path="/"         element={<HomePage user={user} onAuthClick={setAuthModal} />} />
+            <Route path="/explorer" element={<ExplorerPage user={user} onAuthClick={setAuthModal} />} />
             <Route path="/property/:id" element={<PropertyDetails user={user} onAuthClick={setAuthModal} />} />
             <Route path="/profile"  element={<ProfilePage user={user} onUserUpdate={setUser} />} />
             <Route path="/host-verification" element={<HostVerificationPage user={user} onUserUpdate={setUser} />} />

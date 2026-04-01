@@ -49,7 +49,7 @@ public class PropertyServiceImpl implements PropertyService {
             .bathrooms(request.getBathrooms())
             .area(request.getArea())
             .amenities(request.getAmenities() == null ? List.of() : request.getAmenities())
-            .pendingApproval(Boolean.TRUE)
+            .pendingApproval(Boolean.FALSE)
             .hostId(owner.getId())
                 .build();
         Property saved = propertyRepository.save(property);
@@ -93,7 +93,6 @@ public class PropertyServiceImpl implements PropertyService {
     @Transactional(readOnly = true)
     public List<PropertyResponse> findAll() {
         return propertyRepository.findAll().stream()
-                .filter(property -> !Boolean.TRUE.equals(property.getPendingApproval()))
                 .map(this::toResponse)
                 .toList();
     }
@@ -158,8 +157,6 @@ public class PropertyServiceImpl implements PropertyService {
         if (amenities != null && !amenities.isEmpty()) {
             criteriaList.add(Criteria.where("amenities").all(amenities));
         }
-
-        criteriaList.add(Criteria.where("pendingApproval").ne(Boolean.TRUE));
 
         if (checkInDate != null && checkOutDate != null && checkOutDate.isAfter(checkInDate)) {
             Query bookingOverlapQuery = new Query();

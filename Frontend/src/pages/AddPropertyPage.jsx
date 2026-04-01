@@ -21,6 +21,8 @@ export default function AddPropertyPage({ user }) {
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+  const [imageError, setImageError] = useState('')
   const [submitError, setSubmitError] = useState('')
 
   const [form, setForm] = useState({
@@ -33,7 +35,7 @@ export default function AddPropertyPage({ user }) {
     bathrooms: 1,
     area: 80,
     amenities: [],
-    imagePreview: '',
+    imagePreviews: [],
   })
 
   if (!user || (user.role !== 'PROPRIETOR' && user.role !== 'ADMIN')) {
@@ -46,25 +48,36 @@ export default function AddPropertyPage({ user }) {
     set('amenities', form.amenities.includes(a) ? form.amenities.filter(x => x !== a) : [...form.amenities, a])
 
   const handleImageChange = (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const files = Array.from(event.target.files || [])
+    if (files.length === 0) return
 
-    if (!file.type.startsWith('image/')) {
-      setImageError('Veuillez sélectionner un fichier image valide.')
+    const invalidType = files.find((file) => !file.type.startsWith('image/'))
+    if (invalidType) {
+      setImageError('Veuillez sélectionner uniquement des fichiers image valides.')
       return
     }
 
-    if (file.size > 3 * 1024 * 1024) {
-      setImageError('Image trop volumineuse (max 3 MB).')
+    const tooLarge = files.find((file) => file.size > 3 * 1024 * 1024)
+    if (tooLarge) {
+      setImageError('Une ou plusieurs images sont trop volumineuses (max 3 MB chacune).')
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = () => {
+    Promise.all(
+      files.map((file) => new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.readAsDataURL(file)
+      }))
+    ).then((newPreviews) => {
       setImageError('')
-      set('imagePreview', String(reader.result || ''))
-    }
-    reader.readAsDataURL(file)
+      set('imagePreviews', [...form.imagePreviews, ...newPreviews])
+      event.target.value = ''
+    })
+  }
+
+  const removeImage = (index) => {
+    set('imagePreviews', form.imagePreviews.filter((_, i) => i !== index))
   }
 
   const canProceed =
@@ -72,7 +85,7 @@ export default function AddPropertyPage({ user }) {
       ? form.title.trim() && form.location.trim() && form.description.trim()
       : step === 2
       ? form.price > 0 && form.bedrooms > 0 && form.bathrooms > 0 && form.area > 0
-      : !!form.imagePreview
+      : form.imagePreviews.length > 0
 
   const handleSubmit = async () => {
     setSubmitError('')
@@ -84,7 +97,7 @@ export default function AddPropertyPage({ user }) {
         description: form.description.trim(),
         location: form.location.trim(),
         pricePerNight: Number(form.price),
-        images: [form.imagePreview],
+        images: form.imagePreviews,
         type: form.type,
         bedrooms: Number(form.bedrooms),
         bathrooms: Number(form.bathrooms),
@@ -142,7 +155,7 @@ export default function AddPropertyPage({ user }) {
                   bathrooms: 1,
                   area: 80,
                   amenities: [],
-                  imagePreview: '',
+                  imagePreviews: [],
                 })
               }}
               className="flex-1 px-5 py-3 rounded-xl border-2 border-primary-200 text-primary-700 font-semibold hover:bg-primary-50 transition"
@@ -369,11 +382,12 @@ export default function AddPropertyPage({ user }) {
               </h2>
 
               <div>
-                <label className="block text-sm font-semibold text-primary-700 mb-2">Téléverser votre photo *</label>
+                <label className="block text-sm font-semibold text-primary-700 mb-2">Téléverser vos photos *</label>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageChange}
                   className="hidden"
                 />
@@ -384,15 +398,19 @@ export default function AddPropertyPage({ user }) {
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-primary-200 text-primary-700 font-semibold hover:bg-primary-50 transition"
                   >
-                    Choisir une image depuis mon appareil
+                    Choisir une ou plusieurs images depuis mon appareil
                   </button>
 
                   {imageError && (
                     <p className="text-sm text-red-500">{imageError}</p>
                   )}
 
-                  {!form.imagePreview && !imageError && (
-                    <p className="text-xs text-primary-500">Formats image acceptés. Taille max: 3 MB.</p>
+                  {form.imagePreviews.length > 0 && (
+                    <p className="text-xs text-primary-600">{form.imagePreviews.length} image(s) sélectionnée(s).</p>
+                  )}
+
+                  {form.imagePreviews.length === 0 && !imageError && (
+                    <p className="text-xs text-primary-500">Formats image acceptés. Taille max: 3 MB par image.</p>
                   )}
                 </div>
               </div>
@@ -400,8 +418,8 @@ export default function AddPropertyPage({ user }) {
               {/* Preview card */}
               <div className="border border-primary-100 rounded-2xl overflow-hidden">
                 <div className="aspect-video relative">
-                  {form.imagePreview ? (
-                    <img src={form.imagePreview} alt="Aperçu" className="w-full h-full object-cover" />
+                  {form.imagePreviews.length > 0 ? (
+                    <img src={form.imagePreviews[0]} alt="Aperçu" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-primary-50 flex items-center justify-center text-primary-400 text-sm">
                       Aucune image sélectionnée
@@ -411,6 +429,27 @@ export default function AddPropertyPage({ user }) {
                     Nouveau
                   </span>
                 </div>
+
+                {form.imagePreviews.length > 0 && (
+                  <div className="p-3 border-t border-primary-100">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {form.imagePreviews.map((img, idx) => (
+                        <div key={`${img.slice(0, 30)}-${idx}`} className="relative rounded-lg overflow-hidden border border-primary-100">
+                          <img src={img} alt={`Aperçu ${idx + 1}`} className="w-full h-20 object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/65 text-white flex items-center justify-center"
+                            title="Retirer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-4">
                   <h3 className="font-bold text-primary-900">{form.title || 'Titre'}</h3>
                   <p className="text-primary-500 text-sm flex items-center gap-1 mt-1">

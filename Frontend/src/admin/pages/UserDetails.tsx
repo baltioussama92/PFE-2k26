@@ -56,7 +56,7 @@ export default function UserDetails() {
   const { showToast } = useAdminToast()
 
   const stateUser = (location.state as LocationState | null)?.user
-  const parsedUserId = Number(userId)
+  const requestedUserId = String(userId || '').trim()
 
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
@@ -86,39 +86,44 @@ export default function UserDetails() {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
-    if (!Number.isFinite(parsedUserId)) {
+    if (!requestedUserId) {
       navigate('/admin/users', { replace: true })
       return
     }
 
     let active = true
 
-    Promise.all([
-      stateUser ? Promise.resolve(stateUser) : adminApi.getUserById(parsedUserId),
-      adminApi.getUserHistory(parsedUserId),
-      adminApi.getUserConversation(parsedUserId),
-      adminApi.getUserListings(parsedUserId),
-      adminApi.getUserBookings(parsedUserId),
-      adminApi.getUserEarningsSummary(parsedUserId),
-      adminApi.getUserPermissions(parsedUserId),
-    ])
-      .then(([foundUser, historyRows, chatRows, listingRows, bookingRows, earningRows, permissionRows]) => {
-        if (!active) return
-        if (!foundUser) {
-          showToast('User not found.', 'error')
-          navigate('/admin/users', { replace: true })
-          return
-        }
+    ;(async () => {
+      const foundUser = stateUser ?? await adminApi.getUserById(requestedUserId)
 
-        setUser(foundUser)
-        setProfileForm({ name: foundUser.name, email: foundUser.email })
-        setHistory(historyRows)
-        setChats(chatRows)
-        setListings(listingRows)
-        setBookings(bookingRows)
-        setEarnings(earningRows)
-        setPermissions(permissionRows)
-      })
+      if (!active) return
+      if (!foundUser) {
+        showToast('User not found.', 'error')
+        navigate('/admin/users', { replace: true })
+        return
+      }
+
+      const apiUserId = foundUser.backendId || String(foundUser.id)
+
+      const [historyRows, chatRows, listingRows, bookingRows, earningRows, permissionRows] = await Promise.all([
+        adminApi.getUserHistory(apiUserId),
+        adminApi.getUserConversation(apiUserId),
+        adminApi.getUserListings(apiUserId),
+        adminApi.getUserBookings(apiUserId),
+        adminApi.getUserEarningsSummary(apiUserId),
+        adminApi.getUserPermissions(apiUserId),
+      ])
+
+      if (!active) return
+      setUser(foundUser)
+      setProfileForm({ name: foundUser.name, email: foundUser.email })
+      setHistory(historyRows)
+      setChats(chatRows)
+      setListings(listingRows)
+      setBookings(bookingRows)
+      setEarnings(earningRows)
+      setPermissions(permissionRows)
+    })()
       .finally(() => {
         if (active) setLoading(false)
       })
@@ -126,7 +131,7 @@ export default function UserDetails() {
     return () => {
       active = false
     }
-  }, [navigate, parsedUserId, showToast, stateUser])
+  }, [navigate, requestedUserId, showToast, stateUser])
 
   const overview = useMemo(() => ({
     listings: listings.length,
@@ -168,7 +173,7 @@ export default function UserDetails() {
     }
 
     setSavingPassword(true)
-    await adminApi.changeUserPasswordFrontendOnly(user.id, passwordForm.next)
+    await adminApi.changeUserPasswordFrontendOnly(user.backendId || user.id, passwordForm.next)
     setSavingPassword(false)
     setPasswordForm({ next: '', confirm: '' })
     showToast('Password changed successfully.')
@@ -180,7 +185,7 @@ export default function UserDetails() {
     if (!confirmed) return
 
     setDeleting(true)
-    await adminApi.deleteUserFrontendOnly(user.id)
+    await adminApi.deleteUserFrontendOnly(user.backendId || user.id)
     setDeleting(false)
     showToast('Account deleted successfully.')
     navigate('/admin/users', { state: { deletedUserId: user.id } })

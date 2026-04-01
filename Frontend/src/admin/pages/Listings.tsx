@@ -100,7 +100,7 @@ export default function Listings() {
     setActionLoading(true)
     try {
       if (action === 'approve') {
-        const updated = await adminApi.approveListing(target.id)
+        const updated = await adminApi.approveListing(target.backendId || target.id)
         if (updated) {
           setListings((prev) => prev.map((listing) => (listing.id === updated.id ? updated : listing)))
           showToast('Listing approved successfully.')

@@ -9,12 +9,25 @@ const BADGE_STYLES = {
   amber:   'bg-amber-500/90   text-primary-50',
 }
 
-export default function PropertyCard({ property, index = 0, id, title, location, price, rating, image, type }) {
+export default function PropertyCard({
+  property,
+  index = 0,
+  id,
+  title,
+  location,
+  price,
+  rating,
+  image,
+  type,
+  liked: likedProp,
+  onToggleLike,
+}) {
   const [liked, setLiked] = useState(false)
   const navigate = useNavigate()
 
   // Support both object-style and individual props
   const p = property ?? { id, title, location, price, rating, image, type }
+  const isLiked = likedProp ?? liked
 
   const handleClick = () => {
     if (p.id) navigate(`/property/${p.id}`)
@@ -51,13 +64,20 @@ export default function PropertyCard({ property, index = 0, id, title, location,
 
         {/* Favourite */}
         <button
-          onClick={(e) => { e.stopPropagation(); setLiked(v => !v) }}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (onToggleLike) {
+              onToggleLike(p)
+              return
+            }
+            setLiked((v) => !v)
+          }}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-primary-100/80 backdrop-blur-sm
                      flex items-center justify-center transition-colors hover:bg-primary-100 shadow-sm"
         >
           <Heart
             className={`w-4 h-4 transition-colors ${
-              liked ? 'fill-red-500 text-red-500' : 'text-primary-600'
+              isLiked ? 'fill-red-500 text-red-500' : 'text-primary-600'
             }`}
           />
         </button>

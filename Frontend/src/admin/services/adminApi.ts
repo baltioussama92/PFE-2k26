@@ -7,6 +7,7 @@ export type UserStatus = 'active' | 'banned'
 
 export interface AdminUser {
   id: number
+  backendId?: string
   name: string
   email: string
   role: UserRole
@@ -408,6 +409,7 @@ const mapUserRole = (role: string | undefined): UserRole => {
 
 const mapUser = (user: UserDto): AdminUser => ({
   id: toNumberId(user.id),
+  backendId: user.id != null ? String(user.id) : undefined,
   name: user.fullName || user.name || `User #${user.id}`,
   email: user.email,
   role: mapUserRole(user.role),
@@ -574,9 +576,10 @@ export const adminApi = {
     })
   },
 
-  async getUserById(userId: number): Promise<AdminUser | null> {
+  async getUserById(userId: number | string): Promise<AdminUser | null> {
     const users = await this.getUsers()
-    return users.find((user) => user.id === userId) || null
+    const requested = String(userId)
+    return users.find((user) => String(user.id) === requested || user.backendId === requested) || null
   },
 
   async getListings(): Promise<AdminListing[]> {
@@ -676,7 +679,7 @@ export const adminApi = {
     })
   },
 
-  async getUserBookings(userId: number): Promise<AdminBooking[]> {
+  async getUserBookings(userId: number | string): Promise<AdminBooking[]> {
     const { data } = await apiClient.get<AdminUserBookingResponse[]>(`${ENDPOINTS.admin.userBookings(userId)}?role=all`)
 
     const mapped = data.map(mapAdminBooking)
@@ -702,18 +705,18 @@ export const adminApi = {
     })
   },
 
-  async getUserPayments(userId: number): Promise<AdminPayment[]> {
+  async getUserPayments(userId: number | string): Promise<AdminPayment[]> {
     const payments = await this.getPayments()
-    return payments.filter((payment) => payment.userId === userId)
+    return payments.filter((payment) => String(payment.userId) === String(userId))
   },
 
-  async getUserListings(userId: number): Promise<AdminListing[]> {
+  async getUserListings(userId: number | string): Promise<AdminListing[]> {
     const { data } = await apiClient.get<AdminUserListingResponse[]>(ENDPOINTS.admin.userListings(userId))
     const mapped = data.map(mapAdminUserListing)
     return ensureUniqueIds(mapped)
   },
 
-  async getUserConversation(userId: number): Promise<AdminUserChatMessage[]> {
+  async getUserConversation(userId: number | string): Promise<AdminUserChatMessage[]> {
     try {
       const { data } = await apiClient.get<AdminUserMessageResponse[]>(`${ENDPOINTS.admin.userMessages(userId)}?limit=100&direction=all`)
 
@@ -729,7 +732,7 @@ export const adminApi = {
     }
   },
 
-  async getUserEarningsSummary(userId: number): Promise<AdminUserEarningsSummary> {
+  async getUserEarningsSummary(userId: number | string): Promise<AdminUserEarningsSummary> {
     const [overviewResponse, earningsResponse] = await Promise.all([
       apiClient.get<AdminUserOverviewResponse>(ENDPOINTS.admin.userOverview(userId)),
       apiClient.get<AdminUserEarningsResponse>(ENDPOINTS.admin.userEarnings(userId)),
@@ -748,7 +751,7 @@ export const adminApi = {
     }
   },
 
-  async getUserHistory(userId: number): Promise<AdminUserHistoryItem[]> {
+  async getUserHistory(userId: number | string): Promise<AdminUserHistoryItem[]> {
     const { data } = await apiClient.get<AdminHistoryEventResponse[]>(`${ENDPOINTS.admin.userHistory(userId)}?limit=100`)
 
     return data.map((event) => ({
@@ -767,7 +770,7 @@ export const adminApi = {
     return mapUser(data)
   },
 
-  async changeUserPasswordFrontendOnly(userId: number, newPassword: string): Promise<boolean> {
+  async changeUserPasswordFrontendOnly(userId: number | string, newPassword: string): Promise<boolean> {
     const { data } = await apiClient.patch<AdminActionResponse>(ENDPOINTS.admin.updateUserPassword(userId), {
       newPassword,
       forceResetOnNextLogin: false,
@@ -775,12 +778,12 @@ export const adminApi = {
     return Boolean(data.success)
   },
 
-  async deleteUserFrontendOnly(userId: number): Promise<boolean> {
+  async deleteUserFrontendOnly(userId: number | string): Promise<boolean> {
     const { data } = await apiClient.delete<AdminActionResponse>(ENDPOINTS.admin.deleteUser(userId))
     return Boolean(data.success)
   },
 
-  async getUserPermissions(userId: number): Promise<AdminUserPermissions> {
+  async getUserPermissions(userId: number | string): Promise<AdminUserPermissions> {
     const { data } = await apiClient.get<AdminUserPermissions>(ENDPOINTS.admin.userPermissions(userId))
     return data
   },
@@ -894,29 +897,29 @@ export const adminApi = {
     return items
   },
 
-  async toggleUserBan(userId: number): Promise<AdminUser | null> {
+  async toggleUserBan(userId: number | string): Promise<AdminUser | null> {
     try {
       const { data } = await apiClient.put<UserDto>(ENDPOINTS.admin.blockUser(userId))
       return mapUser(data)
     } catch {
-      const current = mockUsers.find((user) => user.id === userId)
+      const current = mockUsers.find((user) => user.id === Number(userId))
       if (!current) return null
       const updated: AdminUser = {
         ...current,
         status: current.status === 'active' ? 'banned' : 'active',
       }
-      const index = mockUsers.findIndex((user) => user.id === userId)
+      const index = mockUsers.findIndex((user) => user.id === Number(userId))
       mockUsers[index] = updated
       return updated
     }
   },
 
-  async approveListing(listingId: number): Promise<AdminListing | null> {
+  async approveListing(listingId: number | string): Promise<AdminListing | null> {
     try {
       const { data } = await apiClient.put<PropertyResponse>(ENDPOINTS.admin.verifyProperty(listingId))
       return mapListing(data, false)
     } catch {
-      const listing = mockListings.find((item) => item.id === listingId)
+      const listing = mockListings.find((item) => item.id === Number(listingId))
       if (!listing) return null
       listing.status = 'approved'
       return { ...listing }

@@ -1,6 +1,6 @@
 import { apiClient } from '../api/apiClient'
 import { ENDPOINTS } from '../api/endpoints'
-import type { PropertyResponse } from '../types/contracts'
+import type { PropertyResponse } from '../utils/contracts'
 
 export const wishlistService = {
   async list(): Promise<PropertyResponse[]> {

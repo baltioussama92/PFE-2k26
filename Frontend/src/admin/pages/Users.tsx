@@ -71,7 +71,7 @@ export default function Users() {
           <button
             type="button"
             className="rounded-lg border border-[#CBAD8D]/70 px-2.5 py-1 text-xs font-medium text-[#3A2D28] hover:bg-[#EBE3DB]"
-            onClick={() => navigate(`/admin/users/${row.id}`, { state: { user: row } })}
+            onClick={() => navigate(`/admin/users/${row.backendId || row.id}`, { state: { user: row } })}
           >
             View details
           </button>
@@ -91,7 +91,7 @@ export default function Users() {
     if (!selected) return
     setActionLoading(true)
     try {
-      const updated = await adminApi.toggleUserBan(selected.id)
+      const updated = await adminApi.toggleUserBan(selected.backendId || selected.id)
 
       if (!updated) {
         showToast('User update failed.', 'error')
