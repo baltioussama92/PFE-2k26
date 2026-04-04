@@ -105,3 +105,106 @@ input, select, textarea { font-family: inherit; }
   position: relative;
   z-index: 30;
 }
+
+.brand-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  background:
+    radial-gradient(circle at 20% 22%, rgba(212, 168, 118, 0.2), transparent 38%),
+    radial-gradient(circle at 80% 80%, rgba(184, 98, 42, 0.2), transparent 42%),
+    linear-gradient(155deg, #fdf7ef 0%, #f6ecdf 45%, #f1e2cd 100%);
+}
+
+.brand-loader__glow {
+  position: absolute;
+  width: min(72vw, 640px);
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(184, 98, 42, 0.18) 0%, rgba(184, 98, 42, 0) 68%);
+  filter: blur(10px);
+  animation: pulseGlow 2.1s ease-in-out infinite;
+}
+
+.brand-loader__logo {
+  width: clamp(88px, 12vw, 132px);
+  height: auto;
+  opacity: 0;
+  transform: translateY(20px) scale(0.88);
+  animation: logoRise 0.9s ease-out forwards;
+}
+
+.brand-loader__word {
+  margin-top: 0.5rem;
+  font-size: clamp(2rem, 7vw, 4.2rem);
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: #2a1a0e;
+  display: flex;
+  gap: 0.08em;
+}
+
+.brand-loader__word span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(24px);
+  animation: letterLift 0.7s cubic-bezier(0.18, 0.7, 0.2, 1) forwards;
+}
+
+.brand-loader__tagline {
+  margin-top: 0.2rem;
+  font-size: clamp(0.82rem, 2vw, 1rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(42, 26, 14, 0.75);
+  opacity: 0;
+  animation: fadeInTagline 0.9s ease-out 0.8s forwards;
+}
+
+@keyframes logoRise {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes letterLift {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInTagline {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-loader__word {
+    letter-spacing: 0.2em;
+    gap: 0.04em;
+  }
+
+  .brand-loader__tagline {
+    letter-spacing: 0.08em;
+  }
+}

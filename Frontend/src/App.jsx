@@ -98,6 +98,29 @@ function NotFound() {
   )
 }
 
+function LoadingSplash() {
+  const brand = 'MASKAN'
+
+  return (
+    <div className="brand-loader" role="status" aria-live="polite" aria-label="Loading Maskan">
+      <div className="brand-loader__glow" aria-hidden="true" />
+      <img
+        src="/Maskan logo.svg"
+        alt="Maskan logo"
+        className="brand-loader__logo"
+      />
+      <h1 className="brand-loader__word" aria-label={brand}>
+        {brand.split('').map((letter, index) => (
+          <span key={`${letter}-${index}`} style={{ animationDelay: `${0.08 * index}s` }}>
+            {letter}
+          </span>
+        ))}
+      </h1>
+      <p className="brand-loader__tagline">Votre maison, votre histoire</p>
+    </div>
+  )
+}
+
 // -- Routing split: /dashboard uses its own shell -------------
 function AppRoutes() {
   const [authModal, setAuthModal] = useState(null)
@@ -227,6 +250,20 @@ function AppRoutes() {
 
 // -- Root App --------------------------------------------------
 export default function App() {
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsLoading(false)
+    }, 1900)
+
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return <LoadingSplash />
+  }
+
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AppRoutes />
