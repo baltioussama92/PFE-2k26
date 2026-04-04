@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { Search, ShieldCheck, Headphones, BadgePercent, Star, ArrowRight } from 'lucide-react'
 import Hero from '../components/home/Hero'
 import PropertyGrid from '../components/properties/PropertyGrid'
-import AuthModal  from '../components/auth/AuthModal'
 import { propertyService } from '../services/propertyService'
 
 // ── Why Maskan Features ──────────────────────────────────────
@@ -69,7 +68,6 @@ const cardVar = {
 }
 
 export default function HomePage({ user = null, onAuthClick = null }) {
-  const [authModal, setAuthModal] = useState(null) // null | 'login' | 'register'
   const [searchResult, setSearchResult] = useState(null)
 
   const handleSearch = async ({ location }) => {
@@ -225,7 +223,7 @@ export default function HomePage({ user = null, onAuthClick = null }) {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => setAuthModal('register')}
+                  onClick={() => onAuthClick?.('register')}
                   className="flex items-center gap-2 px-8 py-3.5 rounded-xl
                              bg-primary-100 text-primary-700 font-bold text-sm shadow-lg
                              hover:shadow-xl transition-all duration-200"
@@ -235,7 +233,7 @@ export default function HomePage({ user = null, onAuthClick = null }) {
                 <motion.button
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => setAuthModal('login')}
+                  onClick={() => onAuthClick?.('login')}
                   className="flex items-center gap-2 px-8 py-3.5 rounded-xl
                              border-2 border-primary-200/40 text-primary-50 font-semibold text-sm
                              hover:bg-primary-50/10 transition-all duration-200"
@@ -248,13 +246,6 @@ export default function HomePage({ user = null, onAuthClick = null }) {
         </div>
       </section>
 
-      {/* ── Auth Modal ────────────────────────────────────────── */}
-      {authModal && (
-        <AuthModal
-          initialMode={authModal}
-          onClose={() => setAuthModal(null)}
-        />
-      )}
     </>
   )
 }
