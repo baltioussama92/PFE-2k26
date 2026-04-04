@@ -20,6 +20,7 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 const titleByPath: Record<string, string> = {
   '/admin/dashboard': 'Dashboard',
   '/admin/users': 'Users',
+  '/admin/guest-verifications': 'Guest Verification',
   '/admin/users/details': 'User Details',
   '/admin/listings': 'Listings',
   '/admin/bookings': 'Bookings',

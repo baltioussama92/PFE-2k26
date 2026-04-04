@@ -118,14 +118,28 @@ function OtpInput({ value, onChange }) {
   )
 }
 
-function FileUpload({ label, file, previewUrl, onFileSelect, accept = 'image/jpeg,image/png,application/pdf', hint, error }) {
+function FileUpload({
+  label,
+  file,
+  files,
+  previewUrl,
+  previewUrls,
+  onFileSelect,
+  accept = 'image/jpeg,image/png,application/pdf',
+  hint,
+  error,
+  multiple = false,
+}) {
   const [dragging, setDragging] = useState(false)
+  const selectedFiles = Array.isArray(files) ? files : file ? [file] : []
+  const selectedPreviews = Array.isArray(previewUrls) ? previewUrls : previewUrl ? [previewUrl] : []
 
   const onDrop = async (event) => {
     event.preventDefault()
     setDragging(false)
-    const dropped = event.dataTransfer.files?.[0]
-    if (dropped) onFileSelect(dropped)
+    const dropped = Array.from(event.dataTransfer.files || [])
+    if (dropped.length === 0) return
+    onFileSelect(multiple ? dropped : dropped[0])
   }
 
   return (
@@ -144,10 +158,12 @@ function FileUpload({ label, file, previewUrl, onFileSelect, accept = 'image/jpe
           <input
             type="file"
             accept={accept}
+            multiple={multiple}
             className="hidden"
             onChange={(event) => {
-              const selected = event.target.files?.[0]
-              if (selected) onFileSelect(selected)
+              const selectedFiles = Array.from(event.target.files || [])
+              if (selectedFiles.length === 0) return
+              onFileSelect(multiple ? selectedFiles : selectedFiles[0])
             }}
           />
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[#F1E7DC] text-[#7A5D42]">
@@ -157,13 +173,26 @@ function FileUpload({ label, file, previewUrl, onFileSelect, accept = 'image/jpe
           <p className="text-xs text-[#7A5D42]">{hint}</p>
         </label>
       </div>
-      {file && (
+      {selectedFiles.length > 0 && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-          {file.name}
+          {selectedFiles.map((selected, index) => (
+            <p key={`${selected.name}-${selected.lastModified}-${index}`}>
+              {selected.name}
+            </p>
+          ))}
         </div>
       )}
-      {previewUrl && (
-        <img src={previewUrl} alt="preview" className="h-40 w-full rounded-xl border border-[#DCCBB9] object-cover" />
+      {selectedPreviews.length > 0 && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {selectedPreviews.map((src, index) => (
+            <img
+              key={`${src}-${index}`}
+              src={src}
+              alt={`preview-${index + 1}`}
+              className="h-40 w-full rounded-xl border border-[#DCCBB9] object-cover"
+            />
+          ))}
+        </div>
       )}
       {error && <p className="text-xs font-semibold text-red-600">{error}</p>}
     </div>
@@ -198,8 +227,10 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
   const [phoneOtp, setPhoneOtp] = useState('')
   const [emailOtpSent, setEmailOtpSent] = useState(Boolean(draft.emailOtpSent))
   const [phoneOtpSent, setPhoneOtpSent] = useState(Boolean(draft.phoneOtpSent))
-  const [governmentIdFile, setGovernmentIdFile] = useState(null)
-  const [governmentIdPreview, setGovernmentIdPreview] = useState(draft.governmentIdPreview || '')
+  const [governmentIdFiles, setGovernmentIdFiles] = useState([])
+  const [governmentIdPreviews, setGovernmentIdPreviews] = useState([])
+  const [otherAttachmentFiles, setOtherAttachmentFiles] = useState([])
+  const [otherAttachmentPreviews, setOtherAttachmentPreviews] = useState([])
   const [selfieFile, setSelfieFile] = useState(null)
   const [selfiePreview, setSelfiePreview] = useState(draft.selfiePreview || '')
 
@@ -230,10 +261,9 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
       phone,
       emailOtpSent,
       phoneOtpSent,
-      governmentIdPreview,
       selfiePreview,
     })
-  }, [phone, emailOtpSent, phoneOtpSent, governmentIdPreview, selfiePreview])
+  }, [phone, emailOtpSent, phoneOtpSent, selfiePreview])
 
   useEffect(() => {
     let active = true
@@ -268,19 +298,33 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
     }
   }
 
-  const handleGovernmentId = async (file) => {
+  const handleGovernmentId = async (selectedFiles) => {
     try {
       setError('')
-      validateFile(file)
-      setGovernmentIdFile(file)
-      if (file.type.startsWith('image/')) {
-        const preview = await fileToDataUrl(file)
-        setGovernmentIdPreview(String(preview))
-      } else {
-        setGovernmentIdPreview('')
-      }
+      const filesToUse = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles]
+      filesToUse.forEach(validateFile)
+      setGovernmentIdFiles(filesToUse)
+
+      const previewCandidates = filesToUse.filter((file) => file.type.startsWith('image/'))
+      const previews = await Promise.all(previewCandidates.map((file) => fileToDataUrl(file)))
+      setGovernmentIdPreviews(previews.map(String))
     } catch (err) {
       setError(err.message || 'Invalid ID document')
+    }
+  }
+
+  const handleOtherAttachments = async (selectedFiles) => {
+    try {
+      setError('')
+      const filesToUse = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles]
+      filesToUse.forEach(validateFile)
+      setOtherAttachmentFiles(filesToUse)
+
+      const previewCandidates = filesToUse.filter((file) => file.type.startsWith('image/'))
+      const previews = await Promise.all(previewCandidates.map((file) => fileToDataUrl(file)))
+      setOtherAttachmentPreviews(previews.map(String))
+    } catch (err) {
+      setError(err.message || 'Invalid attachment file')
     }
   }
 
@@ -420,8 +464,8 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
 
   const submitIdentity = async () => {
     try {
-      if (!governmentIdFile || !selfieFile) {
-        setError('Government ID and selfie are both required.')
+      if (governmentIdFiles.length === 0 || !selfieFile) {
+        setError('At least one government ID and one selfie are required.')
         return
       }
 
@@ -429,7 +473,8 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
       setError('')
       setSuccess('')
       const nextSummary = await guestVerificationService.submitIdentity({
-        governmentId: governmentIdFile,
+        governmentIds: governmentIdFiles,
+        otherAttachments: otherAttachmentFiles,
         selfie: selfieFile,
       })
       patchSummary(nextSummary)
@@ -559,10 +604,20 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
 
                 <FileUpload
                   label="Government ID"
-                  file={governmentIdFile}
-                  previewUrl={governmentIdPreview}
+                  files={governmentIdFiles}
+                  previewUrls={governmentIdPreviews}
                   onFileSelect={handleGovernmentId}
-                  hint="JPG, PNG, PDF - max 5MB"
+                  hint="Upload one or more files (JPG, PNG, PDF - max 5MB each)"
+                  multiple
+                />
+
+                <FileUpload
+                  label="Other attachments"
+                  files={otherAttachmentFiles}
+                  previewUrls={otherAttachmentPreviews}
+                  onFileSelect={handleOtherAttachments}
+                  hint="Optional supporting files (proof of address, utility bill, etc.)"
+                  multiple
                 />
 
                 <div className="space-y-2">

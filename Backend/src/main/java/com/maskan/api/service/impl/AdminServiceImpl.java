@@ -70,7 +70,8 @@ public class AdminServiceImpl implements AdminService {
     public UserDto banUser(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        user.setBanned(Boolean.TRUE);
+        // Toggle banned status
+        user.setBanned(!Boolean.TRUE.equals(user.getBanned()));
         User updated = userRepository.save(user);
         return toDto(updated);
     }
@@ -492,6 +493,36 @@ public class AdminServiceImpl implements AdminService {
                 .build();
     }
 
+    @Override
+    public UserDto approveGuestVerification(String userId) {
+        User user = getUserById(userId);
+
+        if (user.getGovernmentIdFiles() == null || user.getGovernmentIdFiles().isEmpty() || user.getSelfieFile() == null || user.getSelfieFile().isBlank()) {
+            throw new IllegalArgumentException("User has not submitted identity documents");
+        }
+
+        user.setIdentityStatus("approved");
+        user.setVerificationLevel(3);
+        user.setIsVerified(Boolean.TRUE);
+        user.setRejectionReason(null);
+
+        User updated = userRepository.save(user);
+        return toDto(updated);
+    }
+
+    @Override
+    public UserDto rejectGuestVerification(String userId, String reason) {
+        User user = getUserById(userId);
+
+        user.setIdentityStatus("rejected");
+        user.setVerificationLevel(Boolean.TRUE.equals(user.getPhoneVerified()) ? 2 : Boolean.TRUE.equals(user.getEmailVerified()) ? 1 : 0);
+        user.setIsVerified(Boolean.FALSE);
+        user.setRejectionReason((reason == null || reason.isBlank()) ? "Verification rejected by admin" : reason.trim());
+
+        User updated = userRepository.save(user);
+        return toDto(updated);
+    }
+
     private BookingResponse toBookingResponse(Booking booking) {
         Property listing = propertyRepository.findById(booking.getListingId()).orElse(null);
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -658,6 +689,15 @@ public class AdminServiceImpl implements AdminService {
                 .createdAt(user.getCreatedAt())
                 .isVerified(user.getIsVerified())
                 .banned(user.getBanned())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
+                .identityStatus(user.getIdentityStatus())
+                .verificationLevel(user.getVerificationLevel())
+                .rejectionReason(user.getRejectionReason())
+                .governmentIdFiles(user.getGovernmentIdFiles())
+                .otherAttachmentFiles(user.getOtherAttachmentFiles())
+                .selfieFile(user.getSelfieFile())
+                .identitySubmittedAt(user.getIdentitySubmittedAt())
                 .build();
     }
 }

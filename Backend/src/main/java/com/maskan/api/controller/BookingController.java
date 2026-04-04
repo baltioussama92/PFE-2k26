@@ -38,7 +38,6 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.createBooking(request, principal.getUsername()));
     }
 
-    @PutMapping("/{id}/status")
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<BookingResponse> updateStatus(@PathVariable String id,

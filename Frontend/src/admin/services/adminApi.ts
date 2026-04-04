@@ -4,6 +4,7 @@ import type { BookingResponse, PropertyResponse, UserDto } from '../../utils/con
 
 export type UserRole = 'guest' | 'host'
 export type UserStatus = 'active' | 'banned'
+export type GuestIdentityStatus = 'not_verified' | 'pending' | 'approved' | 'rejected'
 
 export interface AdminUser {
   id: number
@@ -17,6 +18,15 @@ export interface AdminUser {
   avatar?: string
   createdAt?: string
   isVerified?: boolean
+  emailVerified?: boolean
+  phoneVerified?: boolean
+  identityStatus?: GuestIdentityStatus
+  verificationLevel?: number
+  rejectionReason?: string
+  governmentIdFiles?: string[]
+  otherAttachmentFiles?: string[]
+  selfieFile?: string
+  identitySubmittedAt?: string
 }
 
 export type ListingStatus = 'pending' | 'approved'
@@ -419,6 +429,15 @@ const mapUser = (user: UserDto): AdminUser => ({
   avatar: user.avatar || undefined,
   createdAt: user.createdAt ? String(user.createdAt) : undefined,
   isVerified: typeof user.isVerified === 'boolean' ? user.isVerified : undefined,
+  emailVerified: typeof user.emailVerified === 'boolean' ? user.emailVerified : undefined,
+  phoneVerified: typeof user.phoneVerified === 'boolean' ? user.phoneVerified : undefined,
+  identityStatus: (user.identityStatus as GuestIdentityStatus | undefined) || 'not_verified',
+  verificationLevel: typeof user.verificationLevel === 'number' ? user.verificationLevel : undefined,
+  rejectionReason: user.rejectionReason || undefined,
+  governmentIdFiles: user.governmentIdFiles || [],
+  otherAttachmentFiles: user.otherAttachmentFiles || [],
+  selfieFile: user.selfieFile || undefined,
+  identitySubmittedAt: user.identitySubmittedAt || undefined,
 })
 const mapListing = (listing: PropertyResponse, isPending: boolean): AdminListing => ({
   id: toNumberId(listing.id),
@@ -574,6 +593,29 @@ export const adminApi = {
       await sleep(200)
       return [...mockUsers]
     })
+  },
+
+  async getGuestVerificationRequests(): Promise<AdminUser[]> {
+    const users = await this.getUsers()
+    return users
+      .filter((user) => user.identityStatus === 'pending')
+      .sort((a, b) => {
+        const left = a.identitySubmittedAt ? Date.parse(a.identitySubmittedAt) : 0
+        const right = b.identitySubmittedAt ? Date.parse(b.identitySubmittedAt) : 0
+        return right - left
+      })
+  },
+
+  async approveGuestVerification(userId: number | string): Promise<AdminUser> {
+    const { data } = await apiClient.patch<UserDto>(ENDPOINTS.admin.approveGuestVerification(userId), {})
+    return mapUser(data)
+  },
+
+  async rejectGuestVerification(userId: number | string, reason?: string): Promise<AdminUser> {
+    const { data } = await apiClient.patch<UserDto>(ENDPOINTS.admin.rejectGuestVerification(userId), {
+      reason: reason || '',
+    })
+    return mapUser(data)
   },
 
   async getUserById(userId: number | string): Promise<AdminUser | null> {

@@ -149,6 +149,9 @@ public class BookingServiceImpl implements BookingService {
                 .multiply(BigDecimal.valueOf(days))
                 .multiply(BigDecimal.valueOf(guests));
         }
+        
+        // Fetch guest info
+        User guest = userRepository.findById(booking.getGuestId()).orElse(null);
 
         return BookingResponse.builder()
                 .id(booking.getId())
@@ -163,6 +166,8 @@ public class BookingServiceImpl implements BookingService {
             .listingTitle(listing != null ? listing.getTitle() : null)
             .listingLocation(listing != null ? listing.getLocation() : null)
             .listingImage(listing != null && listing.getImages() != null && !listing.getImages().isEmpty() ? listing.getImages().get(0) : null)
+            .guestEmail(guest != null ? guest.getEmail() : null)
+            .guestName(guest != null ? guest.getName() : null)
                 .build();
     }
 

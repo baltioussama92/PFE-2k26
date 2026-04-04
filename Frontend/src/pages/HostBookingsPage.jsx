@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Navigate, Link } from 'react-router-dom'
+import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarCheck, MapPin, Clock, CheckCircle2, XCircle,
   Hourglass, ChevronDown, ChevronUp, Search, Building2,
   Users, CreditCard, Calendar, UserCheck, AlertCircle,
-  Home, Loader2,
+  Home, Loader2, MessageSquare,
 } from 'lucide-react'
 import { bookingService } from '../services/bookingService'
 import { propertyService } from '../services/propertyService'
@@ -27,6 +27,7 @@ const TABS = [
 ]
 
 export default function HostBookingsPage({ user }) {
+  const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
@@ -71,7 +72,12 @@ export default function HostBookingsPage({ user }) {
           propertyTitle: b.listingTitle || prop?.title || 'Propriété',
           propertyImage: b.listingImage || prop?.image || '',
           location: b.listingLocation || prop?.location || '',
-          tenant: { name: `Locataire #${b.guestId}`, avatar: `https://i.pravatar.cc/40?u=${b.guestId}`, email: '' },
+          tenant: { 
+            name: b.guestName || `Locataire #${b.guestId}`, 
+            avatar: `https://i.pravatar.cc/40?u=${b.guestId}`, 
+            email: b.guestEmail || '',
+            id: b.guestId,
+          },
           checkIn: b.checkInDate,
           checkOut: b.checkOutDate,
           guests: b.guests ?? 1,
@@ -316,12 +322,21 @@ export default function HostBookingsPage({ user }) {
                             </div>
 
                             {/* Tenant info */}
-                            <div className="flex items-center gap-3 p-3 rounded-xl bg-primary-50/60">
-                              <img src={b.tenant.avatar} alt="" className="w-10 h-10 rounded-xl object-cover" />
-                              <div>
-                                <p className="text-sm font-semibold text-primary-800">{b.tenant.name}</p>
-                                <p className="text-xs text-primary-500">{b.tenant.email}</p>
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-primary-50/60">
+                              <div className="flex items-center gap-3">
+                                <img src={b.tenant.avatar} alt="" className="w-10 h-10 rounded-xl object-cover" />
+                                <div>
+                                  <p className="text-sm font-semibold text-primary-800">{b.tenant.name}</p>
+                                  <p className="text-xs text-primary-500">{b.tenant.email}</p>
+                                </div>
                               </div>
+                              <button
+                                onClick={() => navigate('/messages', { state: { recipientId: b.tenant.id, recipientName: b.tenant.name } })}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition text-xs font-semibold"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                Message
+                              </button>
                             </div>
 
                             {/* Message */}

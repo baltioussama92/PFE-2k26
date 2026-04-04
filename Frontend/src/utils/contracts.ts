@@ -54,6 +54,11 @@ export interface UserDto {
   phoneVerified?: boolean
   identityStatus?: VerificationStatus
   verificationLevel?: 0 | 1 | 2 | 3
+  rejectionReason?: string
+  governmentIdFiles?: string[]
+  otherAttachmentFiles?: string[]
+  selfieFile?: string
+  identitySubmittedAt?: string
   // frontend-only extras
   username?: string
   bio?: string
@@ -134,6 +139,8 @@ export interface BookingResponse {
   listingTitle?: string
   listingLocation?: string
   listingImage?: string
+  guestEmail?: string
+  guestName?: string
 }
 
 export interface BookingStatusUpdateRequest {

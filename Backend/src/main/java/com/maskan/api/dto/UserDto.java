@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.time.Instant;
+import java.util.List;
 
 @Value
 @Builder
@@ -31,5 +32,14 @@ public class UserDto {
     Instant createdAt;
     Boolean isVerified;
     Boolean banned;
+    Boolean emailVerified;
+    Boolean phoneVerified;
+    String identityStatus;
+    Integer verificationLevel;
+    String rejectionReason;
+    List<String> governmentIdFiles;
+    List<String> otherAttachmentFiles;
+    String selfieFile;
+    Instant identitySubmittedAt;
 }
 

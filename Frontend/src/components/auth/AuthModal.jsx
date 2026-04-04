@@ -13,6 +13,7 @@ const BIRTH_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'S
 const BIRTH_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1))
 const CURRENT_YEAR = new Date().getFullYear()
 const BIRTH_YEARS = Array.from({ length: 100 }, (_, index) => String(CURRENT_YEAR - index))
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const formVariants = {
   initial: { opacity: 0, y: 12 },
@@ -68,6 +69,27 @@ const persistSession = (payload) => {
   }
 }
 
+const getApiErrorMessage = (payload, fallbackMessage) => {
+  if (!payload || typeof payload !== 'object') {
+    return fallbackMessage
+  }
+
+  if (typeof payload.message === 'string' && payload.message.trim()) {
+    return payload.message
+  }
+
+  if (payload.errors && typeof payload.errors === 'object') {
+    const firstError = Object.values(payload.errors).find(
+      (value) => typeof value === 'string' && value.trim(),
+    )
+    if (firstError) {
+      return firstError
+    }
+  }
+
+  return fallbackMessage
+}
+
 export default function AuthModal({ initialMode = 'login', onClose, onSuccess }) {
   const [mode, setMode] = useState(initialMode === 'register' ? 'register' : 'login')
   const [loading, setLoading] = useState(false)
@@ -77,6 +99,7 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
     lastName: '',
     email: '',
     password: '',
+    confirmPassword: '',
     birthMonth: '',
     birthDay: '',
     birthYear: '',
@@ -128,18 +151,44 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
       return
     }
 
+    const email = form.email.trim().toLowerCase()
+    const fullName = `${form.firstName} ${form.lastName}`.trim()
+
+    if (!EMAIL_REGEX.test(email)) {
+      throw new Error('Please enter a valid email address')
+    }
+
+    if (form.password.length < 8) {
+      throw new Error('Password must be at least 8 characters')
+    }
+
+    if (form.password !== form.confirmPassword) {
+      throw new Error('Passwords do not match')
+    }
+
+    if (fullName.length < 3) {
+      throw new Error('Please enter your full name')
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        fullName: `${form.firstName} ${form.lastName}`.trim(),
-        email: form.email.trim().toLowerCase(),
+        fullName,
+        email,
         password: form.password,
+        role: 'GUEST',
       }),
     })
 
     if (!response.ok) {
-      throw new Error('Registration failed')
+      let errorPayload = null
+      try {
+        errorPayload = await response.json()
+      } catch {
+        errorPayload = null
+      }
+      throw new Error(getApiErrorMessage(errorPayload, 'Registration failed'))
     }
 
     const payload = await response.json()
@@ -277,10 +326,11 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
 
                 <motion.input
                   variants={fieldVariants}
-                  type="text"
+                  type="email"
                   value={form.email}
                   onChange={updateField('email')}
-                  placeholder="Mobile number or email"
+                  placeholder={mode === 'register' ? 'Email address' : 'Email'}
+                  autoComplete="email"
                   className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
                   required
                 />
@@ -290,10 +340,24 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
                   type="password"
                   value={form.password}
                   onChange={updateField('password')}
-                  placeholder="New password"
+                  placeholder={mode === 'register' ? 'Password' : 'Password'}
+                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
                   className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
                   required
                 />
+
+                {mode === 'register' && (
+                  <motion.input
+                    variants={fieldVariants}
+                    type="password"
+                    value={form.confirmPassword}
+                    onChange={updateField('confirmPassword')}
+                    placeholder="Confirm password"
+                    autoComplete="new-password"
+                    className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                    required
+                  />
+                )}
 
                 {mode === 'register' && (
                   <>

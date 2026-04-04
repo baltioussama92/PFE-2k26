@@ -52,6 +52,30 @@ public class User {
     @Builder.Default
     private List<String> wishlistListingIds = List.of();
 
+    @Builder.Default
+    private Boolean emailVerified = Boolean.FALSE;
+
+    @Builder.Default
+    private Boolean phoneVerified = Boolean.FALSE;
+
+    @Builder.Default
+    private String identityStatus = "not_verified";
+
+    @Builder.Default
+    private Integer verificationLevel = 0;
+
+    private String rejectionReason;
+
+    @Builder.Default
+    private List<String> governmentIdFiles = List.of();
+
+    @Builder.Default
+    private List<String> otherAttachmentFiles = List.of();
+
+    private String selfieFile;
+
+    private Instant identitySubmittedAt;
+
     public String getName() {
         return name;
     }

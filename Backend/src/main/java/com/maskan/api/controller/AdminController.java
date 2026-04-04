@@ -2,6 +2,7 @@ package com.maskan.api.controller;
 
 import com.maskan.api.dto.AdminActionResponse;
 import com.maskan.api.dto.AdminHistoryEventResponse;
+import com.maskan.api.dto.AdminRejectGuestVerificationRequest;
 import com.maskan.api.dto.AdminUpdateUserPasswordRequest;
 import com.maskan.api.dto.AdminUpdateUserRequest;
 import com.maskan.api.dto.AdminUserBookingResponse;
@@ -138,6 +139,18 @@ public class AdminController {
     @GetMapping("/users/{userId}/permissions")
     public ResponseEntity<AdminUserPermissionsResponse> userPermissions(@PathVariable String userId) {
         return ResponseEntity.ok(adminService.userPermissions(userId));
+    }
+
+    @PatchMapping("/guest-verifications/{userId}/approve")
+    public ResponseEntity<UserDto> approveGuestVerification(@PathVariable String userId) {
+        return ResponseEntity.ok(adminService.approveGuestVerification(userId));
+    }
+
+    @PatchMapping("/guest-verifications/{userId}/reject")
+    public ResponseEntity<UserDto> rejectGuestVerification(@PathVariable String userId,
+                                                            @RequestBody(required = false) AdminRejectGuestVerificationRequest request) {
+        String reason = request == null ? null : request.getReason();
+        return ResponseEntity.ok(adminService.rejectGuestVerification(userId, reason));
     }
 }
 

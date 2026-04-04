@@ -21,6 +21,7 @@ import AdminControlPage   from './pages/AdminControlPage'
 import AdminLayout from './admin/components/AdminLayout'
 import AdminDashboardPage from './admin/pages/Dashboard'
 import AdminUsersPage from './admin/pages/Users'
+import AdminGuestVerificationsPage from './admin/pages/GuestVerifications'
 import AdminUserDetailsPage from './admin/pages/UserDetails'
 import AdminListingsPage from './admin/pages/Listings'
 import AdminBookingsPage from './admin/pages/Bookings'
@@ -176,6 +177,7 @@ function AppRoutes() {
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="guest-verifications" element={<AdminGuestVerificationsPage />} />
             <Route path="users/:userId" element={<AdminUserDetailsPage />} />
             <Route path="listings" element={<AdminListingsPage />} />
             <Route path="bookings" element={<AdminBookingsPage />} />

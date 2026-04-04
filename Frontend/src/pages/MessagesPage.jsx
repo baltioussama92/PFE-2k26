@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { MessageSquare, Send, Search, Loader2, UserPlus, CheckCircle2 } from 'lucide-react'
 import { messageService } from '../services/messageService'
 import { userService } from '../services/userService'
@@ -12,6 +12,7 @@ const formatTime = (value) => {
 }
 
 export default function MessagesPage({ user }) {
+  const location = useLocation()
   const { notify } = useNotifications()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -23,6 +24,13 @@ export default function MessagesPage({ user }) {
   const [activeContactId, setActiveContactId] = useState(null)
   const [messages, setMessages] = useState([])
   const [conversations, setConversations] = useState([])
+
+  // Handle navigation from bookings page
+  useEffect(() => {
+    if (location.state?.recipientId) {
+      setActiveContactId(String(location.state.recipientId))
+    }
+  }, [location.state?.recipientId])
 
   const connectedIds = useMemo(() => {
     const currentUserId = String(user?.id)

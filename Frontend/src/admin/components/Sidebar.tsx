@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 const links = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: Home },
   { to: '/admin/users', label: 'Users', icon: Users },
+  { to: '/admin/guest-verifications', label: 'Guest Verification', icon: FileCheck },
   { to: '/admin/listings', label: 'Listings', icon: BookOpen },
   { to: '/admin/bookings', label: 'Bookings', icon: BarChart3 },
   { to: '/admin/payments', label: 'Payments', icon: CreditCard },

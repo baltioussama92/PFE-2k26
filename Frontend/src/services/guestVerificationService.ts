@@ -1,8 +1,8 @@
-import { getStoredAuthToken } from '../api/apiClient'
+import { API_BASE_URL, getStoredAuthToken } from '../api/apiClient'
 import { ENDPOINTS } from '../api/endpoints'
 import type { GuestVerificationSummary, VerificationStatus } from '../utils/contracts'
 
-const API_ROOT = '/api'
+const API_ROOT = `${API_BASE_URL}/api`
 
 interface VerifyOtpPayload {
   otp: string
@@ -14,7 +14,8 @@ interface SendOtpPayload {
 }
 
 interface IdentitySubmissionPayload {
-  governmentId: File
+  governmentIds: File[]
+  otherAttachments?: File[]
   selfie: File
 }
 
@@ -75,7 +76,12 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     throw new Error(errorBody || 'Verification request failed')
   }
 
-  return response.json()
+  const responseText = await response.text()
+  if (!responseText) {
+    return undefined as T
+  }
+
+  return JSON.parse(responseText) as T
 }
 
 export const guestVerificationService = {
@@ -110,7 +116,12 @@ export const guestVerificationService = {
 
   async submitIdentity(payload: IdentitySubmissionPayload): Promise<GuestVerificationSummary> {
     const formData = new FormData()
-    formData.append('governmentId', payload.governmentId)
+    payload.governmentIds.forEach((file) => {
+      formData.append('governmentIds', file)
+    })
+    payload.otherAttachments?.forEach((file) => {
+      formData.append('otherAttachments', file)
+    })
     formData.append('selfie', payload.selfie)
 
     const response = await authedFetch(ENDPOINTS.verifications.submitIdentity, {

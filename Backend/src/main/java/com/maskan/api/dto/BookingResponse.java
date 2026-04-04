@@ -23,5 +23,7 @@ public class BookingResponse {
     String listingTitle;
     String listingLocation;
     String listingImage;
+    String guestEmail;
+    String guestName;
 }
 

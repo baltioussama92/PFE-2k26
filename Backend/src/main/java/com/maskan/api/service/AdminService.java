@@ -36,5 +36,7 @@ public interface AdminService {
     AdminActionResponse updateUserPassword(String userId, AdminUpdateUserPasswordRequest request);
     AdminActionResponse deleteUser(String userId);
     AdminUserPermissionsResponse userPermissions(String userId);
+    UserDto approveGuestVerification(String userId);
+    UserDto rejectGuestVerification(String userId, String reason);
 }
 

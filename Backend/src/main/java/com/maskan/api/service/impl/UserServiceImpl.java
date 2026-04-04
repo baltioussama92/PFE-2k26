@@ -64,6 +64,15 @@ public class UserServiceImpl implements UserService {
                 .createdAt(user.getCreatedAt())
                 .isVerified(user.getIsVerified())
                 .banned(user.getBanned())
+                .emailVerified(user.getEmailVerified())
+                .phoneVerified(user.getPhoneVerified())
+                .identityStatus(user.getIdentityStatus())
+                .verificationLevel(user.getVerificationLevel())
+                .rejectionReason(user.getRejectionReason())
+                .governmentIdFiles(user.getGovernmentIdFiles())
+                .otherAttachmentFiles(user.getOtherAttachmentFiles())
+                .selfieFile(user.getSelfieFile())
+                .identitySubmittedAt(user.getIdentitySubmittedAt())
                 .build();
     }
 }
