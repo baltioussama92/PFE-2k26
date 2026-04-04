@@ -116,9 +116,23 @@ input, select, textarea { font-family: inherit; }
   justify-content: center;
   gap: 0.9rem;
   background:
-    radial-gradient(circle at 20% 22%, rgba(212, 168, 118, 0.2), transparent 38%),
-    radial-gradient(circle at 80% 80%, rgba(184, 98, 42, 0.2), transparent 42%),
-    linear-gradient(155deg, #fdf7ef 0%, #f6ecdf 45%, #f1e2cd 100%);
+    radial-gradient(circle at 20% 22%, rgba(231, 186, 136, 0.34), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(161, 77, 34, 0.3), transparent 44%),
+    linear-gradient(155deg, #fff8ef 0%, #f5e7d4 44%, #ecd4ba 100%);
+}
+
+.brand-loader-exit .brand-loader {
+  animation: loaderFadeOut 0.55s ease-in forwards;
+}
+
+.brand-loader-exit .brand-loader__glow,
+.brand-loader-exit .brand-loader__tagline {
+  animation-play-state: paused;
+}
+
+.brand-loader-exit .brand-loader__logo,
+.brand-loader-exit .brand-loader__word {
+  animation: loaderExitScale 0.55s ease-in forwards;
 }
 
 .brand-loader__glow {
@@ -126,17 +140,38 @@ input, select, textarea { font-family: inherit; }
   width: min(72vw, 640px);
   aspect-ratio: 1;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(184, 98, 42, 0.18) 0%, rgba(184, 98, 42, 0) 68%);
+  background: radial-gradient(circle, rgba(196, 101, 48, 0.28) 0%, rgba(196, 101, 48, 0) 68%);
   filter: blur(10px);
-  animation: pulseGlow 2.1s ease-in-out infinite;
+  animation: pulseGlow 2.9s ease-in-out infinite;
 }
 
 .brand-loader__logo {
-  width: clamp(88px, 12vw, 132px);
+  width: clamp(98px, 14vw, 154px);
   height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 16px 28px rgba(77, 43, 19, 0.24));
   opacity: 0;
-  transform: translateY(20px) scale(0.88);
-  animation: logoRise 0.9s ease-out forwards;
+  transform: translateY(16px) scale(0.94);
+  animation: logoWrapIn 0.55s ease-out forwards;
+}
+
+.brand-loader__logo-outline {
+  fill: none;
+  stroke: #8a4320;
+  stroke-width: 125;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.9;
+  animation: logoBuild 2s cubic-bezier(0.22, 0.7, 0.24, 1) 0.2s forwards;
+}
+
+.brand-loader__logo-fill {
+  opacity: 0;
+  transform-origin: center;
+  transform: scale(0.96);
+  animation: logoFillIn 1.1s ease-out 1.9s forwards;
 }
 
 .brand-loader__word {
@@ -152,8 +187,9 @@ input, select, textarea { font-family: inherit; }
 .brand-loader__word span {
   display: inline-block;
   opacity: 0;
-  transform: translateY(24px);
-  animation: letterLift 0.7s cubic-bezier(0.18, 0.7, 0.2, 1) forwards;
+  transform: translateY(24px) rotateX(85deg);
+  transform-origin: bottom;
+  animation: letterLift 0.9s cubic-bezier(0.18, 0.7, 0.2, 1) forwards;
 }
 
 .brand-loader__tagline {
@@ -161,9 +197,9 @@ input, select, textarea { font-family: inherit; }
   font-size: clamp(0.82rem, 2vw, 1rem);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(42, 26, 14, 0.75);
+  color: rgba(72, 40, 18, 0.8);
   opacity: 0;
-  animation: fadeInTagline 0.9s ease-out 0.8s forwards;
+  animation: fadeInTagline 1s ease-out 2.3s forwards;
 }
 
 @keyframes logoRise {
@@ -173,10 +209,47 @@ input, select, textarea { font-family: inherit; }
   }
 }
 
+@keyframes logoWrapIn {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes logoBuild {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0.9;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.4;
+  }
+}
+
+@keyframes logoFillIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes letterLift {
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) rotateX(0deg);
   }
 }
 
@@ -195,6 +268,26 @@ input, select, textarea { font-family: inherit; }
   50% {
     transform: scale(1.08);
     opacity: 1;
+  }
+}
+
+@keyframes loaderFadeOut {
+  from {
+    opacity: 1;
+    filter: blur(0px);
+  }
+  to {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+
+@keyframes loaderExitScale {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0.88);
   }
 }
 

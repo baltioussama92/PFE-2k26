@@ -7,10 +7,10 @@ import { wishlistService } from '../../services/wishlistService'
 
 // -- Sort Options ---------------------------------------------
 const SORT_OPTIONS = [
-  { value: 'default',   label: 'Recommand�s'          },
+  { value: 'default',   label: 'Recommandés'           },
   { value: 'price_asc', label: 'Prix croissant'        },
-  { value: 'price_desc', label: 'Prix d�croissant'     },
-  { value: 'rating',    label: 'Mieux not�s'           },
+  { value: 'price_desc', label: 'Prix décroissant'     },
+  { value: 'rating',    label: 'Mieux notés'           },
 ]
 
 // -- Sort function ---------------------------------------------
@@ -36,7 +36,7 @@ const normalizeProperty = (p) => ({
   period: p.period || (p.pricePerNight != null ? 'nuit' : 'mois'),
 })
 
-export default function PropertyGrid({ title = 'Propri�t�s en vedette', searchResult = null, searchFilters = null, user = null, onAuthClick = null }) {
+export default function PropertyGrid({ title = 'Propriétés en vedette', searchResult = null, searchFilters = null, user = null, onAuthClick = null }) {
   const [sort,    setSort]    = useState('default')
   const [type,    setType]    = useState('Tous')
   const [layout,  setLayout]  = useState('grid') // 'grid' | 'list'
@@ -207,7 +207,7 @@ export default function PropertyGrid({ title = 'Propri�t�s en vedette', sear
           </motion.button>
         ))}
         <span className="ml-auto text-xs text-primary-400 self-center">
-          {sorted.length} r�sultat{sorted.length !== 1 ? 's' : ''}
+          {sorted.length} résultat{sorted.length !== 1 ? 's' : ''}
         </span>
       </div>
 
@@ -222,7 +222,7 @@ export default function PropertyGrid({ title = 'Propri�t�s en vedette', sear
           animate={{ opacity: 1 }}
           className="text-center py-20 text-primary-400"
         >
-          <p className="text-lg font-semibold">Aucune propri�t� trouv�e</p>
+          <p className="text-lg font-semibold">Aucune propriété trouvée</p>
           <p className="text-sm mt-1">Essayez de modifier vos filtres</p>
         </motion.div>
       ) : (
@@ -252,7 +252,7 @@ export default function PropertyGrid({ title = 'Propri�t�s en vedette', sear
           whileTap={{ scale: 0.97 }}
           className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-100 px-5 py-3 text-sm font-semibold text-primary-700 shadow-sm transition hover:border-primary-300 hover:bg-primary-50"
         >
-          Voir plus de propri�t�s
+          Voir plus de propriétés
         </motion.button>
       </div>
     </section>

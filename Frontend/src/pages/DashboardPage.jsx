@@ -41,19 +41,19 @@ const getRoleFromStorage = () => {
 const ROLES = [
   {
     id:    'PROPRIETAIRE',
-    label: 'Propri�taire',
-    desc:  'G�rez vos biens, suivez vos r�servations et vos revenus.',
+    label: 'Propriétaire',
+    desc:  'Gérez vos biens, suivez vos réservations et vos revenus.',
     color: 'from-primary-400 to-primary-600',
     ring:  'ring-primary-300',
-    emoji: '??',
+    emoji: '\ud83c\udfe0',
   },
   {
     id:    'TENANT',
     label: 'Locataire',
-    desc:  'Suivez vos s�jours, vos favoris et votre historique de recherche.',
+    desc:  'Suivez vos séjours, vos favoris et votre historique de recherche.',
     color: 'from-primary-300 to-primary-500',
     ring:  'ring-primary-200',
-    emoji: '???',
+    emoji: '\ud83d\udccd',
   },
   {
     id:    'ADMIN',
@@ -61,7 +61,7 @@ const ROLES = [
     desc:  'Supervisez les utilisateurs, validez les annonces et analysez la croissance.',
     color: 'from-primary-700 to-primary-900',
     ring:  'ring-primary-500',
-    emoji: '??',
+    emoji: '\ud83d\udee1\ufe0f',
   },
 ]
 
@@ -74,9 +74,9 @@ function RolePicker({ onPick }) {
         className="w-full max-w-lg"
       >
         <div className="text-center mb-10">
-          <span className="text-3xl mb-3 block">??</span>
+          <span className="text-3xl mb-3 block">\ud83c\udfe1</span>
           <h1 className="text-2xl font-extrabold text-primary-900">Tableau de bord Maskan</h1>
-          <p className="text-primary-500 text-sm mt-2">S�lectionnez votre r�le pour continuer.</p>
+          <p className="text-primary-500 text-sm mt-2">Sélectionnez votre rôle pour continuer.</p>
         </div>
         <div className="space-y-3">
           {ROLES.map((r, i) => (
@@ -104,13 +104,13 @@ function RolePicker({ onPick }) {
                 whileHover={{ x: 4 }}
                 className="ml-auto text-primary-200 group-hover:text-primary-500 transition-colors shrink-0"
               >
-                ?
+                {'->'}
               </motion.div>
             </motion.button>
           ))}
         </div>
         <p className="text-center text-xs text-primary-400 mt-6">
-          En production, le r�le est d�termin� automatiquement par votre compte.
+          En production, le rôle est déterminé automatiquement par votre compte.
         </p>
       </motion.div>
     </div>

@@ -4,11 +4,11 @@
  * Glassmorphism navigation bar that becomes frosted on scroll.
  *
  * Features:
- *   � Transparent ? blurred glass transition on scroll
- *   � Animated mobile drawer (Framer Motion)
- *   � Notification bell with unread badge
- *   � User profile dropdown with role-aware links
- *   � Connect `isLoggedIn` / `user` / `unreadCount` to your AuthContext later
+ *   - Transparent to blurred glass transition on scroll
+ *   - Animated mobile drawer (Framer Motion)
+ *   - Notification bell with unread badge
+ *   - User profile dropdown with role-aware links
+ *   - Connect isLoggedIn / user / unreadCount to your AuthContext later
  * ------------------------------------------------------------------------------
  */
 
@@ -226,7 +226,7 @@ const Navbar: React.FC = () => {
             {/* -- Right-side actions -------------------------------------- */}
             <div className="flex items-center gap-2">
 
-              {/* Notification bell � only when logged in */}
+              {/* Notification bell only when logged in */}
               {isLoggedIn && (
                 <>
                   <Link
