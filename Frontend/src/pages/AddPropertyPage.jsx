@@ -71,13 +71,19 @@ export default function AddPropertyPage({ user }) {
       }))
     ).then((newPreviews) => {
       setImageError('')
-      set('imagePreviews', [...form.imagePreviews, ...newPreviews])
+      setForm((prev) => ({
+        ...prev,
+        imagePreviews: [...prev.imagePreviews, ...newPreviews],
+      }))
       event.target.value = ''
     })
   }
 
   const removeImage = (index) => {
-    set('imagePreviews', form.imagePreviews.filter((_, i) => i !== index))
+    setForm((prev) => ({
+      ...prev,
+      imagePreviews: prev.imagePreviews.filter((_, i) => i !== index),
+    }))
   }
 
   const canProceed =

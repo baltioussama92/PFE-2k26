@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Search, MapPin, BedDouble, Bath, Eye, EyeOff,
   Trash2, Edit3, Home, ToggleLeft, ToggleRight, MoreVertical,
-  TrendingUp, Building2, Star, Clock, X, Check, DollarSign, Loader2,
+  TrendingUp, Building2, Star, Clock, X, Check, DollarSign, Loader2, Image as ImageIcon,
 } from 'lucide-react'
 import { propertyService } from '../services/propertyService'
 
@@ -17,12 +17,14 @@ const AMENITIES_LIST = [
 
 export default function MyPropertiesPage({ user }) {
   const navigate = useNavigate()
+  const editImageInputRef = useRef(null)
   const [properties, setProperties] = useState([])
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all') // all | available | hidden
   const [menuOpen, setMenuOpen] = useState(null)
   const [editing, setEditing] = useState(null) // property being edited
   const [editForm, setEditForm] = useState({})
+  const [editImageError, setEditImageError] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -38,6 +40,9 @@ export default function MyPropertiesPage({ user }) {
           image: p.image ?? (p.images?.length ? p.images[0] : null),
           currency: p.currency || 'TND',
           period: p.period || 'nuit',
+          bedrooms: p.bedrooms ?? p.rooms ?? p.roomCount ?? 0,
+          bathrooms: p.bathrooms ?? p.bathroomCount ?? 0,
+          area: p.area ?? p.surface ?? p.areaSqm ?? 0,
           available: p.available !== false,
         }))
         setProperties(mine)
@@ -67,16 +72,18 @@ export default function MyPropertiesPage({ user }) {
   }
 
   const startEdit = (p) => {
+    setEditImageError('')
     setEditForm({
       title: p.title,
       location: p.location,
       description: p.description || '',
       type: p.type || 'Appartement',
-      price: p.price,
-      bedrooms: p.bedrooms,
-      bathrooms: p.bathrooms,
-      area: p.area,
+      price: p.price ?? p.pricePerNight ?? '',
+      bedrooms: p.bedrooms ?? p.rooms ?? p.roomCount ?? '',
+      bathrooms: p.bathrooms ?? p.bathroomCount ?? '',
+      area: p.area ?? p.surface ?? p.areaSqm ?? '',
       amenities: p.amenities || [],
+      images: Array.isArray(p.images) && p.images.length ? p.images : (p.image ? [p.image] : []),
     })
     setEditing(p.id)
     setMenuOpen(null)
@@ -88,6 +95,12 @@ export default function MyPropertiesPage({ user }) {
       description: editForm.description.trim(),
       location: editForm.location.trim(),
       pricePerNight: Number(editForm.price),
+      type: editForm.type,
+      bedrooms: Number(editForm.bedrooms) || 0,
+      bathrooms: Number(editForm.bathrooms) || 0,
+      area: Number(editForm.area) || 0,
+      amenities: editForm.amenities || [],
+      images: editForm.images || [],
     }
     propertyService.update(editing, updated)
       .then(() => {
@@ -95,11 +108,7 @@ export default function MyPropertiesPage({ user }) {
           ...p,
           ...updated,
           price: updated.pricePerNight,
-          type: editForm.type,
-          bedrooms: Number(editForm.bedrooms),
-          bathrooms: Number(editForm.bathrooms),
-          area: Number(editForm.area),
-          amenities: editForm.amenities,
+          image: updated.images?.[0] || null,
         } : p))
       })
       .catch(() => {})
@@ -107,6 +116,45 @@ export default function MyPropertiesPage({ user }) {
   }
 
   const ef = (key, val) => setEditForm(p => ({ ...p, [key]: val }))
+  const removeEditImage = (index) => {
+    setEditForm((prev) => ({
+      ...prev,
+      images: (prev.images || []).filter((_, i) => i !== index),
+    }))
+  }
+  const handleEditImageChange = (event) => {
+    const files = Array.from(event.target.files || [])
+    if (files.length === 0) return
+
+    const invalidType = files.find((file) => !file.type.startsWith('image/'))
+    const tooLarge = files.find((file) => file.size > 3 * 1024 * 1024)
+    if (invalidType) {
+      setEditImageError('Veuillez sélectionner uniquement des fichiers image valides.')
+      event.target.value = ''
+      return
+    }
+
+    if (tooLarge) {
+      setEditImageError('Une ou plusieurs images sont trop volumineuses (max 3 MB chacune).')
+      event.target.value = ''
+      return
+    }
+
+    Promise.all(
+      files.map((file) => new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.readAsDataURL(file)
+      }))
+    ).then((newImages) => {
+      setEditImageError('')
+      setEditForm((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...newImages],
+      }))
+      event.target.value = ''
+    })
+  }
   const toggleEditAmenity = (a) =>
     ef('amenities', editForm.amenities?.includes(a)
       ? editForm.amenities.filter(x => x !== a)
@@ -218,12 +266,12 @@ export default function MyPropertiesPage({ user }) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ delay: i * 0.04 }}
-                  className={`bg-white rounded-2xl shadow-sm border border-primary-100 overflow-hidden
+                  className={`bg-white rounded-2xl shadow-sm border border-primary-100 overflow-visible
                               flex flex-col sm:flex-row ${!p.available ? 'opacity-70' : ''}`}
                 >
                   {/* Image */}
                   <div className="sm:w-56 h-40 sm:h-auto relative shrink-0">
-                    <img src={p.image} alt={p.title} className="w-full h-full object-cover" />
+                    <img src={p.image} alt={p.title} className="w-full h-full object-cover rounded-t-2xl sm:rounded-l-2xl sm:rounded-tr-none" />
                     {p.badge && (
                       <span className={`absolute top-2 left-2 px-2.5 py-0.5 rounded-lg text-xs font-bold text-white
                         ${p.badgeColor === 'emerald' ? 'bg-emerald-500' : 'bg-primary-500'}`}>
@@ -261,7 +309,7 @@ export default function MyPropertiesPage({ user }) {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="absolute right-0 top-8 w-44 bg-white rounded-xl shadow-lg border border-primary-100 py-1 z-10"
+                                className="absolute right-0 top-8 w-44 bg-white rounded-xl shadow-lg border border-primary-100 py-1 z-30"
                               >
                                 <button
                                   onClick={() => startEdit(p)}
@@ -420,20 +468,20 @@ export default function MyPropertiesPage({ user }) {
                     <label className="block text-sm font-semibold text-primary-700 mb-1">Prix / mois (TND)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
-                      <input type="number" min={1} value={editForm.price || ''} onChange={e => ef('price', e.target.value)}
+                      <input type="number" min={1} value={editForm.price ?? ''} onChange={e => ef('price', e.target.value)}
                         className="w-full pl-10 pr-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-primary-700 mb-1">Surface (m²)</label>
-                    <input type="number" min={1} value={editForm.area || ''} onChange={e => ef('area', e.target.value)}
+                    <input type="number" min={1} value={editForm.area ?? ''} onChange={e => ef('area', e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900" />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-primary-700 mb-1">Chambres</label>
                     <div className="flex items-center gap-2">
                       <BedDouble className="w-4 h-4 text-primary-400" />
-                      <input type="number" min={1} max={20} value={editForm.bedrooms || ''} onChange={e => ef('bedrooms', e.target.value)}
+                      <input type="number" min={1} max={20} value={editForm.bedrooms ?? ''} onChange={e => ef('bedrooms', e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900" />
                     </div>
                   </div>
@@ -441,13 +489,60 @@ export default function MyPropertiesPage({ user }) {
                     <label className="block text-sm font-semibold text-primary-700 mb-1">Salles de bain</label>
                     <div className="flex items-center gap-2">
                       <Bath className="w-4 h-4 text-primary-400" />
-                      <input type="number" min={1} max={10} value={editForm.bathrooms || ''} onChange={e => ef('bathrooms', e.target.value)}
+                      <input type="number" min={1} max={10} value={editForm.bathrooms ?? ''} onChange={e => ef('bathrooms', e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900" />
                     </div>
                   </div>
                 </div>
 
                 {/* Amenities */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-semibold text-primary-700">Photos</label>
+                    <input
+                      ref={editImageInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleEditImageChange}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => editImageInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 px-3 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-50 transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Ajouter des photos
+                    </button>
+                  </div>
+
+                  {editForm.images?.length ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {editForm.images.map((src, index) => (
+                        <div key={`${src}-${index}`} className="relative overflow-hidden rounded-xl border border-primary-100 bg-primary-50">
+                          <img src={src} alt={`property-${index + 1}`} className="h-24 w-full object-cover" />
+                          <button
+                            onClick={() => removeEditImage(index)}
+                            className="absolute right-1.5 top-1.5 rounded-md bg-white/90 p-1 text-red-500 shadow hover:bg-white"
+                            aria-label="Supprimer la photo"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-primary-200 bg-primary-50/50 p-4 text-sm text-primary-500 flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4" />
+                      Aucune photo. Ajoutez au moins une image pour mieux présenter votre bien.
+                    </div>
+                  )}
+
+                  {editImageError && (
+                    <p className="mt-2 text-xs font-medium text-red-600">{editImageError}</p>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-primary-700 mb-2">Équipements</label>
                   <div className="flex flex-wrap gap-2">

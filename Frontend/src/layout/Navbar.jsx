@@ -13,6 +13,12 @@ const DEFAULT_NAV_LINKS = [
   { to: '/explorer', label: 'Explorer', icon: Compass   },
 ]
 
+const getUserNavLinks = (isHost) => [
+  ...DEFAULT_NAV_LINKS,
+  { to: isHost ? '/host-bookings' : '/bookings', label: 'Réservations', icon: CalendarCheck },
+  { to: '/messages', label: 'Messages', icon: MessageSquare },
+]
+
 const ADMIN_NAV_LINKS = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: Home },
   { to: '/admin/users',     label: 'Users Management',  icon: User    },
@@ -23,8 +29,6 @@ const ADMIN_NAV_LINKS = [
 const TENANT_DROPDOWN = [
   { label: 'Mon Profil',       icon: User,          to: '/profile'   },
   { label: 'Mes Favoris',      icon: Heart,         to: '/favorites' },
-  { label: 'Mes Réservations', icon: Building2,     to: '/bookings'  },
-  { label: 'Messages',         icon: MessageSquare, to: '/messages'  },
   { label: 'Paramètres',       icon: Settings,      to: '/settings'  },
 ]
 
@@ -33,8 +37,6 @@ const HOST_DROPDOWN = [
   { label: 'Mon Profil',          icon: User,          to: '/profile'        },
   { label: 'Mes Propriétés',      icon: Building2,     to: '/my-properties'  },
   { label: 'Ajouter un bien',     icon: Plus,          to: '/add-property'   },
-  { label: 'Réservations reçues', icon: CalendarCheck, to: '/host-bookings'  },
-  { label: 'Messages',            icon: MessageSquare, to: '/messages'       },
   { label: 'Paramètres',          icon: Settings,      to: '/settings'       },
 ]
 
@@ -58,7 +60,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
 
   const isAdmin = user?.role === 'ADMIN'
   const isHost = user?.role === 'PROPRIETOR'
-  const NAV_LINKS = isAdmin ? ADMIN_NAV_LINKS : DEFAULT_NAV_LINKS
+  const NAV_LINKS = isAdmin ? ADMIN_NAV_LINKS : user ? getUserNavLinks(isHost) : DEFAULT_NAV_LINKS
   const DROPDOWN_ITEMS = isAdmin ? ADMIN_DROPDOWN : isHost ? HOST_DROPDOWN : TENANT_DROPDOWN
 
   // -- Scroll listener --------------------------------------
