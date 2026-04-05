@@ -64,6 +64,9 @@ public class User {
     @Builder.Default
     private Integer verificationLevel = 0;
 
+    @Builder.Default
+    private String avatar = "";
+
     private String rejectionReason;
 
     @Builder.Default

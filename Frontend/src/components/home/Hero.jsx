@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+﻿import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, Shield, TrendingUp, ChevronDown } from 'lucide-react'
@@ -26,12 +26,9 @@ function FloatingBadge({ className, icon: Icon, label, sub }) {
   )
 }
 
-// -- Hero Background Slides ------------------------------------
-const BG_IMAGES = [
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=90',
-  'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=90',
-  'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=1600&q=90',
-]
+// -- Hero Background Media -------------------------------------
+const HERO_BG_IMAGE = '/home-hero.jpg'
+const HERO_BG_VIDEO = '/villa home page.mp4'
 
 // -- Container variants ----------------------------------------
 const containerVar = {
@@ -45,7 +42,9 @@ const itemVar = {
 
 export default function Hero({ onSearch }) {
   const navigate = useNavigate()
-  const [bg, setBg] = useState(0)
+  const videoRef = useRef(null)
+  const reverseFrameRef = useRef(null)
+  const reverseStateRef = useRef({ running: false, lastTs: 0 })
   const [popularCities, setPopularCities] = useState([])
   const [stats, setStats] = useState([
     { label: 'Propriétés listées', value: '0' },
@@ -95,23 +94,78 @@ export default function Hero({ onSearch }) {
     }
   }, [])
 
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const stopReverse = () => {
+      if (reverseFrameRef.current) {
+        cancelAnimationFrame(reverseFrameRef.current)
+        reverseFrameRef.current = null
+      }
+      reverseStateRef.current.running = false
+      reverseStateRef.current.lastTs = 0
+      video.playbackRate = 1
+    }
+
+    const reverseStep = (ts) => {
+      const state = reverseStateRef.current
+      if (!state.running) return
+
+      if (!state.lastTs) {
+        state.lastTs = ts
+      }
+
+      const elapsedSeconds = (ts - state.lastTs) / 1000
+      state.lastTs = ts
+
+      const nextTime = video.currentTime - elapsedSeconds
+      if (nextTime <= 0) {
+        video.currentTime = 0
+        stopReverse()
+        video.play().catch(() => {})
+        return
+      }
+
+      video.currentTime = nextTime
+      reverseFrameRef.current = requestAnimationFrame(reverseStep)
+    }
+
+    const startReverse = () => {
+      stopReverse()
+      video.pause()
+      reverseStateRef.current.running = true
+      reverseStateRef.current.lastTs = 0
+      reverseFrameRef.current = requestAnimationFrame(reverseStep)
+    }
+
+    const handleEnded = () => {
+      startReverse()
+    }
+
+    video.addEventListener('ended', handleEnded)
+
+    return () => {
+      video.removeEventListener('ended', handleEnded)
+      stopReverse()
+    }
+  }, [])
+
   return (
     <section className="relative min-h-screen flex flex-col justify-center overflow-hidden">
 
-      {/* -- Background Image Carousel ------------------------ */}
-      {BG_IMAGES.map((src, i) => (
-        <motion.div
-          key={src}
-          animate={{ opacity: i === bg ? 1 : 0 }}
-          transition={{ duration: 1.6, ease: 'easeInOut' }}
-          className="absolute inset-0"
-          style={{
-            backgroundImage:    `url(${src})`,
-            backgroundSize:     'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-      ))}
+      {/* -- Background Video --------------------------------- */}
+      <video
+        ref={videoRef}
+        className="absolute inset-0 h-full w-full object-cover"
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        poster={HERO_BG_IMAGE}
+      >
+        <source src={HERO_BG_VIDEO} type="video/mp4" />
+      </video>
 
       {/* -- Multiple gradient overlays ------------------------ */}
   <div className="absolute inset-0 bg-gradient-to-b from-primary-900/70 via-primary-900/50 to-primary-900/80" />
@@ -258,19 +312,6 @@ export default function Hero({ onSearch }) {
         label="+340 nouvelles annonces"
         sub="Cette semaine"
       />
-
-      {/* -- BG Image Dots ------------------------------------- */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
-        {BG_IMAGES.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setBg(i)}
-            className={`transition-all duration-300 rounded-full ${
-              i === bg ? 'w-6 h-2 bg-primary-100' : 'w-2 h-2 bg-primary-50/40 hover:bg-primary-50/70'
-            }`}
-          />
-        ))}
-      </div>
 
       {/* -- Scroll indicator ---------------------------------- */}
       <motion.div

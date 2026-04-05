@@ -8,6 +8,49 @@ import {
 import { DEMO_MODE } from '../data/demo'
 
 const USER_STORAGE_KEY = 'user'
+const AUTH_TOKEN_KEY = 'authToken'
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
+const MAX_AVATAR_SIZE = 320
+
+async function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('Failed to read selected image'))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function compressAvatar(file) {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please select a valid image file.')
+  }
+
+  const sourceDataUrl = await fileToDataUrl(file)
+  const img = new Image()
+
+  await new Promise((resolve, reject) => {
+    img.onload = resolve
+    img.onerror = () => reject(new Error('Selected image could not be loaded.'))
+    img.src = sourceDataUrl
+  })
+
+  const scale = Math.min(MAX_AVATAR_SIZE / img.width, MAX_AVATAR_SIZE / img.height, 1)
+  const width = Math.max(1, Math.round(img.width * scale))
+  const height = Math.max(1, Math.round(img.height * scale))
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const context = canvas.getContext('2d')
+
+  if (!context) {
+    throw new Error('Unable to process selected image.')
+  }
+
+  context.drawImage(img, 0, 0, width, height)
+  return canvas.toDataURL('image/jpeg', 0.82)
+}
 
 // ── Default avatar ────────────────────────────────────────────
 function getInitials(name) {
@@ -75,6 +118,7 @@ export default function ProfilePage({ user, onUserUpdate }) {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [showHostConfirm, setShowHostConfirm] = useState(false)
 
@@ -102,15 +146,20 @@ export default function ProfilePage({ user, onUserUpdate }) {
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result)
-      setForm(prev => ({ ...prev, avatar: reader.result }))
-    }
-    reader.readAsDataURL(file)
+
+    compressAvatar(file)
+      .then((compressedAvatar) => {
+        setSaveError('')
+        setAvatarPreview(compressedAvatar)
+        setForm(prev => ({ ...prev, avatar: compressedAvatar }))
+      })
+      .catch((error) => {
+        setSaveError(error?.message || 'Unable to update profile picture.')
+      })
   }
 
   const handleSave = async () => {
+    setSaveError('')
     setSaving(true)
 
     // Build updated user and persist
@@ -123,13 +172,58 @@ export default function ProfilePage({ user, onUserUpdate }) {
       avatar: form.avatar,
     }
 
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser))
-    onUserUpdate?.(updatedUser)
-    setSaving(false)
-    setSaved(true)
-    setEditing(false)
-    setAvatarPreview(null)
-    setTimeout(() => setSaved(false), 2000)
+    try {
+      if (!DEMO_MODE) {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY)
+        if (!token) {
+          throw new Error('Session expired. Please sign in again.')
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fullName: updatedUser.name,
+            avatar: updatedUser.avatar || '',
+          }),
+        })
+
+        if (!response.ok) {
+          let message = 'Unable to save profile picture to database.'
+          try {
+            const payload = await response.json()
+            if (payload?.message) message = payload.message
+          } catch {
+            // ignore parse errors and keep default message
+          }
+          throw new Error(message)
+        }
+
+        const backendUser = await response.json()
+        const mergedUser = {
+          ...updatedUser,
+          name: backendUser?.fullName || backendUser?.name || updatedUser.name,
+          avatar: backendUser?.avatar ?? updatedUser.avatar,
+        }
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mergedUser))
+        onUserUpdate?.(mergedUser)
+      } else {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser))
+        onUserUpdate?.(updatedUser)
+      }
+
+      setSaved(true)
+      setEditing(false)
+      setAvatarPreview(null)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (error) {
+      setSaveError(error?.message || 'Could not save profile locally. Try a smaller image.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancel = () => {
@@ -141,6 +235,7 @@ export default function ProfilePage({ user, onUserUpdate }) {
       avatar: user.avatar || '',
     })
     setAvatarPreview(null)
+    setSaveError('')
     setEditing(false)
   }
 
@@ -392,6 +487,12 @@ export default function ProfilePage({ user, onUserUpdate }) {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {saveError && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+              {saveError}
+            </div>
+          )}
         </motion.div>
 
         {/* ── Become a Host CTA ────────────────────────────── */}

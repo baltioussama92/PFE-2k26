@@ -44,14 +44,14 @@ const mapRole = (role) => {
   return role || 'TENANT'
 }
 
-const normalizeUser = (user) => ({
+const normalizeUser = (user, localProfile = null) => ({
   id: user?.id,
   name: user?.fullName || user?.name || 'User',
   email: user?.email,
   role: mapRole(user?.role),
-  username: user?.username || '',
-  bio: user?.bio || '',
-  avatar: user?.avatar || '',
+  username: user?.username || localProfile?.username || '',
+  bio: user?.bio || localProfile?.bio || '',
+  avatar: user?.avatar || localProfile?.avatar || '',
   emailVerified: Boolean(user?.emailVerified),
   phoneVerified: Boolean(user?.phoneVerified),
   identityStatus: user?.identityStatus || 'not_verified',
@@ -154,6 +154,14 @@ function AppRoutes() {
   useEffect(() => {
     const verifySession = async () => {
       const token = localStorage.getItem(AUTH_TOKEN_KEY)
+      const locallyStoredUser = (() => {
+        try {
+          return JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || 'null')
+        } catch {
+          return null
+        }
+      })()
+
       if (!token) {
         setUser(null)
         return
@@ -171,12 +179,19 @@ function AppRoutes() {
         }
 
         const backendUser = await response.json()
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(backendUser))
+        const mergedUser = {
+          ...backendUser,
+          username: backendUser?.username || locallyStoredUser?.username || '',
+          bio: backendUser?.bio || locallyStoredUser?.bio || '',
+          avatar: backendUser?.avatar || locallyStoredUser?.avatar || '',
+        }
+
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mergedUser))
         if (backendUser?.role) {
           localStorage.setItem(ROLE_STORAGE_KEY, mapRole(backendUser.role))
         }
 
-        setUser(normalizeUser(backendUser))
+        setUser(normalizeUser(backendUser, locallyStoredUser))
       } catch {
         localStorage.removeItem(AUTH_TOKEN_KEY)
         localStorage.removeItem(USER_STORAGE_KEY)

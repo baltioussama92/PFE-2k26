@@ -32,6 +32,7 @@ public class UserDto {
     Instant createdAt;
     Boolean isVerified;
     Boolean banned;
+    String avatar;
     Boolean emailVerified;
     Boolean phoneVerified;
     String identityStatus;

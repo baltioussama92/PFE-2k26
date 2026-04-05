@@ -30,6 +30,9 @@ public class UserServiceImpl implements UserService {
     public UserDto updateMe(String email, UpdateUserProfileRequest request) {
         User user = findByEmail(email);
         user.setName(request.getFullName());
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar());
+        }
         User updated = userRepository.save(user);
         return toDto(updated);
     }
@@ -64,6 +67,7 @@ public class UserServiceImpl implements UserService {
                 .createdAt(user.getCreatedAt())
                 .isVerified(user.getIsVerified())
                 .banned(user.getBanned())
+                .avatar(user.getAvatar())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .identityStatus(user.getIdentityStatus())

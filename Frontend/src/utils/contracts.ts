@@ -195,6 +195,7 @@ export interface ConnectionRequestResponse {
 // ── Admin ────────────────────────────────────────────────────
 export interface UpdateUserProfileRequest {
   fullName: string
+  avatar?: string
 }
 
 // ── API error shape ──────────────────────────────────────────
