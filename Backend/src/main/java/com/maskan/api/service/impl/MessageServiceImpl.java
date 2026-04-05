@@ -4,9 +4,12 @@ import com.maskan.api.dto.MessageRequest;
 import com.maskan.api.dto.MessageResponse;
 import com.maskan.api.dto.ConversationSummaryResponse;
 import com.maskan.api.entity.Message;
+import com.maskan.api.entity.Property;
 import com.maskan.api.entity.User;
 import com.maskan.api.exception.NotFoundException;
+import com.maskan.api.repository.BookingRepository;
 import com.maskan.api.repository.MessageRepository;
+import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.ConnectionService;
 import com.maskan.api.service.MessageService;
@@ -17,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,8 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ConnectionService connectionService;
+    private final BookingRepository bookingRepository;
+    private final PropertyRepository propertyRepository;
 
     @Override
     public MessageResponse send(MessageRequest request, String email) {
@@ -33,7 +39,7 @@ public class MessageServiceImpl implements MessageService {
         User receiver = userRepository.findById(request.getReceiverId())
                 .orElseThrow(() -> new NotFoundException("Receiver not found"));
 
-        if (!connectionService.areUsersConnected(sender.getId(), receiver.getId())) {
+        if (!canUsersMessage(sender.getId(), receiver.getId())) {
             throw new IllegalArgumentException("Connection request must be accepted before messaging");
         }
 
@@ -69,7 +75,7 @@ public class MessageServiceImpl implements MessageService {
     @Transactional(readOnly = true)
     public List<MessageResponse> conversation(String email, String otherUserId) {
         User user = getUserByEmail(email);
-        if (!connectionService.areUsersConnected(user.getId(), otherUserId)) {
+        if (!canUsersMessage(user.getId(), otherUserId)) {
             throw new IllegalArgumentException("Connection request must be accepted before opening conversation");
         }
         return messageRepository
@@ -99,6 +105,11 @@ public class MessageServiceImpl implements MessageService {
 
             summaries.put(otherUserId, ConversationSummaryResponse.builder()
                     .userId(otherUserId)
+                    .userName(userRepository.findById(otherUserId)
+                        .map(User::getName)
+                        .filter(name -> name != null && !name.isBlank())
+                        .orElse("Utilisateur"))
+                    .lastMessageSenderId(message.getSenderId())
                     .lastMessage(message.getContent())
                     .lastMessageAt(message.getCreatedAt())
                     .build());
@@ -120,6 +131,25 @@ public class MessageServiceImpl implements MessageService {
     private User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    private boolean canUsersMessage(String firstUserId, String secondUserId) {
+        return connectionService.areUsersConnected(firstUserId, secondUserId)
+                || haveBookingRelationship(firstUserId, secondUserId)
+                || haveBookingRelationship(secondUserId, firstUserId);
+    }
+
+    private boolean haveBookingRelationship(String hostId, String guestId) {
+        List<String> hostPropertyIds = propertyRepository.findByHostId(hostId).stream()
+                .map(Property::getId)
+                .collect(Collectors.toList());
+
+        if (hostPropertyIds.isEmpty()) {
+            return false;
+        }
+
+        return bookingRepository.findByListingIdIn(hostPropertyIds).stream()
+                .anyMatch(booking -> guestId.equals(booking.getGuestId()));
     }
 }
 

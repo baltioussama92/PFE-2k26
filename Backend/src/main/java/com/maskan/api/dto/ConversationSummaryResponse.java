@@ -9,6 +9,8 @@ import java.time.Instant;
 @Builder
 public class ConversationSummaryResponse {
     String userId;
+    String userName;
+    String lastMessageSenderId;
     String lastMessage;
     Instant lastMessageAt;
 }
