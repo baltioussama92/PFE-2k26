@@ -6,6 +6,7 @@ import {
   ChevronDown, LogOut, Settings, User, Building2, Menu, X,
   Plus, CalendarCheck,
 } from 'lucide-react'
+import { messageService } from '../services/messageService'
 
 // -- Nav Link definitions -------------------------------------
 const DEFAULT_NAV_LINKS = [
@@ -55,7 +56,10 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
   const [scrolled,       setScrolled]       = useState(false)
   const [dropdownOpen,   setDropdownOpen]   = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(false)
+  const [unreadItems, setUnreadItems] = useState([])
   const dropdownRef = useRef(null)
+  const notificationRef = useRef(null)
   const location    = useLocation()
 
   const isAdmin = user?.role === 'ADMIN'
@@ -75,6 +79,8 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target))
         setDropdownOpen(false)
+      if (notificationRef.current && !notificationRef.current.contains(e.target))
+        setNotificationOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -85,6 +91,72 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
 
   const isActive = (to) =>
     to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
+
+  const formatRelativeTime = (value) => {
+    if (!value) return ''
+    const now = Date.now()
+    const then = new Date(value).getTime()
+    const diffMinutes = Math.max(1, Math.round((now - then) / 60000))
+    if (diffMinutes < 60) return `il y a ${diffMinutes} min`
+    const diffHours = Math.round(diffMinutes / 60)
+    if (diffHours < 24) return `il y a ${diffHours} h`
+    const diffDays = Math.round(diffHours / 24)
+    return `il y a ${diffDays} j`
+  }
+
+  useEffect(() => {
+    if (!user?.id) {
+      setUnreadItems([])
+      return
+    }
+
+    let active = true
+
+    const refreshUnread = async () => {
+      try {
+        const conversations = await messageService.conversations()
+        if (!active) return
+
+        const seenStorageKey = `messages_seen_${String(user.id)}`
+        let seenByConversation = {}
+        try {
+          const raw = localStorage.getItem(seenStorageKey)
+          seenByConversation = raw ? JSON.parse(raw) : {}
+        } catch {
+          seenByConversation = {}
+        }
+
+        const unread = conversations.filter((conversation) => {
+          const lastAt = conversation.lastMessageAt
+          const lastSenderId = String(conversation.lastMessageSenderId || '')
+          const isIncoming = lastSenderId && lastSenderId !== String(user.id)
+          if (!isIncoming || !lastAt) return false
+          const seenAt = seenByConversation[String(conversation.userId)]
+          return !seenAt || new Date(lastAt).getTime() > new Date(seenAt).getTime()
+        }).map((conversation) => ({
+          id: String(conversation.userId),
+          name: conversation.userName || 'Utilisateur',
+          message: conversation.lastMessage || 'Nouveau message',
+          at: conversation.lastMessageAt,
+        }))
+
+        setUnreadItems(unread)
+      } catch {
+        if (active) setUnreadItems([])
+      }
+    }
+
+    refreshUnread()
+    const timer = window.setInterval(refreshUnread, 8000)
+    const onStorage = () => refreshUnread().catch(() => {})
+    window.addEventListener('storage', onStorage)
+
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener('storage', onStorage)
+    }
+  }, [user?.id, location.pathname])
 
   return (
     <>
@@ -147,15 +219,75 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
 
             {/* Notification bell (shown only if logged in) */}
             {user && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.93 }}
-                className="relative p-2 rounded-xl text-primary-500 hover:text-primary-600 hover:bg-primary-50
+              <div ref={notificationRef} className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.93 }}
+                  onClick={() => setNotificationOpen((v) => !v)}
+                  className="relative p-2 rounded-xl text-primary-500 hover:text-primary-600 hover:bg-primary-50
                            transition-colors duration-150"
-              >
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary-400 rounded-full ring-2 ring-primary-100" />
-              </motion.button>
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadItems.length > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-primary-100" />
+                  )}
+                </motion.button>
+
+                <AnimatePresence>
+                  {notificationOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ duration: 0.16, ease: 'easeOut' }}
+                      className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-primary-200/60
+                                 bg-primary-50/95 backdrop-blur-xl shadow-glass-lg overflow-hidden"
+                    >
+                      <div className="px-4 py-3 border-b border-primary-200/60 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-primary-900">Notifications</p>
+                        {unreadItems.length > 0 && (
+                          <span className="text-xs font-semibold text-red-600">{unreadItems.length} nouveau{unreadItems.length > 1 ? 'x' : ''}</span>
+                        )}
+                      </div>
+
+                      {unreadItems.length === 0 ? (
+                        <div className="px-4 py-6 text-sm text-primary-500 text-center">
+                          Aucune nouvelle notification.
+                        </div>
+                      ) : (
+                        <div className="max-h-80 overflow-y-auto">
+                          {unreadItems.slice(0, 8).map((item) => (
+                            <Link
+                              key={item.id}
+                              to="/messages"
+                              onClick={() => setNotificationOpen(false)}
+                              className="block px-4 py-3 border-b border-primary-100/70 hover:bg-primary-100/60 transition-colors"
+                            >
+                              <div className="flex items-start gap-3">
+                                <span className="mt-1 w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-primary-900 truncate">{item.name}</p>
+                                  <p className="text-xs text-primary-700 truncate">{item.message}</p>
+                                  <p className="text-[11px] text-primary-500 mt-1">{formatRelativeTime(item.at)}</p>
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+
+                      <Link
+                        to="/messages"
+                        onClick={() => setNotificationOpen(false)}
+                        className="block px-4 py-2.5 text-xs font-semibold text-primary-600 text-center hover:bg-primary-100/60"
+                      >
+                        Voir tous les messages
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             )}
 
             {/* Become a host (shown only for tenants) / My Properties (shown for hosts) */}
