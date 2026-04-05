@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { MessageSquare, Send, Search, Loader2, UserPlus, CheckCircle2 } from 'lucide-react'
+import { MessageSquare, Send, Search, Loader2, UserPlus, CheckCircle2, MoreVertical } from 'lucide-react'
 import { messageService } from '../services/messageService'
 import { userService } from '../services/userService'
 import { connectionService } from '../services/connectionService'
+import { bookingService } from '../services/bookingService'
 import { useNotifications } from '../context/NotificationContext'
 
 const formatTime = (value) => {
@@ -14,6 +15,7 @@ const formatTime = (value) => {
 export default function MessagesPage({ user }) {
   const location = useLocation()
   const { notify } = useNotifications()
+  const messagesEndRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [userSearch, setUserSearch] = useState('')
@@ -24,13 +26,41 @@ export default function MessagesPage({ user }) {
   const [activeContactId, setActiveContactId] = useState(null)
   const [messages, setMessages] = useState([])
   const [conversations, setConversations] = useState([])
+  const [bookingContacts, setBookingContacts] = useState([])
+  const [seenByConversation, setSeenByConversation] = useState({})
+
+  const currentUserId = String(user?.id || '')
+  const seenStorageKey = `messages_seen_${currentUserId}`
+
+  const markConversationSeen = (conversationId, seenAt) => {
+    if (!conversationId || !seenAt) return
+    const key = String(conversationId)
+    setSeenByConversation((prev) => {
+      const previousSeenAt = prev[key]
+      if (previousSeenAt && new Date(previousSeenAt).getTime() >= new Date(seenAt).getTime()) {
+        return prev
+      }
+      const next = { ...prev, [key]: seenAt }
+      localStorage.setItem(seenStorageKey, JSON.stringify(next))
+      return next
+    })
+  }
 
   // Handle navigation from bookings page
   useEffect(() => {
     if (location.state?.recipientId) {
       setActiveContactId(String(location.state.recipientId))
+      if (location.state?.recipientName) {
+        setBookingContacts((prev) => {
+          const id = String(location.state.recipientId)
+          if (prev.some((contact) => String(contact.id) === id)) {
+            return prev
+          }
+          return [{ id, name: location.state.recipientName }, ...prev]
+        })
+      }
     }
-  }, [location.state?.recipientId])
+  }, [location.state?.recipientId, location.state?.recipientName])
 
   const connectedIds = useMemo(() => {
     const currentUserId = String(user?.id)
@@ -62,11 +92,46 @@ export default function MessagesPage({ user }) {
     }
   }
 
+  const loadBookingContacts = async () => {
+    // Hosts can directly contact guests who booked their properties.
+    if (user?.role !== 'PROPRIETOR' && user?.role !== 'ADMIN') {
+      setBookingContacts([])
+      return
+    }
+
+    const ownerBookings = await bookingService.getOwnerBookings()
+    const guests = new Map()
+
+    ownerBookings.forEach((booking) => {
+      const guestId = booking?.guestId
+      if (!guestId) return
+      const key = String(guestId)
+      if (!guests.has(key)) {
+        guests.set(key, {
+          id: key,
+          name: booking?.guestName || 'Locataire',
+        })
+      }
+    })
+
+    setBookingContacts(Array.from(guests.values()))
+  }
+
   const loadActiveConversation = async (contactId) => {
     if (!contactId) {
       setMessages([])
       return
     }
+
+    const key = String(contactId)
+    const isBookingContact = bookingContacts.some((contact) => String(contact.id) === key)
+    const hasThread = conversations.some((conversation) => String(conversation.userId) === key)
+
+    if (isBookingContact && !hasThread) {
+      setMessages([])
+      return
+    }
+
     const data = await messageService.conversation(contactId)
     setMessages(data)
   }
@@ -81,6 +146,7 @@ export default function MessagesPage({ user }) {
         await Promise.all([
           loadConnections(),
           loadConversations(),
+          loadBookingContacts(),
         ])
         if (!active) return
       } catch {
@@ -115,6 +181,10 @@ export default function MessagesPage({ user }) {
   }, [activeContactId, user])
 
   useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, activeContactId])
+
+  useEffect(() => {
     if (!user || !userSearch.trim()) {
       setUserResults([])
       return
@@ -132,19 +202,79 @@ export default function MessagesPage({ user }) {
     return () => window.clearTimeout(timer)
   }, [userSearch, user])
 
+  useEffect(() => {
+    if (!currentUserId) return
+    try {
+      const raw = localStorage.getItem(seenStorageKey)
+      setSeenByConversation(raw ? JSON.parse(raw) : {})
+    } catch {
+      setSeenByConversation({})
+    }
+  }, [currentUserId, seenStorageKey])
+
+  useEffect(() => {
+    if (!activeContactId) return
+    const activeConversation = conversations.find((conversation) => String(conversation.userId) === String(activeContactId))
+    if (activeConversation?.lastMessageAt) {
+      markConversationSeen(activeContactId, activeConversation.lastMessageAt)
+    }
+  }, [activeContactId, conversations])
+
   if (!user) return <Navigate to="/" replace />
 
-  const contacts = useMemo(() => conversations.map((conversation) => ({
-    id: String(conversation.userId),
-    name: `Utilisateur #${conversation.userId}`,
-    lastMessage: {
-      content: conversation.lastMessage || 'Conversation active',
-      createdAt: conversation.lastMessageAt,
-      senderId: conversation.userId,
-    },
-  })), [conversations])
+  const bookingNameById = useMemo(() => {
+    const map = new Map()
+    bookingContacts.forEach((contact) => {
+      map.set(String(contact.id), contact.name)
+    })
+    return map
+  }, [bookingContacts])
+
+  const contacts = useMemo(() => {
+    const fromConversations = conversations.map((conversation) => ({
+      id: String(conversation.userId),
+      name: conversation.userName || bookingNameById.get(String(conversation.userId)) || 'Utilisateur',
+      lastMessage: {
+        content: conversation.lastMessage || 'Conversation active',
+        createdAt: conversation.lastMessageAt,
+        senderId: conversation.lastMessageSenderId || conversation.userId,
+      },
+    }))
+
+    const merged = new Map(fromConversations.map((contact) => [String(contact.id), contact]))
+
+    bookingContacts.forEach((bookingContact) => {
+      const key = String(bookingContact.id)
+      if (merged.has(key)) return
+      merged.set(key, {
+        id: key,
+        name: bookingContact.name || 'Locataire',
+        lastMessage: {
+          content: 'Réservation active',
+          createdAt: undefined,
+          senderId: key,
+        },
+      })
+    })
+
+    return Array.from(merged.values())
+  }, [conversations, bookingContacts, bookingNameById])
 
   const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(search.toLowerCase()))
+  const activeContact = contacts.find((contact) => String(contact.id) === String(activeContactId)) || null
+  const bookingContactIds = useMemo(() => new Set(bookingContacts.map((contact) => String(contact.id))), [bookingContacts])
+
+  const formatRelativeTime = (value) => {
+    if (!value) return ''
+    const now = Date.now()
+    const then = new Date(value).getTime()
+    const diffMinutes = Math.max(1, Math.round((now - then) / 60000))
+    if (diffMinutes < 60) return `il y a ${diffMinutes} min`
+    const diffHours = Math.round(diffMinutes / 60)
+    if (diffHours < 24) return `il y a ${diffHours} h`
+    const diffDays = Math.round(diffHours / 24)
+    return `il y a ${diffDays} j`
+  }
 
   const handleSend = async (event) => {
     event.preventDefault()
@@ -184,150 +314,222 @@ export default function MessagesPage({ user }) {
     }
   }
 
+  const canMessageActiveContact = Boolean(
+    activeContactId && (connectedIds.has(String(activeContactId)) || bookingContactIds.has(String(activeContactId)))
+  )
+
   return (
-    <section className="min-h-screen pt-24 pb-16 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <MessageSquare className="w-5 h-5 text-primary-500" />
-              <h1 className="text-lg font-extrabold text-primary-900">Messages</h1>
-            </div>
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Rechercher..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-primary-200 bg-primary-100 text-sm text-primary-900 outline-none"
-              />
-            </div>
-
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
-              <input
-                value={userSearch}
-                onChange={(event) => setUserSearch(event.target.value)}
-                placeholder="Chercher un utilisateur (nom/email)..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-primary-200 bg-white text-sm text-primary-900 outline-none"
-              />
-            </div>
-
-            {userResults.length > 0 && (
-              <div className="mb-3 space-y-2">
-                {userResults.slice(0, 5).map((entry) => (
-                  <div key={entry.id} className="p-2 rounded-xl bg-white border border-primary-100 flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-semibold text-primary-900">{entry.fullName || entry.name || `Utilisateur #${entry.id}`}</p>
-                      <p className="text-[11px] text-primary-500">{entry.email}</p>
-                    </div>
-                    <button
-                      onClick={() => handleAddConnection(entry.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      Add Friend
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {pendingRequests.length > 0 && (
-              <div className="mb-3 space-y-2">
-                {pendingRequests.map((entry) => (
-                  <div key={entry.id} className="p-2 rounded-xl bg-white border border-primary-100 flex items-center justify-between gap-2">
-                    <p className="text-xs text-primary-700">Nouvelle demande de contact: #{entry.requesterId}</p>
-                    <button
-                      onClick={() => handleAcceptConnection(entry.id)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-primary-500 text-white hover:bg-primary-600"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Accept
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-primary-400" />
-              </div>
-            ) : filteredContacts.length === 0 ? (
-              <p className="text-sm text-primary-500 py-6 text-center">Aucune conversation</p>
-            ) : (
-              <div className="space-y-2 max-h-[420px] overflow-y-auto">
-                {filteredContacts.map((contact) => (
+    <section className="min-h-screen pt-24 pb-12 px-3 sm:px-6 bg-gradient-to-b from-primary-50/70 to-primary-100/50">
+      <div className="max-w-7xl mx-auto">
+        <div className="rounded-3xl border border-primary-200/80 bg-white/85 backdrop-blur-sm shadow-[0_20px_50px_rgba(74,56,46,0.10)] overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] min-h-[74vh]">
+            <aside className="border-r border-primary-200/80 bg-primary-50/70">
+              <div className="p-4 border-b border-primary-200/80">
+                <div className="flex items-center justify-between mb-3">
+                  <h1 className="text-2xl font-extrabold text-primary-900">Messages</h1>
                   <button
-                    key={contact.id}
-                    onClick={() => setActiveContactId(contact.id)}
-                    className={`w-full text-left p-3 rounded-xl border transition ${
-                      String(activeContactId) === String(contact.id)
-                        ? 'bg-primary-100 border-primary-300'
-                        : 'bg-white border-primary-100 hover:bg-primary-100/60'
-                    }`}
+                    type="button"
+                    className="p-2 rounded-xl text-primary-500 hover:bg-primary-100 transition"
+                    aria-label="Options"
                   >
-                    <p className="text-sm font-semibold text-primary-900">{contact.name}</p>
-                    <p className="text-xs text-primary-500 truncate">
-                      {contact.lastMessage.content}
-                    </p>
-                    <p className="text-[10px] text-primary-400 mt-1">{formatTime(contact.lastMessage.createdAt)}</p>
+                    <MoreVertical className="w-4 h-4" />
                   </button>
-                ))}
+                </div>
+
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Rechercher..."
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-primary-200 bg-primary-100/80 text-sm text-primary-900 outline-none focus:ring-2 focus:ring-primary-200"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
+                  <input
+                    value={userSearch}
+                    onChange={(event) => setUserSearch(event.target.value)}
+                    placeholder="Chercher un utilisateur (nom/email)..."
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-primary-200 bg-white text-sm text-primary-900 outline-none focus:ring-2 focus:ring-primary-200"
+                  />
+                </div>
               </div>
-            )}
-          </div>
 
-          <div className="lg:col-span-2 bg-white border border-primary-200 rounded-2xl flex flex-col min-h-[520px]">
-            <div className="px-4 py-3 border-b border-primary-200">
-              <p className="text-sm font-bold text-primary-900">
-                {activeContactId ? `Conversation avec Utilisateur #${activeContactId}` : 'Sélectionnez une conversation'}
-              </p>
-              {activeContactId && !connectedIds.has(String(activeContactId)) && (
-                <p className="text-xs text-amber-700 mt-1">
-                  En attente de connexion acceptée pour démarrer la conversation.
-                </p>
-              )}
-            </div>
-
-            <div className="flex-1 p-4 space-y-2 overflow-y-auto">
-              {!activeContactId ? (
-                <p className="text-sm text-primary-500">Choisissez une conversation à gauche.</p>
-              ) : messages.length === 0 ? (
-                <p className="text-sm text-primary-500">Aucun message pour cette conversation.</p>
-              ) : (
-                messages.map((message) => {
-                  const currentUserId = String(user?.id)
-                  const mine = String(message.senderId) === currentUserId
-                  return (
-                    <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${mine ? 'bg-primary-500 text-white' : 'bg-primary-100 text-primary-900'}`}>
-                        <p>{message.content}</p>
-                        <p className={`text-[10px] mt-1 ${mine ? 'text-primary-100' : 'text-primary-500'}`}>{formatTime(message.createdAt)}</p>
+              <div className="p-3 space-y-2 max-h-[58vh] overflow-y-auto">
+                {userResults.length > 0 && (
+                  <div className="space-y-2 pb-2 border-b border-primary-200/80">
+                    {userResults.slice(0, 5).map((entry) => (
+                      <div key={entry.id} className="p-2.5 rounded-xl bg-white border border-primary-100 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-primary-900 truncate">{entry.fullName || entry.name || 'Utilisateur'}</p>
+                          <p className="text-[11px] text-primary-500 truncate">{entry.email}</p>
+                        </div>
+                        <button
+                          onClick={() => handleAddConnection(entry.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border border-primary-200 text-primary-700 hover:bg-primary-50"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          Ajouter
+                        </button>
                       </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
 
-            <form onSubmit={handleSend} className="p-3 border-t border-primary-200 flex gap-2">
-              <input
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                placeholder={activeContactId ? 'Écrire un message...' : 'Sélectionnez une conversation'}
-                disabled={!activeContactId || !connectedIds.has(String(activeContactId))}
-                className="flex-1 px-3 py-2 rounded-xl border border-primary-200 bg-primary-50 text-sm outline-none disabled:opacity-60"
-              />
-              <button
-                type="submit"
-                disabled={!activeContactId || !draft.trim() || !connectedIds.has(String(activeContactId))}
-                className="px-4 py-2 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-60 inline-flex items-center gap-1"
-              >
-                <Send className="w-4 h-4" /> Envoyer
-              </button>
-            </form>
+                {pendingRequests.length > 0 && (
+                  <div className="space-y-2 pb-2 border-b border-primary-200/80">
+                    {pendingRequests.map((entry) => (
+                      <div key={entry.id} className="p-2.5 rounded-xl bg-white border border-primary-100 flex items-center justify-between gap-2">
+                        <p className="text-xs text-primary-700">Demande de contact</p>
+                        <button
+                          onClick={() => handleAcceptConnection(entry.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg bg-primary-500 text-white hover:bg-primary-600"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Accepter
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {loading ? (
+                  <div className="flex justify-center py-10">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary-400" />
+                  </div>
+                ) : filteredContacts.length === 0 ? (
+                  <p className="text-sm text-primary-500 py-8 text-center">Aucune conversation</p>
+                ) : (
+                  filteredContacts.map((contact) => (
+                    (() => {
+                      const lastMessageAt = contact.lastMessage?.createdAt
+                      const lastSenderId = String(contact.lastMessage?.senderId || '')
+                      const seenAt = seenByConversation[String(contact.id)]
+                      const isIncoming = lastSenderId && lastSenderId !== currentUserId
+                      const isNewerThanSeen = lastMessageAt && (!seenAt || new Date(lastMessageAt).getTime() > new Date(seenAt).getTime())
+                      const isUnread = Boolean(isIncoming && isNewerThanSeen && String(activeContactId) !== String(contact.id))
+
+                      return (
+                    <button
+                      key={contact.id}
+                      onClick={() => setActiveContactId(contact.id)}
+                      className={`w-full text-left p-3 rounded-2xl border transition ${
+                        String(activeContactId) === String(contact.id)
+                          ? 'bg-white border-primary-300 shadow-sm'
+                          : 'bg-primary-50/60 border-transparent hover:bg-white hover:border-primary-200'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary-200 text-primary-800 font-bold text-sm flex items-center justify-center shrink-0">
+                          {contact.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-bold text-primary-900 truncate">{contact.name}</p>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {isUnread && <span className="w-2.5 h-2.5 rounded-full bg-red-500" aria-label="Nouveau message" />}
+                              <span className="text-[11px] text-primary-400">{formatRelativeTime(contact.lastMessage.createdAt)}</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-primary-600 truncate mt-0.5">{contact.lastMessage.content}</p>
+                        </div>
+                      </div>
+                    </button>
+                      )
+                    })()
+                  ))
+                )}
+              </div>
+            </aside>
+
+            <section className="flex flex-col bg-white">
+              <header className="px-5 py-4 border-b border-primary-200/80 flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-full bg-primary-200 text-primary-900 font-bold text-base flex items-center justify-center shrink-0">
+                    {activeContact?.name?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xl font-bold text-primary-900 truncate">
+                      {activeContact ? activeContact.name : 'Sélectionnez une conversation'}
+                    </p>
+                    <p className="text-xs text-primary-500 truncate">
+                      {activeContactId
+                        ? (connectedIds.has(String(activeContactId))
+                          ? 'Connexion active'
+                          : (bookingContactIds.has(String(activeContactId))
+                            ? 'Client ayant reserve chez vous'
+                            : 'En attente d\'acceptation de connexion'))
+                        : 'Choisissez un contact à gauche pour démarrer'}
+                    </p>
+                  </div>
+                </div>
+                <button type="button" className="p-2 rounded-xl text-primary-500 hover:bg-primary-50 transition" aria-label="Options">
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </header>
+
+              <div className="flex-1 px-4 md:px-6 py-4 overflow-y-auto bg-gradient-to-b from-white to-primary-50/25">
+                {!activeContactId ? (
+                  <div className="h-full flex items-center justify-center text-center">
+                    <div>
+                      <MessageSquare className="w-12 h-12 text-primary-300 mx-auto mb-3" />
+                      <p className="text-primary-700 font-semibold">Sélectionnez une conversation</p>
+                      <p className="text-sm text-primary-500 mt-1">Choisissez une conversation à gauche.</p>
+                    </div>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-center">
+                    <div>
+                      <p className="text-primary-700 font-semibold">Aucun message pour cette conversation</p>
+                      <p className="text-sm text-primary-500 mt-1">Envoyez le premier message ci-dessous.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((message) => {
+                      const currentUserId = String(user?.id)
+                      const mine = String(message.senderId) === currentUserId
+                      return (
+                        <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[85%] md:max-w-[72%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                            mine
+                              ? 'bg-primary-500 text-white rounded-br-md'
+                              : 'bg-primary-100 text-primary-900 border border-primary-200 rounded-bl-md'
+                          }`}>
+                            <p className="leading-relaxed">{message.content}</p>
+                            <p className={`text-[11px] mt-1.5 ${mine ? 'text-primary-100' : 'text-primary-500'}`}>
+                              {formatTime(message.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={handleSend} className="p-3 md:p-4 border-t border-primary-200/80 bg-white">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder={activeContactId ? 'Écrire un message...' : 'Sélectionnez une conversation'}
+                    disabled={!activeContactId || !canMessageActiveContact}
+                    className="flex-1 px-4 py-3 rounded-xl border border-primary-200 bg-primary-50 text-sm text-primary-900 outline-none focus:ring-2 focus:ring-primary-200 disabled:opacity-60"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!activeContactId || !draft.trim() || !canMessageActiveContact}
+                    className="px-4 md:px-5 py-3 rounded-xl bg-primary-500 text-white text-sm font-semibold disabled:opacity-60 inline-flex items-center gap-1.5 hover:bg-primary-600 transition"
+                  >
+                    <Send className="w-4 h-4" /> Envoyer
+                  </button>
+                </div>
+              </form>
+            </section>
           </div>
         </div>
       </div>

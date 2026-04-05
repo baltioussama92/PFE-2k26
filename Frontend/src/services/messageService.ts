@@ -5,6 +5,8 @@ import { DEMO_MODE } from '../data/demo'
 
 export interface ConversationSummary {
   userId: string
+  userName?: string
+  lastMessageSenderId?: string
   lastMessage?: string
   lastMessageAt?: string
 }
