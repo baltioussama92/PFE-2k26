@@ -1,6 +1,6 @@
 # PFE-2k26 Implementation Status (Frontend + Backend)
 
-Last updated: 2026-04-07
+Last updated: 2026-04-08
 
 This file summarizes:
 - Frontend pages that are done
@@ -28,7 +28,7 @@ Note: status is based on code scan (routes, controllers, services), not full run
 | Host | My Properties (`/my-properties`) | Done | Working | `/api/listings/owner/me` |
 | Host | Host Bookings (`/host-bookings`) | Done | Working | `/api/bookings/owner` |
 | Guest Verification | Guest Verification (`/guest-verification`) | Done | Working | `/api/verifications/guest/*` |
-| Host Verification | Host Verification (`/host-verification`) | Partial | Not Ready (real backend flow missing) | Submit currently simulated in frontend |
+| Host Verification | Host Verification (`/host-verification`) | Partial | Backend Ready (frontend still simulated) | Backend endpoints exist; frontend submit still simulated |
 | Admin | Admin Dashboard (`/admin/dashboard`) | Done | Working | Uses admin summary/bookings/users data |
 | Admin | Users (`/admin/users`) | Done | Working | `/api/admin/users`, block/ban |
 | Admin | User Details (`/admin/users/:userId`) | Done | Working | Overview/history/chats/listings/bookings/earnings/security |
@@ -38,7 +38,7 @@ Note: status is based on code scan (routes, controllers, services), not full run
 | Admin | Payments (`/admin/payments`) | Partial | No dedicated payments API | Derived from bookings data |
 | Admin | Reports (`/admin/reports`) | Partial | No dedicated reports API | Built from pending listings + fallback data |
 | Admin | Settings (`/admin/settings`) | Partial | Not backend-persisted | Saved in localStorage only |
-| Admin | Host Demands (`/admin/host-demands`) | Partial | Not Ready (backend endpoints missing) | Currently mock/fallback in `adminApi` |
+| Admin | Host Demands (`/admin/host-demands`) | Partial | Backend Ready | Frontend may still contain mock/fallback logic in `adminApi` |
 
 ## 2) Backend API Status
 
@@ -109,6 +109,10 @@ Note: status is based on code scan (routes, controllers, services), not full run
 - `POST /api/verifications/guest/phone/verify-otp`
 - `POST /api/verifications/guest/identity`
 
+### Host Verification
+- `POST /api/verifications/host`
+- `GET /api/verifications/me?type=HOST`
+
 ### Admin
 - `GET /api/admin/users`
 - `PUT /api/admin/users/{id}/ban`
@@ -130,21 +134,12 @@ Note: status is based on code scan (routes, controllers, services), not full run
 - `GET /api/admin/users/{userId}/permissions`
 - `PATCH /api/admin/guest-verifications/{userId}/approve`
 - `PATCH /api/admin/guest-verifications/{userId}/reject`
-
-## Not Ready / Missing Backend APIs
-
-### Host Demands (required by Admin Host Demands page)
 - `GET /api/admin/host-demands`
 - `GET /api/admin/host-demands/{demandId}`
 - `PUT /api/admin/host-demands/{demandId}/approve`
 - `PUT /api/admin/host-demands/{demandId}/reject`
 
-### Host Verification user flow (required by Host Verification page)
-No implemented host verification endpoints were found in backend controllers.
-Suggested:
-- `POST /api/verifications/host` (multipart)
-- `GET /api/verifications/me?type=HOST`
-- optional admin review endpoints for host verification if separated from host-demands flow
+## Not Ready / Missing Backend APIs
 
 ### Optional but currently absent dedicated APIs
 - Dedicated admin payments endpoint (if you do not want payments derived from bookings)
@@ -153,19 +148,17 @@ Suggested:
 
 ## 3) What You Need To Build Next
 
-1. Implement Host Demands backend endpoints and persistence model.
-2. Replace Host Demands frontend mock/fallback calls with real API calls.
-3. Implement Host Verification backend submission endpoint (multipart docs + property images).
-4. Replace Host Verification page simulated submit with real API integration.
-5. Decide if Admin Payments should stay derived from bookings or become a dedicated payments module.
-6. Decide if Admin Reports should stay synthesized or become a dedicated reports module.
-7. Add backend settings API if admin settings must persist for all admins/users.
-8. Run end-to-end API tests (Postman) for all ready endpoints and add regression tests for new endpoints.
+1. Replace Host Demands frontend mock/fallback calls with real API calls if still used.
+2. Replace Host Verification page simulated submit with real API integration to `/api/verifications/host`.
+3. Decide if Admin Payments should stay derived from bookings or become a dedicated payments module.
+4. Decide if Admin Reports should stay synthesized or become a dedicated reports module.
+5. Add backend settings API if admin settings must persist for all admins/users.
+6. Run end-to-end API tests (Postman) for all ready endpoints and add regression tests for new endpoints.
 
 ## 4) Quick Readiness Summary
 
 - Core rental platform (auth, listings, bookings, messages, wishlist, dashboard): READY.
 - Guest verification flow: READY.
 - Admin user management and user details tabs: READY.
-- Host demands workflow: FRONTEND UI READY, BACKEND NOT READY.
-- Host verification submission workflow: UI PARTIAL, BACKEND NOT READY.
+- Host demands workflow: BACKEND READY, FRONTEND INTEGRATION TO VERIFY.
+- Host verification submission workflow: BACKEND READY, FRONTEND STILL SIMULATED.

@@ -787,6 +787,9 @@ public class AdminServiceImpl implements AdminService {
     private HostDemandResponse toHostDemandResponse(User user) {
         List<String> governmentIds = user.getGovernmentIdFiles() == null ? List.of() : user.getGovernmentIdFiles();
         List<String> attachments = user.getOtherAttachmentFiles() == null ? List.of() : user.getOtherAttachmentFiles();
+        List<String> housePictures = attachments.stream()
+                .filter(path -> path != null && path.contains("property-image-"))
+                .toList();
         List<String> documents = new ArrayList<>(governmentIds);
         documents.addAll(attachments);
         if (user.getSelfieFile() != null && !user.getSelfieFile().isBlank()) {
@@ -812,7 +815,7 @@ public class AdminServiceImpl implements AdminService {
                 .documents(documents)
                 .idDocument(idDocument)
                 .idVerificationStatus(resolveIdVerificationStatus(user))
-                .housePictures(List.of())
+                .housePictures(housePictures)
                 .proposedPrice(0)
                 .proposedLocation("N/A")
                 .bio(null)
