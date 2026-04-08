@@ -29,6 +29,28 @@ const axiosInstance = axios.create({
   },
 })
 
+function resolveApiErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== 'object') {
+    return fallback
+  }
+
+  const typedPayload = payload as { message?: unknown; errors?: unknown }
+
+  if (typeof typedPayload.message === 'string' && typedPayload.message.trim()) {
+    return typedPayload.message
+  }
+
+  if (typedPayload.errors && typeof typedPayload.errors === 'object') {
+    const firstError = Object.values(typedPayload.errors as Record<string, unknown>)
+      .find((value) => typeof value === 'string' && value.trim())
+    if (typeof firstError === 'string') {
+      return firstError
+    }
+  }
+
+  return fallback
+}
+
 axiosInstance.interceptors.request.use((config) => {
   const token = getStoredAuthToken()
   if (token) {
@@ -41,6 +63,13 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status
+    const payload = error?.response?.data
+    const fallbackMessage = typeof error?.message === 'string' && error.message.trim()
+      ? error.message
+      : 'Request failed'
+
+    error.message = resolveApiErrorMessage(payload, fallbackMessage)
+
     if (status === 401 || status === 403) {
       const message = status === 403
         ? 'Votre compte est bloqué ou l’accès est interdit.'

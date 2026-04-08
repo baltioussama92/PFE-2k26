@@ -128,7 +128,10 @@ export default function HostBookingsPage({ user }) {
       }))
       await loadBookings(true)
     } catch (error) {
-      const apiMessage = error?.response?.data?.message || error?.message
+      const apiMessage =
+        error?.response?.data?.message ||
+        (error?.response?.data?.errors && Object.values(error.response.data.errors)[0]) ||
+        error?.message
       setActionError(apiMessage || 'Action impossible pour cette réservation.')
     } finally {
       setUpdatingId(null)

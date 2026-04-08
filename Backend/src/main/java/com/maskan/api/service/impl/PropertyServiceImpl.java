@@ -161,7 +161,7 @@ public class PropertyServiceImpl implements PropertyService {
         if (checkInDate != null && checkOutDate != null && checkOutDate.isAfter(checkInDate)) {
             Query bookingOverlapQuery = new Query();
             bookingOverlapQuery.addCriteria(new Criteria().andOperator(
-                    Criteria.where("status").in(BookingStatus.PENDING, BookingStatus.CONFIRMED),
+                Criteria.where("status").in(BookingStatus.CONFIRMED),
                     Criteria.where("checkInDate").lt(checkOutDate),
                     Criteria.where("checkOutDate").gt(checkInDate)
             ));

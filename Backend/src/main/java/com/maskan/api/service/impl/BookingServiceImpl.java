@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Comparator;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Collectors;
 
@@ -33,20 +34,27 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingResponse createBooking(BookingRequest request, String email) {
-    if (request.getCheckOutDate().isBefore(request.getCheckInDate())) {
-            throw new IllegalArgumentException("End date must be after start date");
+        if (!request.getCheckOutDate().isAfter(request.getCheckInDate())) {
+            throw new IllegalArgumentException("Check-out date must be after check-in date");
         }
 
-    Property property = propertyRepository.findById(request.getListingId())
+        Property property = propertyRepository.findById(request.getListingId())
                 .orElseThrow(() -> new NotFoundException("Property not found"));
-    User user = getUserByEmail(email);
+        User user = getUserByEmail(email);
+
+        ensureNoConfirmedOverlap(
+            property.getId(),
+            request.getCheckInDate(),
+            request.getCheckOutDate(),
+            null
+        );
 
         Booking booking = Booking.builder()
-        .listingId(property.getId())
-        .guestId(user.getId())
-        .checkInDate(request.getCheckInDate())
-        .checkOutDate(request.getCheckOutDate())
-        .guests(request.getGuests() == null || request.getGuests() < 1 ? 1 : request.getGuests())
+            .listingId(property.getId())
+            .guestId(user.getId())
+            .checkInDate(request.getCheckInDate())
+            .checkOutDate(request.getCheckOutDate())
+            .guests(request.getGuests() == null || request.getGuests() < 1 ? 1 : request.getGuests())
                 .status(BookingStatus.PENDING)
                 .build();
 
@@ -72,6 +80,15 @@ public class BookingServiceImpl implements BookingService {
             if (!current.getId().equals(property.getHostId())) {
                 throw new IllegalArgumentException("Not authorized to update this booking");
             }
+        }
+
+        if (request.getStatus() == BookingStatus.CONFIRMED) {
+            ensureNoConfirmedOverlap(
+                    booking.getListingId(),
+                    booking.getCheckInDate(),
+                    booking.getCheckOutDate(),
+                    booking.getId()
+            );
         }
 
         booking.setStatus(request.getStatus());
@@ -175,5 +192,43 @@ public class BookingServiceImpl implements BookingService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
+
+        private void ensureNoConfirmedOverlap(String listingId,
+                          java.time.LocalDate checkInDate,
+                          java.time.LocalDate checkOutDate,
+                          String excludeBookingId) {
+        List<BookingStatus> blockingStatuses = List.of(BookingStatus.CONFIRMED);
+
+        List<Booking> overlapping = excludeBookingId == null
+            ? bookingRepository.findByListingIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThan(
+                listingId,
+                blockingStatuses,
+                checkOutDate,
+                checkInDate
+            )
+            : bookingRepository.findByListingIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThanAndIdNot(
+                listingId,
+                blockingStatuses,
+                checkOutDate,
+                checkInDate,
+                excludeBookingId
+            );
+
+        if (overlapping.isEmpty()) {
+            return;
+        }
+
+        Booking conflict = overlapping.stream()
+            .min(Comparator.comparing(Booking::getCheckInDate))
+            .orElse(overlapping.get(0));
+
+        throw new IllegalArgumentException(
+            "This property is already reserved from "
+                + conflict.getCheckInDate()
+                + " to "
+                + conflict.getCheckOutDate()
+                + ". Please choose other dates."
+        );
+        }
 }
 
