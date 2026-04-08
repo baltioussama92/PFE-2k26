@@ -13,6 +13,7 @@ import com.maskan.api.dto.AdminUserOverviewResponse;
 import com.maskan.api.dto.AdminUserPermissionsResponse;
 import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.AdminGrowthMetricsResponse;
+import com.maskan.api.dto.HostDemandResponse;
 import com.maskan.api.dto.PropertyResponse;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.service.AdminService;
@@ -151,6 +152,28 @@ public class AdminController {
                                                             @RequestBody(required = false) AdminRejectGuestVerificationRequest request) {
         String reason = request == null ? null : request.getReason();
         return ResponseEntity.ok(adminService.rejectGuestVerification(userId, reason));
+    }
+
+    @GetMapping("/host-demands")
+    public ResponseEntity<List<HostDemandResponse>> hostDemands(@RequestParam(required = false) String status) {
+        return ResponseEntity.ok(adminService.listHostDemands(status));
+    }
+
+    @GetMapping("/host-demands/{demandId}")
+    public ResponseEntity<HostDemandResponse> hostDemandById(@PathVariable String demandId) {
+        return ResponseEntity.ok(adminService.hostDemandById(demandId));
+    }
+
+    @PutMapping("/host-demands/{demandId}/approve")
+    public ResponseEntity<HostDemandResponse> approveHostDemand(@PathVariable String demandId) {
+        return ResponseEntity.ok(adminService.approveHostDemand(demandId));
+    }
+
+    @PutMapping("/host-demands/{demandId}/reject")
+    public ResponseEntity<HostDemandResponse> rejectHostDemand(@PathVariable String demandId,
+                                                                @RequestBody(required = false) AdminRejectGuestVerificationRequest request) {
+        String reason = request == null ? null : request.getReason();
+        return ResponseEntity.ok(adminService.rejectHostDemand(demandId, reason));
     }
 }
 

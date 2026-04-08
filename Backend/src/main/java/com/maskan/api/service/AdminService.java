@@ -12,6 +12,7 @@ import com.maskan.api.dto.AdminUserListingResponse;
 import com.maskan.api.dto.AdminUserMessageResponse;
 import com.maskan.api.dto.AdminUserOverviewResponse;
 import com.maskan.api.dto.AdminUserPermissionsResponse;
+import com.maskan.api.dto.HostDemandResponse;
 import com.maskan.api.dto.PropertyResponse;
 import com.maskan.api.dto.UserDto;
 
@@ -38,5 +39,9 @@ public interface AdminService {
     AdminUserPermissionsResponse userPermissions(String userId);
     UserDto approveGuestVerification(String userId);
     UserDto rejectGuestVerification(String userId, String reason);
+    List<HostDemandResponse> listHostDemands(String status);
+    HostDemandResponse hostDemandById(String demandId);
+    HostDemandResponse approveHostDemand(String demandId);
+    HostDemandResponse rejectHostDemand(String demandId, String reason);
 }
 

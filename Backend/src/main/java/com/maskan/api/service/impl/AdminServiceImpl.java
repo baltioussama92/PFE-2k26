@@ -13,12 +13,14 @@ import com.maskan.api.dto.AdminUserOverviewResponse;
 import com.maskan.api.dto.AdminUserPermissionsResponse;
 import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.AdminGrowthMetricsResponse;
+import com.maskan.api.dto.HostDemandResponse;
 import com.maskan.api.dto.PropertyResponse;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.entity.Booking;
 import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.entity.Message;
 import com.maskan.api.entity.Property;
+import com.maskan.api.entity.Role;
 import com.maskan.api.entity.User;
 import com.maskan.api.repository.BookingRepository;
 import com.maskan.api.repository.PropertyRepository;
@@ -523,6 +525,61 @@ public class AdminServiceImpl implements AdminService {
         return toDto(updated);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<HostDemandResponse> listHostDemands(String status) {
+        String normalizedStatus = status == null ? null : status.trim().toLowerCase();
+
+        return userRepository.findAll().stream()
+                .filter(this::isHostDemandCandidate)
+                .filter(user -> normalizedStatus == null || normalizedStatus.isBlank() || normalizedStatus.equals(resolveHostDemandStatus(user)))
+                .sorted(Comparator.comparing(User::getIdentitySubmittedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(this::toHostDemandResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public HostDemandResponse hostDemandById(String demandId) {
+        User user = getUserById(demandId);
+        if (!isHostDemandCandidate(user)) {
+            throw new NotFoundException("Host demand not found");
+        }
+        return toHostDemandResponse(user);
+    }
+
+    @Override
+    public HostDemandResponse approveHostDemand(String demandId) {
+        User user = getUserById(demandId);
+        if (!isHostDemandCandidate(user)) {
+            throw new NotFoundException("Host demand not found");
+        }
+
+        user.setRole(Role.HOST);
+        user.setIdentityStatus("approved");
+        user.setVerificationLevel(3);
+        user.setIsVerified(Boolean.TRUE);
+        user.setRejectionReason(null);
+
+        User updated = userRepository.save(user);
+        return toHostDemandResponse(updated);
+    }
+
+    @Override
+    public HostDemandResponse rejectHostDemand(String demandId, String reason) {
+        User user = getUserById(demandId);
+        if (!isHostDemandCandidate(user)) {
+            throw new NotFoundException("Host demand not found");
+        }
+
+        user.setIdentityStatus("rejected");
+        user.setVerificationLevel(Boolean.TRUE.equals(user.getPhoneVerified()) ? 2 : Boolean.TRUE.equals(user.getEmailVerified()) ? 1 : 0);
+        user.setRejectionReason((reason == null || reason.isBlank()) ? "Host demand rejected by admin" : reason.trim());
+
+        User updated = userRepository.save(user);
+        return toHostDemandResponse(updated);
+    }
+
     private BookingResponse toBookingResponse(Booking booking) {
         Property listing = propertyRepository.findById(booking.getListingId()).orElse(null);
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -699,6 +756,67 @@ public class AdminServiceImpl implements AdminService {
                 .otherAttachmentFiles(user.getOtherAttachmentFiles())
                 .selfieFile(user.getSelfieFile())
                 .identitySubmittedAt(user.getIdentitySubmittedAt())
+                .build();
+    }
+
+    private boolean isHostDemandCandidate(User user) {
+        boolean hasIdentityDocs = user.getGovernmentIdFiles() != null && !user.getGovernmentIdFiles().isEmpty();
+        boolean hasSelfie = user.getSelfieFile() != null && !user.getSelfieFile().isBlank();
+        boolean hasSubmissionDate = user.getIdentitySubmittedAt() != null;
+        return hasIdentityDocs || hasSelfie || hasSubmissionDate;
+    }
+
+    private String resolveHostDemandStatus(User user) {
+        String identityStatus = user.getIdentityStatus() == null ? "" : user.getIdentityStatus().trim().toLowerCase();
+        return switch (identityStatus) {
+            case "approved" -> "approved";
+            case "rejected" -> "rejected";
+            default -> "pending";
+        };
+    }
+
+    private String resolveIdVerificationStatus(User user) {
+        String status = resolveHostDemandStatus(user);
+        return switch (status) {
+            case "approved" -> "verified";
+            case "rejected" -> "rejected";
+            default -> "pending";
+        };
+    }
+
+    private HostDemandResponse toHostDemandResponse(User user) {
+        List<String> governmentIds = user.getGovernmentIdFiles() == null ? List.of() : user.getGovernmentIdFiles();
+        List<String> attachments = user.getOtherAttachmentFiles() == null ? List.of() : user.getOtherAttachmentFiles();
+        List<String> documents = new ArrayList<>(governmentIds);
+        documents.addAll(attachments);
+        if (user.getSelfieFile() != null && !user.getSelfieFile().isBlank()) {
+            documents.add(user.getSelfieFile());
+        }
+
+        String submittedDate = user.getIdentitySubmittedAt() != null
+                ? user.getIdentitySubmittedAt().toString()
+                : (user.getCreatedAt() == null ? null : user.getCreatedAt().toString());
+
+        String idDocument = !governmentIds.isEmpty()
+                ? governmentIds.get(0)
+                : (user.getSelfieFile() == null || user.getSelfieFile().isBlank() ? null : user.getSelfieFile());
+
+        return HostDemandResponse.builder()
+                .id(user.getId())
+                .userId(user.getId())
+                .userName(user.getName())
+                .userEmail(user.getEmail())
+                .userPhone(null)
+                .status(resolveHostDemandStatus(user))
+                .submittedDate(submittedDate)
+                .documents(documents)
+                .idDocument(idDocument)
+                .idVerificationStatus(resolveIdVerificationStatus(user))
+                .housePictures(List.of())
+                .proposedPrice(0)
+                .proposedLocation("N/A")
+                .bio(null)
+                .notes(user.getRejectionReason())
                 .build();
     }
 }
