@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("timestamp", Instant.now());
         body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        body.put("message", "Unexpected error");
+        body.put("message", (ex.getMessage() == null || ex.getMessage().isBlank()) ? "Unexpected error" : ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

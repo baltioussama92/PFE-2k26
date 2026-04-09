@@ -197,22 +197,13 @@ public class BookingServiceImpl implements BookingService {
                           java.time.LocalDate checkInDate,
                           java.time.LocalDate checkOutDate,
                           String excludeBookingId) {
-        List<BookingStatus> blockingStatuses = List.of(BookingStatus.CONFIRMED);
-
-        List<Booking> overlapping = excludeBookingId == null
-            ? bookingRepository.findByListingIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThan(
-                listingId,
-                blockingStatuses,
-                checkOutDate,
-                checkInDate
-            )
-            : bookingRepository.findByListingIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThanAndIdNot(
-                listingId,
-                blockingStatuses,
-                checkOutDate,
-                checkInDate,
-                excludeBookingId
-            );
+            List<Booking> overlapping = bookingRepository.findByListingIdIn(List.of(listingId)).stream()
+                .filter(booking -> booking.getStatus() == BookingStatus.CONFIRMED)
+                .filter(booking -> excludeBookingId == null || !booking.getId().equals(excludeBookingId))
+                .filter(booking -> booking.getCheckInDate() != null && booking.getCheckOutDate() != null)
+                .filter(booking -> booking.getCheckInDate().isBefore(checkOutDate)
+                    && booking.getCheckOutDate().isAfter(checkInDate))
+                .toList();
 
         if (overlapping.isEmpty()) {
             return;
