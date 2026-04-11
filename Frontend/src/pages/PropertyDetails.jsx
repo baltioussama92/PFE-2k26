@@ -191,6 +191,16 @@ function formatDateForApi(date) {
   return `${year}-${month}-${day}`
 }
 
+function isSameCalendarDay(firstDate, secondDate) {
+  if (!(firstDate instanceof Date) || !(secondDate instanceof Date)) {
+    return false
+  }
+
+  return firstDate.getFullYear() === secondDate.getFullYear()
+    && firstDate.getMonth() === secondDate.getMonth()
+    && firstDate.getDate() === secondDate.getDate()
+}
+
 function BookingSidebar({ property, user, onAuthClick, onRequireVerification, notify }) {
   const [checkIn, setCheckIn]   = useState(null)
   const [checkOut, setCheckOut] = useState(null)
@@ -349,11 +359,18 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-primary-500 mb-1 block">Arrivée</label>
               <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 pointer-events-none" />
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9c502b]/70 pointer-events-none z-10" />
                 <DatePicker
                   selected={checkIn}
+                  startDate={checkIn}
+                  endDate={checkOut}
+                  selectsStart
                   minDate={today}
                   excludeDates={unavailableDates}
+                  dayClassName={(date) => {
+                    const isUnavailable = unavailableDates.some((unavailableDate) => isSameCalendarDay(unavailableDate, date))
+                    return isUnavailable ? 'maskan-day-unavailable' : 'maskan-day-available'
+                  }}
                   onChange={(date) => {
                     setCheckIn(date)
                     if (checkOut && date && checkOut <= date) {
@@ -362,17 +379,27 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
                   }}
                   dateFormat="yyyy-MM-dd"
                   placeholderText="YYYY-MM-DD"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-primary-200 bg-primary-100 text-sm text-primary-900 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                  popperClassName="maskan-datepicker-popper"
+                  calendarClassName="maskan-datepicker"
+                  className="w-full !pl-10 pr-3 py-2.5 rounded-xl border border-primary-200 bg-primary-100 text-sm text-primary-900 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
                 />
               </div>
             </div>
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-primary-500 mb-1 block">Départ</label>
               <div className="relative">
-                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 pointer-events-none" />
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9c502b]/70 pointer-events-none z-10" />
                 <DatePicker
                   selected={checkOut}
+                  startDate={checkIn}
+                  endDate={checkOut}
+                  selectsEnd
                   minDate={minimumCheckoutDate}
+                  excludeDates={unavailableDates}
+                  dayClassName={(date) => {
+                    const isUnavailable = unavailableDates.some((unavailableDate) => isSameCalendarDay(unavailableDate, date))
+                    return isUnavailable ? 'maskan-day-unavailable' : 'maskan-day-available'
+                  }}
                   filterDate={(date) => {
                     if (!checkIn) {
                       return date > today
@@ -383,7 +410,9 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
                   onChange={(date) => setCheckOut(date)}
                   dateFormat="yyyy-MM-dd"
                   placeholderText="YYYY-MM-DD"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-primary-200 bg-primary-100 text-sm text-primary-900 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
+                  popperClassName="maskan-datepicker-popper"
+                  calendarClassName="maskan-datepicker"
+                  className="w-full !pl-10 pr-3 py-2.5 rounded-xl border border-primary-200 bg-primary-100 text-sm text-primary-900 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
                 />
               </div>
             </div>
