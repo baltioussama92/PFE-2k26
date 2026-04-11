@@ -76,6 +76,8 @@ export interface PropertyRequest {
   title: string
   description: string
   location: string
+  latitude?: number
+  longitude?: number
   pricePerNight: number
   images?: string[]
 }
@@ -85,6 +87,8 @@ export interface PropertyResponse {
   title: string
   description?: string
   location: string
+  latitude?: number
+  longitude?: number
   pricePerNight?: number
   price?: number
   images?: string[]
@@ -124,6 +128,7 @@ export interface BookingRequest {
   listingId: string
   checkInDate: string
   checkOutDate: string
+  guests?: number
 }
 
 export interface BookingResponse {
@@ -145,6 +150,11 @@ export interface BookingResponse {
 
 export interface BookingStatusUpdateRequest {
   status: BookingStatus
+}
+
+export interface UnavailableDateRange {
+  checkInDate: string
+  checkOutDate: string
 }
 
 // ── Reviews ──────────────────────────────────────────────────

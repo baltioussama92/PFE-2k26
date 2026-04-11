@@ -14,6 +14,8 @@ public class PropertyResponse {
     String title;
     String description;
     String location;
+    Double latitude;
+    Double longitude;
     BigDecimal pricePerNight;
     List<String> images;
     String hostId;

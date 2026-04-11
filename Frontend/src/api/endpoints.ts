@@ -14,6 +14,7 @@ export const ENDPOINTS = {
     listMine: '/bookings/me',
     listOwner: '/bookings/owner',
     create: '/bookings',
+    unavailableDates: (listingId: number | string) => `/bookings/listing/${listingId}/unavailable-dates`,
     updateStatus: (id: number | string) => `/bookings/${id}/status`,
     delete: (id: number | string) => `/bookings/${id}`,
   },

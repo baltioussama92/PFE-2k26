@@ -18,6 +18,9 @@ public class PropertyRequest {
     @NotBlank
     String location;
 
+    Double latitude;
+    Double longitude;
+
     @NotNull
     BigDecimal pricePerNight;
 

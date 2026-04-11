@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import Map, { Marker } from 'react-map-gl/maplibre'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import {
   Home, MapPin, FileText, BedDouble, Bath, Users, DollarSign,
   Image as ImageIcon, Plus, X, Check, ArrowLeft, Sparkles,
@@ -14,6 +16,9 @@ const AMENITIES_LIST = [
   'Sécurité 24/7', 'Ascenseur', 'Jardin', 'Terrasse', 'Vue mer',
   'Cheminée', 'Garage', 'Conciergerie', 'Calme absolu', 'Gardien',
 ]
+
+const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/outdoor-v4/style.json?key=${import.meta.env.VITE_MAPTILER_KEY || 'eOof1Hy8rLq0QdXVjQRl'}`
+const DEFAULT_CENTER = { latitude: 35.17744, longitude: 10.95528 }
 
 export default function AddPropertyPage({ user }) {
   const navigate = useNavigate()
@@ -36,6 +41,16 @@ export default function AddPropertyPage({ user }) {
     area: 80,
     amenities: [],
     imagePreviews: [],
+    latitude: null,
+    longitude: null,
+  })
+
+  const [mapLocationSelected, setMapLocationSelected] = useState(false)
+
+  const [viewState, setViewState] = useState({
+    latitude: DEFAULT_CENTER.latitude,
+    longitude: DEFAULT_CENTER.longitude,
+    zoom: 5,
   })
 
   if (!user || (user.role !== 'PROPRIETOR' && user.role !== 'ADMIN')) {
@@ -88,7 +103,7 @@ export default function AddPropertyPage({ user }) {
 
   const canProceed =
     step === 1
-      ? form.title.trim() && form.location.trim() && form.description.trim()
+      ? form.title.trim() && form.location.trim() && form.description.trim() && mapLocationSelected
       : step === 2
       ? form.price > 0 && form.bedrooms > 0 && form.bathrooms > 0 && form.area > 0
       : form.imagePreviews.length > 0
@@ -102,6 +117,8 @@ export default function AddPropertyPage({ user }) {
         title: form.title.trim(),
         description: form.description.trim(),
         location: form.location.trim(),
+        latitude: form.latitude == null ? undefined : Number(form.latitude),
+        longitude: form.longitude == null ? undefined : Number(form.longitude),
         pricePerNight: Number(form.price),
         images: form.imagePreviews,
         type: form.type,
@@ -162,6 +179,14 @@ export default function AddPropertyPage({ user }) {
                   area: 80,
                   amenities: [],
                   imagePreviews: [],
+                  latitude: null,
+                  longitude: null,
+                })
+                setMapLocationSelected(false)
+                setViewState({
+                  latitude: DEFAULT_CENTER.latitude,
+                  longitude: DEFAULT_CENTER.longitude,
+                  zoom: 5,
                 })
               }}
               className="flex-1 px-5 py-3 rounded-xl border-2 border-primary-200 text-primary-700 font-semibold hover:bg-primary-50 transition"
@@ -280,6 +305,37 @@ export default function AddPropertyPage({ user }) {
                   rows={4}
                   className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900 resize-none"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-primary-700 mb-2">Position exacte sur la carte *</label>
+                <div className="rounded-xl overflow-hidden border border-primary-200">
+                  <Map
+                    {...viewState}
+                    mapStyle={MAPTILER_STYLE_URL}
+                    onMove={(event) => setViewState(event.viewState)}
+                    onClick={(event) => {
+                      const { lat, lng } = event.lngLat
+                      set('latitude', Number(lat.toFixed(6)))
+                      set('longitude', Number(lng.toFixed(6)))
+                      setMapLocationSelected(true)
+                    }}
+                    style={{ width: '100%', height: 320 }}
+                  >
+                    {form.latitude != null && form.longitude != null && (
+                      <Marker longitude={Number(form.longitude)} latitude={Number(form.latitude)} anchor="bottom" />
+                    )}
+                  </Map>
+                </div>
+                {form.latitude != null && form.longitude != null ? (
+                  <p className="mt-2 text-xs text-primary-500">
+                    Position sélectionnée. Lat: {Number(form.latitude).toFixed(6)} · Lng: {Number(form.longitude).toFixed(6)}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-red-500">
+                    Cliquez sur la carte pour définir la localisation exacte avant de continuer.
+                  </p>
+                )}
               </div>
             </motion.div>
           )}

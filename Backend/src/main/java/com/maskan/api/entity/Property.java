@@ -34,6 +34,9 @@ public class Property {
     @NotBlank
     private String location;
 
+    private Double latitude;
+    private Double longitude;
+
     @NotNull
     private BigDecimal pricePerNight;
 

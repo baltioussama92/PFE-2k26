@@ -3,6 +3,7 @@ package com.maskan.api.controller;
 import com.maskan.api.dto.BookingRequest;
 import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.BookingStatusUpdateRequest;
+import com.maskan.api.dto.UnavailableDateRangeResponse;
 import com.maskan.api.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,11 @@ public class BookingController {
     @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
     public ResponseEntity<List<BookingResponse>> ownerBookings(@AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(bookingService.getOwnerBookings(principal.getUsername()));
+    }
+
+    @GetMapping("/listing/{listingId}/unavailable-dates")
+    public ResponseEntity<List<UnavailableDateRangeResponse>> unavailableDates(@PathVariable String listingId) {
+        return ResponseEntity.ok(bookingService.getUnavailableDateRangesForListing(listingId));
     }
 }
 

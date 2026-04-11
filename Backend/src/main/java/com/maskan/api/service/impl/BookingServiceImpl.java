@@ -3,6 +3,7 @@ package com.maskan.api.service.impl;
 import com.maskan.api.dto.BookingRequest;
 import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.BookingStatusUpdateRequest;
+import com.maskan.api.dto.UnavailableDateRangeResponse;
 import com.maskan.api.entity.Booking;
 import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.entity.Property;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Comparator;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Collectors;
 
@@ -42,11 +44,14 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("Property not found"));
         User user = getUserByEmail(email);
 
-        ensureNoConfirmedOverlap(
+        ensureGuestHasNoActiveConfirmedBooking(user.getId());
+
+        ensureNoOverlapForStatuses(
             property.getId(),
             request.getCheckInDate(),
             request.getCheckOutDate(),
-            null
+            null,
+            List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING)
         );
 
         Booking booking = Booking.builder()
@@ -83,11 +88,12 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (request.getStatus() == BookingStatus.CONFIRMED) {
-            ensureNoConfirmedOverlap(
+            ensureNoOverlapForStatuses(
                     booking.getListingId(),
                     booking.getCheckInDate(),
                     booking.getCheckOutDate(),
-                    booking.getId()
+                    booking.getId(),
+                    List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING)
             );
         }
 
@@ -156,6 +162,22 @@ public class BookingServiceImpl implements BookingService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<UnavailableDateRangeResponse> getUnavailableDateRangesForListing(String listingId) {
+        return bookingRepository.findByListingIdAndStatusIn(
+                listingId,
+                List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING)
+        ).stream()
+                .filter(booking -> booking.getCheckInDate() != null && booking.getCheckOutDate() != null)
+                .sorted(Comparator.comparing(Booking::getCheckInDate))
+                .map(booking -> UnavailableDateRangeResponse.builder()
+                        .checkInDate(booking.getCheckInDate())
+                        .checkOutDate(booking.getCheckOutDate())
+                        .build())
+                .toList();
+    }
+
     private BookingResponse toResponse(Booking booking) {
         Property listing = propertyRepository.findById(booking.getListingId()).orElse(null);
         BigDecimal totalPrice = BigDecimal.ZERO;
@@ -193,17 +215,39 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
-        private void ensureNoConfirmedOverlap(String listingId,
-                          java.time.LocalDate checkInDate,
-                          java.time.LocalDate checkOutDate,
-                          String excludeBookingId) {
-            List<Booking> overlapping = bookingRepository.findByListingIdIn(List.of(listingId)).stream()
-                .filter(booking -> booking.getStatus() == BookingStatus.CONFIRMED)
-                .filter(booking -> excludeBookingId == null || !booking.getId().equals(excludeBookingId))
-                .filter(booking -> booking.getCheckInDate() != null && booking.getCheckOutDate() != null)
-                .filter(booking -> booking.getCheckInDate().isBefore(checkOutDate)
-                    && booking.getCheckOutDate().isAfter(checkInDate))
-                .toList();
+    private void ensureGuestHasNoActiveConfirmedBooking(String guestId) {
+        boolean hasActiveConfirmedBooking = bookingRepository.existsByGuestIdAndStatusAndCheckOutDateAfter(
+                guestId,
+                BookingStatus.CONFIRMED,
+                LocalDate.now()
+        );
+
+        if (hasActiveConfirmedBooking) {
+            throw new IllegalArgumentException(
+                    "You already have an active reservation. You cannot book another property until your current stay is completed."
+            );
+        }
+    }
+
+    private void ensureNoOverlapForStatuses(String listingId,
+                                            LocalDate checkInDate,
+                                            LocalDate checkOutDate,
+                                            String excludeBookingId,
+                                            List<BookingStatus> statuses) {
+        List<Booking> overlapping = excludeBookingId == null
+                ? bookingRepository.findByListingIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThan(
+                listingId,
+                statuses,
+                checkOutDate,
+                checkInDate
+        )
+                : bookingRepository.findByListingIdAndStatusInAndCheckInDateLessThanAndCheckOutDateGreaterThanAndIdNot(
+                listingId,
+                statuses,
+                checkOutDate,
+                checkInDate,
+                excludeBookingId
+        );
 
         if (overlapping.isEmpty()) {
             return;
@@ -214,12 +258,12 @@ public class BookingServiceImpl implements BookingService {
             .orElse(overlapping.get(0));
 
         throw new IllegalArgumentException(
-            "This property is already reserved from "
-                + conflict.getCheckInDate()
-                + " to "
-                + conflict.getCheckOutDate()
-                + ". Please choose other dates."
+                "This property is already reserved from "
+                        + conflict.getCheckInDate()
+                        + " to "
+                        + conflict.getCheckOutDate()
+                        + ". Please choose other dates."
         );
-        }
+    }
 }
 

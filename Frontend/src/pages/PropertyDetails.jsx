@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import {
   ArrowLeft, Heart, Share2, MapPin, Star, Bed, Bath, Maximize2,
   Wifi, Car, Waves, Shield, TreePine, Wind, ChefHat, Building,
@@ -9,6 +11,13 @@ import {
 import { propertyService } from '../services/propertyService'
 import { bookingService } from '../services/bookingService'
 import { wishlistService } from '../services/wishlistService'
+import { useNotifications } from '../context/NotificationContext'
+
+const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY || 'eOof1Hy8rLq0QdXVjQRl'
+
+const buildMaptilerViewerUrl = (lat, lng) => (
+  `https://api.maptiler.com/maps/outdoor-v4/?key=${MAPTILER_KEY}#15/${Number(lat)}/${Number(lng)}`
+)
 
 function isIdentityApproved(user) {
   const identityStatus = user?.identityStatus
@@ -147,17 +156,94 @@ function ImageGallery({ images, title }) {
 }
 
 // ── Booking Sidebar ───────────────────────────────────────────
-function BookingSidebar({ property, user, onAuthClick, onRequireVerification }) {
-  const [checkIn, setCheckIn]   = useState('')
-  const [checkOut, setCheckOut] = useState('')
+function toDateOnly(value) {
+  const date = new Date(value)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function parseIsoDateToLocalDate(isoDate) {
+  const [year, month, day] = String(isoDate || '').split('-').map(Number)
+  if (!year || !month || !day) {
+    return null
+  }
+  return new Date(year, month - 1, day)
+}
+
+function formatDateForApi(date) {
+  if (!(date instanceof Date)) {
+    return ''
+  }
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function BookingSidebar({ property, user, onAuthClick, onRequireVerification, notify }) {
+  const [checkIn, setCheckIn]   = useState(null)
+  const [checkOut, setCheckOut] = useState(null)
   const [guests, setGuests]     = useState(1)
   const [loading, setLoading]   = useState(false)
   const [booked, setBooked]     = useState(false)
   const [error, setError]       = useState('')
+  const [unavailableDateRanges, setUnavailableDateRanges] = useState([])
+
+  useEffect(() => {
+    let active = true
+    bookingService.getUnavailableDates(property.id)
+      .then((data) => {
+        if (!active) return
+        setUnavailableDateRanges(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {
+        if (!active) return
+        setUnavailableDateRanges([])
+      })
+
+    return () => { active = false }
+  }, [property.id])
+
+  const parsedUnavailableRanges = useMemo(() => (
+    unavailableDateRanges
+      .map((range) => ({
+        start: parseIsoDateToLocalDate(range.checkInDate),
+        end: parseIsoDateToLocalDate(range.checkOutDate),
+      }))
+      .filter((range) => range.start && range.end)
+  ), [unavailableDateRanges])
+
+  const unavailableDates = useMemo(() => {
+    const uniqueDates = new Map()
+
+    parsedUnavailableRanges.forEach((range) => {
+      const cursor = new Date(range.start)
+      while (cursor < range.end) {
+        uniqueDates.set(formatDateForApi(cursor), new Date(cursor))
+        cursor.setDate(cursor.getDate() + 1)
+      }
+    })
+
+    return Array.from(uniqueDates.values())
+  }, [parsedUnavailableRanges])
+
+  const hasDateRangeOverlap = (startDate, endDate) => {
+    return parsedUnavailableRanges.some((range) => range.start < endDate && range.end > startDate)
+  }
+
+  const minimumCheckoutDate = useMemo(() => {
+    if (!checkIn) {
+      return toDateOnly(new Date())
+    }
+
+    const date = new Date(checkIn)
+    date.setDate(date.getDate() + 1)
+    return date
+  }, [checkIn])
 
   const nights = useMemo(() => {
     if (!checkIn || !checkOut) return 0
-    const diff = new Date(checkOut) - new Date(checkIn)
+    const diff = checkOut - checkIn
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
   }, [checkIn, checkOut])
 
@@ -181,24 +267,37 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification }) 
       return
     }
 
+    if (hasDateRangeOverlap(checkIn, checkOut)) {
+      setError('Ces dates ne sont plus disponibles. Veuillez sélectionner une autre période.')
+      return
+    }
+
     setError('')
     setLoading(true)
 
     try {
       await bookingService.create({
         listingId: String(property.id),
-        checkInDate: checkIn,
-        checkOutDate: checkOut,
+        checkInDate: formatDateForApi(checkIn),
+        checkOutDate: formatDateForApi(checkOut),
+        guests,
       })
       setBooked(true)
     } catch (err) {
-      setError(err.message || 'Échec de la réservation.')
+      const status = err?.response?.status
+      const message = err?.response?.data?.message || err?.message || 'Échec de la réservation.'
+
+      setError(message)
+
+      if (status === 400 && message.toLowerCase().includes('active reservation')) {
+        notify?.('Vous avez déjà une réservation active. Vous ne pouvez pas réserver un autre logement avant la fin de votre séjour actuel.', 'error')
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = toDateOnly(new Date())
 
   return (
     <motion.div
@@ -228,7 +327,7 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification }) 
           </div>
           <h3 className="text-lg font-bold text-primary-900">Réservation confirmée !</h3>
           <p className="text-sm text-primary-500 mt-1">
-            {nights} nuit{nights > 1 ? 's' : ''} · {new Date(checkIn).toLocaleDateString('fr-FR')} – {new Date(checkOut).toLocaleDateString('fr-FR')}
+            {nights} nuit{nights > 1 ? 's' : ''} · {checkIn?.toLocaleDateString('fr-FR')} – {checkOut?.toLocaleDateString('fr-FR')}
           </p>
           <p className="text-xs text-primary-400 mt-3">Un email de confirmation vous a été envoyé.</p>
         </motion.div>
@@ -240,11 +339,18 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification }) 
               <label className="text-[10px] font-bold uppercase tracking-wider text-primary-500 mb-1 block">Arrivée</label>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 pointer-events-none" />
-                <input
-                  type="date"
-                  value={checkIn}
-                  min={today}
-                  onChange={(e) => { setCheckIn(e.target.value); if (checkOut && e.target.value >= checkOut) setCheckOut('') }}
+                <DatePicker
+                  selected={checkIn}
+                  minDate={today}
+                  excludeDates={unavailableDates}
+                  onChange={(date) => {
+                    setCheckIn(date)
+                    if (checkOut && date && checkOut <= date) {
+                      setCheckOut(null)
+                    }
+                  }}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="YYYY-MM-DD"
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-primary-200 bg-primary-100 text-sm text-primary-900 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
                 />
               </div>
@@ -253,11 +359,19 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification }) 
               <label className="text-[10px] font-bold uppercase tracking-wider text-primary-500 mb-1 block">Départ</label>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 pointer-events-none" />
-                <input
-                  type="date"
-                  value={checkOut}
-                  min={checkIn || today}
-                  onChange={(e) => setCheckOut(e.target.value)}
+                <DatePicker
+                  selected={checkOut}
+                  minDate={minimumCheckoutDate}
+                  filterDate={(date) => {
+                    if (!checkIn) {
+                      return date > today
+                    }
+
+                    return date > checkIn && !hasDateRangeOverlap(checkIn, date)
+                  }}
+                  onChange={(date) => setCheckOut(date)}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="YYYY-MM-DD"
                   className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-primary-200 bg-primary-100 text-sm text-primary-900 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
                 />
               </div>
@@ -341,6 +455,7 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification }) 
 export default function PropertyDetails({ user, onAuthClick }) {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { notify } = useNotifications()
   const [liked, setLiked] = useState(false)
   const [property, setProperty] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -355,6 +470,8 @@ export default function PropertyDetails({ user, onAuthClick }) {
         setProperty({
           ...data,
           price: data.price ?? data.pricePerNight,
+          lat: data.latitude ?? data.lat,
+          lng: data.longitude ?? data.lng,
           image: data.image ?? (data.images?.length ? data.images[0] : null),
           currency: data.currency || 'TND',
           period: data.period || (data.pricePerNight != null ? 'nuit' : 'mois'),
@@ -610,13 +727,30 @@ export default function PropertyDetails({ user, onAuthClick }) {
               transition={{ delay: 0.25 }}
             >
               <h2 className="text-lg font-bold text-primary-900 mb-3">Localisation</h2>
-              <div className="rounded-2xl overflow-hidden border border-primary-200 bg-primary-100 h-48 flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-primary-700">{property.location}</p>
-                  <p className="text-xs text-primary-400 mt-1">La carte sera disponible prochainement</p>
+              {property.lat != null && property.lng != null ? (
+                <div className="relative rounded-2xl overflow-hidden border border-primary-200">
+                  <iframe
+                    title={`Carte de ${property.location}`}
+                    src={buildMaptilerViewerUrl(property.lat, property.lng)}
+                    className="w-full h-[260px] border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="-translate-y-3">
+                      <MapPin className="w-8 h-8 text-red-500 drop-shadow" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-2xl overflow-hidden border border-primary-200 bg-primary-100 h-48 flex items-center justify-center">
+                  <div className="text-center">
+                    <MapPin className="w-8 h-8 text-primary-400 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-primary-700">{property.location}</p>
+                    <p className="text-xs text-primary-400 mt-1">Coordonnées non définies par l'hôte</p>
+                  </div>
+                </div>
+              )}
             </motion.div>
 
             {/* House Rules */}
@@ -640,6 +774,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
             <BookingSidebar
               property={property}
               user={user}
+              notify={notify}
               onAuthClick={onAuthClick}
               onRequireVerification={() => setShowVerificationPrompt(true)}
             />

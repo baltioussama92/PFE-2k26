@@ -41,6 +41,8 @@ public class PropertyServiceImpl implements PropertyService {
                 .title(request.getTitle())
             .description(request.getDescription())
                 .location(request.getLocation())
+            .latitude(request.getLatitude())
+            .longitude(request.getLongitude())
             .pricePerNight(request.getPricePerNight())
             .images(request.getImages() == null ? List.of() : request.getImages())
             .available(request.getAvailable() == null ? Boolean.TRUE : request.getAvailable())
@@ -66,6 +68,8 @@ public class PropertyServiceImpl implements PropertyService {
         property.setTitle(request.getTitle());
         property.setDescription(request.getDescription());
         property.setLocation(request.getLocation());
+        property.setLatitude(request.getLatitude());
+        property.setLongitude(request.getLongitude());
         property.setPricePerNight(request.getPricePerNight());
         property.setImages(request.getImages() == null ? List.of() : request.getImages());
         if (request.getAvailable() != null) {
@@ -201,6 +205,8 @@ public class PropertyServiceImpl implements PropertyService {
                 .title(property.getTitle())
             .description(property.getDescription())
                 .location(property.getLocation())
+            .latitude(property.getLatitude())
+            .longitude(property.getLongitude())
             .pricePerNight(property.getPricePerNight())
             .images(property.getImages())
             .hostId(property.getHostId())
