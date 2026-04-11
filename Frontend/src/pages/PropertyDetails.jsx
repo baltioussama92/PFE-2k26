@@ -15,8 +15,19 @@ import { useNotifications } from '../context/NotificationContext'
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY || 'eOof1Hy8rLq0QdXVjQRl'
 
+const getPropertyTypePin = (type) => {
+  const normalized = String(type || '').toLowerCase()
+  if (normalized.includes('villa')) return '🏛️'
+  if (normalized.includes('maison') || normalized.includes('house')) return '🏠'
+  if (normalized.includes('chalet')) return '🏕️'
+  if (normalized.includes('studio')) return '🏢'
+  if (normalized.includes('penthouse')) return '🏙️'
+  if (normalized.includes('appartement') || normalized.includes('apartment')) return '🏢'
+  return '📍'
+}
+
 const buildMaptilerViewerUrl = (lat, lng) => (
-  `https://api.maptiler.com/maps/outdoor-v4/?key=${MAPTILER_KEY}#15/${Number(lat)}/${Number(lng)}`
+  `https://api.maptiler.com/maps/019d7cf7-51a0-7f23-b2b3-eb3785692ca9/?key=${MAPTILER_KEY}#15/${Number(lat)}/${Number(lng)}`
 )
 
 function isIdentityApproved(user) {
@@ -728,17 +739,22 @@ export default function PropertyDetails({ user, onAuthClick }) {
             >
               <h2 className="text-lg font-bold text-primary-900 mb-3">Localisation</h2>
               {property.lat != null && property.lng != null ? (
-                <div className="relative rounded-2xl overflow-hidden border border-primary-200">
-                  <iframe
-                    title={`Carte de ${property.location}`}
-                    src={buildMaptilerViewerUrl(property.lat, property.lng)}
-                    className="w-full h-[260px] border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="-translate-y-3">
-                      <MapPin className="w-8 h-8 text-red-500 drop-shadow" />
+                <div className="rounded-2xl overflow-hidden border border-primary-200">
+                  <div className="relative">
+                    <iframe
+                      title={`Carte de ${property.location}`}
+                      src={buildMaptilerViewerUrl(property.lat, property.lng)}
+                      className="w-full h-[260px] border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div className="-translate-y-3">
+                        <div className="w-9 h-9 rounded-full bg-primary-500 text-white flex items-center justify-center shadow-lg border-2 border-white text-base">
+                          {getPropertyTypePin(property.type)}
+                        </div>
+                        <div className="w-0 h-0 mx-auto border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[10px] border-t-primary-500" />
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -44,6 +44,50 @@ const mapRole = (role) => {
   return role || 'TENANT'
 }
 
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error) {
+    console.error('Runtime error caught by AppErrorBoundary:', error)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-4 bg-primary-50">
+          <div className="max-w-lg w-full rounded-2xl border border-primary-200 bg-white p-6 text-center">
+            <h1 className="text-xl font-bold text-primary-900">Une erreur est survenue</h1>
+            <p className="mt-2 text-sm text-primary-600">Rechargez la page. Si le problème persiste, revenez à l’accueil.</p>
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 rounded-xl bg-primary-500 text-white font-semibold hover:bg-primary-600 transition"
+              >
+                Recharger
+              </button>
+              <a
+                href="/"
+                className="px-4 py-2 rounded-xl border border-primary-200 text-primary-700 font-semibold hover:bg-primary-50 transition"
+              >
+                Accueil
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 const normalizeUser = (user, localProfile = null) => ({
   id: user?.id,
   name: user?.fullName || user?.name || 'User',
@@ -298,16 +342,18 @@ export default function App() {
   }, [])
 
   return (
-    <>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppRoutes />
-      </BrowserRouter>
+    <AppErrorBoundary>
+      <>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AppRoutes />
+        </BrowserRouter>
 
-      {isOpening && (
-        <div className={isOpeningExit ? 'brand-loader-exit' : ''}>
-          <OpeningSplash />
-        </div>
-      )}
-    </>
+        {isOpening && (
+          <div className={isOpeningExit ? 'brand-loader-exit' : ''}>
+            <OpeningSplash />
+          </div>
+        )}
+      </>
+    </AppErrorBoundary>
   )
 }

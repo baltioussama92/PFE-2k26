@@ -17,8 +17,19 @@ const AMENITIES_LIST = [
   'Cheminée', 'Garage', 'Conciergerie', 'Calme absolu', 'Gardien',
 ]
 
-const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/outdoor-v4/style.json?key=${import.meta.env.VITE_MAPTILER_KEY || 'eOof1Hy8rLq0QdXVjQRl'}`
+const MAPTILER_STYLE_URL = `https://api.maptiler.com/maps/019d7cf7-51a0-7f23-b2b3-eb3785692ca9/style.json?key=${import.meta.env.VITE_MAPTILER_KEY || 'eOof1Hy8rLq0QdXVjQRl'}`
 const DEFAULT_CENTER = { latitude: 35.17744, longitude: 10.95528 }
+
+const getPropertyTypePin = (type) => {
+  const normalized = String(type || '').toLowerCase()
+  if (normalized.includes('villa')) return '🏛️'
+  if (normalized.includes('maison') || normalized.includes('house')) return '🏠'
+  if (normalized.includes('chalet')) return '🏕️'
+  if (normalized.includes('studio')) return '🏢'
+  if (normalized.includes('penthouse')) return '🏙️'
+  if (normalized.includes('appartement') || normalized.includes('apartment')) return '🏢'
+  return '📍'
+}
 
 export default function AddPropertyPage({ user }) {
   const navigate = useNavigate()
@@ -323,7 +334,25 @@ export default function AddPropertyPage({ user }) {
                     style={{ width: '100%', height: 320 }}
                   >
                     {form.latitude != null && form.longitude != null && (
-                      <Marker longitude={Number(form.longitude)} latitude={Number(form.latitude)} anchor="bottom" />
+                      <Marker
+                        longitude={Number(form.longitude)}
+                        latitude={Number(form.latitude)}
+                        anchor="bottom"
+                        draggable
+                        onDragEnd={(event) => {
+                          const { lat, lng } = event.lngLat
+                          set('latitude', Number(lat.toFixed(6)))
+                          set('longitude', Number(lng.toFixed(6)))
+                          setMapLocationSelected(true)
+                        }}
+                      >
+                        <div className="select-none">
+                          <div className="w-9 h-9 rounded-full bg-primary-500 text-white flex items-center justify-center shadow-lg border-2 border-white text-base">
+                            {getPropertyTypePin(form.type)}
+                          </div>
+                          <div className="w-0 h-0 mx-auto border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[10px] border-t-primary-500" />
+                        </div>
+                      </Marker>
                     )}
                   </Map>
                 </div>
