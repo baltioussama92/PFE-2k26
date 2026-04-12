@@ -19,8 +19,19 @@ export const bookingService = {
   },
 
   async getUnavailableDates(listingId: number | string): Promise<UnavailableDateRange[]> {
-    const { data } = await apiClient.get<UnavailableDateRange[]>(ENDPOINTS.bookings.unavailableDates(listingId))
-    return data
+    if (!listingId) {
+      console.warn('getUnavailableDates called with empty listingId')
+      return []
+    }
+    const endpoint = ENDPOINTS.bookings.unavailableDates(listingId)
+    console.log('Fetching unavailable dates from endpoint:', endpoint)
+    try {
+      const { data } = await apiClient.get<UnavailableDateRange[]>(endpoint)
+      return data
+    } catch (error) {
+      console.error('Error fetching unavailable dates for listing:', listingId, error)
+      return []
+    }
   },
 
   async updateStatus(id: number | string, payload: BookingStatusUpdateRequest): Promise<BookingResponse> {

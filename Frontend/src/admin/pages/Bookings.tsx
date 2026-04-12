@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Card from '../components/Card'
 import Modal from '../components/Modal'
 import Table, { type TableColumn } from '../components/Table'
@@ -6,6 +7,7 @@ import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type AdminBooking } from '../services/adminApi'
 
 export default function Bookings() {
+  const navigate = useNavigate()
   const { showToast } = useAdminToast()
   const [loading, setLoading] = useState(true)
   const [bookings, setBookings] = useState<AdminBooking[]>([])
@@ -30,8 +32,15 @@ export default function Bookings() {
     }
   }, [])
 
+  const resolveGuestIdentifier = (booking: AdminBooking): string | number | null => {
+    if (booking.guestId) return booking.guestId
+    const guestMatch = booking.guest.match(/#(.+)$/)
+    return guestMatch?.[1] || null
+  }
+
   const columns = useMemo<TableColumn<AdminBooking>[]>(() => [
     { key: 'guest', header: 'Guest', render: (row) => row.guest },
+    { key: 'bookedFrom', header: 'Booked From', render: (row) => row.host || 'Unknown host' },
     { key: 'property', header: 'Property', render: (row) => row.property },
     { key: 'dates', header: 'Dates', render: (row) => row.dates },
     {
@@ -44,18 +53,37 @@ export default function Bookings() {
     {
       key: 'actions',
       header: 'Actions',
-      render: (row) => (
-        <button
-          type="button"
-          className="rounded-lg bg-[#3A2D28] px-2.5 py-1 text-xs font-medium text-[#FFFFFF] hover:bg-[#3A2D28]/90 disabled:opacity-50"
-          disabled={row.status === 'cancelled'}
-          onClick={() => setTarget(row)}
-        >
-          Cancel booking
-        </button>
-      ),
+      render: (row) => {
+        const guestIdentifier = resolveGuestIdentifier(row)
+        return (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-[#CBAD8D]/70 px-2.5 py-1 text-xs font-medium text-[#3A2D28] hover:bg-[#EBE3DB] disabled:opacity-50"
+              disabled={!guestIdentifier}
+              onClick={() => {
+                if (!guestIdentifier) {
+                  showToast('No guest details are available for this booking.', 'error')
+                  return
+                }
+                navigate(`/admin/users/${guestIdentifier}`)
+              }}
+            >
+              View
+            </button>
+            <button
+              type="button"
+              className="rounded-lg bg-[#3A2D28] px-2.5 py-1 text-xs font-medium text-[#FFFFFF] hover:bg-[#3A2D28]/90 disabled:opacity-50"
+              disabled={row.status === 'cancelled'}
+              onClick={() => setTarget(row)}
+            >
+              Cancel booking
+            </button>
+          </div>
+        )
+      },
     },
-  ], [])
+  ], [navigate, showToast])
 
   const onCancelBooking = async () => {
     if (!target) return

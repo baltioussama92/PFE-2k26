@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import Map, { Marker } from 'react-map-gl/maplibre'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import {
   Plus, Search, MapPin, BedDouble, Bath, Eye, EyeOff,
   Trash2, Edit3, Home, ToggleLeft, ToggleRight, MoreVertical,
@@ -26,6 +28,8 @@ export default function MyPropertiesPage({ user }) {
   const [editForm, setEditForm] = useState({})
   const [editImageError, setEditImageError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [mapCoords, setMapCoords] = useState({ latitude: 35.17744, longitude: 10.95528 })
+  const [showMapPicker, setShowMapPicker] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -84,6 +88,12 @@ export default function MyPropertiesPage({ user }) {
       area: p.area ?? p.surface ?? p.areaSqm ?? '',
       amenities: p.amenities || [],
       images: Array.isArray(p.images) && p.images.length ? p.images : (p.image ? [p.image] : []),
+      latitude: p.latitude || 35.17744,
+      longitude: p.longitude || 10.95528,
+    })
+    setMapCoords({ 
+      latitude: p.latitude || 35.17744, 
+      longitude: p.longitude || 10.95528 
     })
     setEditing(p.id)
     setMenuOpen(null)
@@ -101,6 +111,8 @@ export default function MyPropertiesPage({ user }) {
       area: Number(editForm.area) || 0,
       amenities: editForm.amenities || [],
       images: editForm.images || [],
+      latitude: mapCoords.latitude,
+      longitude: mapCoords.longitude,
     }
     propertyService.update(editing, updated)
       .then(() => {
@@ -421,14 +433,52 @@ export default function MyPropertiesPage({ user }) {
                 {/* Location */}
                 <div>
                   <label className="block text-sm font-semibold text-primary-700 mb-1">Localisation *</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
-                    <input
-                      type="text"
-                      value={editForm.location || ''}
-                      onChange={e => ef('location', e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900"
-                    />
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400 z-10" />
+                      <input
+                        type="text"
+                        value={editForm.location || ''}
+                        onChange={e => ef('location', e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMapPicker(!showMapPicker)}
+                      className="w-full px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 border border-primary-200 rounded-xl hover:bg-primary-100 transition"
+                    >
+                      {showMapPicker ? '▼ Masquer la carte' : '▶ Choisir sur la carte'}
+                    </button>
+                    {showMapPicker && (
+                      <div className="rounded-xl overflow-hidden border border-primary-200 h-64">
+                        <Map
+                          initialViewState={{
+                            longitude: mapCoords.longitude,
+                            latitude: mapCoords.latitude,
+                            zoom: 12,
+                          }}
+                          style={{ width: '100%', height: '100%' }}
+                          mapStyle="https://api.maptiler.com/maps/019d7cf7-51a0-7f23-b2b3-eb3785692ca9/style.json?key=eOof1Hy8rLq0QdXVjQRl"
+                          onClick={(e) => {
+                            setMapCoords({
+                              latitude: e.lngLat.lat,
+                              longitude: e.lngLat.lng,
+                            })
+                          }}
+                        >
+                          <Marker
+                            longitude={mapCoords.longitude}
+                            latitude={mapCoords.latitude}
+                            anchor="bottom"
+                            color="#B8622A"
+                          />
+                        </Map>
+                      </div>
+                    )}
+                    <p className="text-xs text-primary-500">
+                      Latitude: {mapCoords.latitude.toFixed(5)} | Longitude: {mapCoords.longitude.toFixed(5)}
+                    </p>
                   </div>
                 </div>
 

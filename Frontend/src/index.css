@@ -370,10 +370,10 @@ input, select, textarea { font-family: inherit; }
 
 .maskan-datepicker {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #faf6f0;
-  border: 1px solid #eadfce;
+  background: #FDFAF5;
+  border: 1px solid #E0CEBD;
   border-radius: 1rem;
-  box-shadow: 0 16px 36px rgba(75, 49, 29, 0.16);
+  box-shadow: 0 8px 32px 0 rgba(184, 98, 42, 0.12);
   overflow: hidden;
 }
 
@@ -382,43 +382,48 @@ input, select, textarea { font-family: inherit; }
 }
 
 .maskan-datepicker .react-datepicker__month-container {
-  background: #faf6f0;
+  background: #FDFAF5;
 }
 
 .maskan-datepicker .react-datepicker__header {
-  background: #f7efe4;
-  border-bottom: 1px solid #eadfce;
+  background: #F7F1E8;
+  border-bottom: 1px solid #E0CEBD;
   padding-top: 0.85rem;
   padding-bottom: 0.65rem;
 }
 
 .maskan-datepicker .react-datepicker__current-month {
-  color: #3f2f22;
+  color: #2A1A0E;
   font-weight: 700;
   font-size: 0.98rem;
   letter-spacing: 0.01em;
 }
 
 .maskan-datepicker .react-datepicker__day-name {
-  color: #8c7763;
+  color: #9A5223;
   font-size: 0.72rem;
   font-weight: 700;
+  text-transform: uppercase;
 }
 
 .maskan-datepicker .react-datepicker__day,
 .maskan-datepicker .react-datepicker__time-name {
-  color: #4a3a2d;
+  color: #2A1A0E;
   border-radius: 0.6rem;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: all 150ms ease;
+  font-weight: 500;
 }
 
 .maskan-datepicker .react-datepicker__day:hover {
-  background: #f3e5d8;
+  background: #F0E6D8;
+  color: #B8622A;
+  font-weight: 600;
 }
 
 .maskan-datepicker .react-datepicker__day--keyboard-selected {
-  background: #f3e5d8;
-  color: #4a3a2d;
+  background: #D4A876;
+  color: #FDFAF5;
+  font-weight: 600;
 }
 
 .maskan-datepicker .react-datepicker__day--selected,
@@ -426,8 +431,8 @@ input, select, textarea { font-family: inherit; }
 .maskan-datepicker .react-datepicker__day--in-selecting-range,
 .maskan-datepicker .react-datepicker__day--range-start,
 .maskan-datepicker .react-datepicker__day--range-end {
-  background: #9c502b;
-  color: #ffffff;
+  background: #B8622A;
+  color: #FDFAF5;
   font-weight: 700;
 }
 
@@ -436,17 +441,27 @@ input, select, textarea { font-family: inherit; }
 .maskan-datepicker .react-datepicker__day--in-selecting-range:hover,
 .maskan-datepicker .react-datepicker__day--range-start:hover,
 .maskan-datepicker .react-datepicker__day--range-end:hover {
-  background: #8d4826;
-  color: #ffffff;
+  background: #9A5223;
+  color: #FDFAF5;
+  transform: scale(1.05);
 }
 
 .maskan-datepicker .react-datepicker__day--disabled,
 .maskan-datepicker .react-datepicker__day--excluded,
 .maskan-datepicker .maskan-day-unavailable {
-  color: #a6a1a0;
+  color: #B0A098;
   text-decoration: line-through;
   cursor: not-allowed;
   background: transparent;
+}
+
+.maskan-datepicker .react-datepicker__navigation {
+  top: 0.85rem;
+}
+
+.maskan-datepicker .react-datepicker__navigation-icon::before {
+  border-color: #B8622A;
+  border-width: 2px 2px 0 0;
 }
 
 .maskan-datepicker .react-datepicker__day--disabled:hover,

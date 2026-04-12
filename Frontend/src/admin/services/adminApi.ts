@@ -65,6 +65,8 @@ export interface AdminBooking {
   guestId?: number
   property: string
   listingId?: number
+  host?: string
+  hostId?: number
   dates: string
   status: BookingStatus
   totalPrice?: number
@@ -278,6 +280,8 @@ const mockBookings: AdminBooking[] = [
     guestId: 102,
     property: 'Riad Atlas',
     listingId: 201,
+    host: 'Alice Martin',
+    hostId: 101,
     dates: '2026-04-04 to 2026-04-07',
     status: 'confirmed',
     totalPrice: 450,
@@ -289,6 +293,8 @@ const mockBookings: AdminBooking[] = [
     guestId: 103,
     property: 'Marina Flat',
     listingId: 202,
+    host: 'Karim El Fassi',
+    hostId: 104,
     dates: '2026-04-10 to 2026-04-12',
     status: 'pending',
     totalPrice: 300,
@@ -479,17 +485,27 @@ const mapBookingStatus = (status: string | undefined): BookingStatus => {
   return 'pending'
 }
 
-const mapBooking = (booking: BookingResponse): AdminBooking => ({
-  id: toNumberId(booking.id),
-  guest: booking.guestId ? `Guest #${booking.guestId}` : 'Unknown guest',
-  guestId: toNumberId(booking.guestId),
-  property: booking.listingTitle || `Listing #${booking.listingId}`,
-  listingId: toNumberId(booking.listingId),
-  dates: `${booking.checkInDate} to ${booking.checkOutDate}`,
-  status: mapBookingStatus(booking.status),
-  totalPrice: Number(booking.totalPrice || 0),
-  createdAt: String(booking.createdAt || booking.checkInDate || ''),
-})
+const mapBooking = (
+  booking: BookingResponse,
+  hostsByListingId?: Map<number, { host: string; hostId?: number }>,
+): AdminBooking => {
+  const listingId = toNumberId(booking.listingId)
+  const hostInfo = hostsByListingId?.get(listingId)
+
+  return {
+    id: toNumberId(booking.id),
+    guest: booking.guestId ? `Guest #${booking.guestId}` : 'Unknown guest',
+    guestId: toNumberId(booking.guestId),
+    property: booking.listingTitle || `Listing #${booking.listingId}`,
+    listingId,
+    host: hostInfo?.host || 'Unknown host',
+    hostId: hostInfo?.hostId,
+    dates: `${booking.checkInDate} to ${booking.checkOutDate}`,
+    status: mapBookingStatus(booking.status),
+    totalPrice: Number(booking.totalPrice || 0),
+    createdAt: String(booking.createdAt || booking.checkInDate || ''),
+  }
+}
 
 const mapAdminBooking = (booking: AdminUserBookingResponse): AdminBooking => ({
   id: toNumberId(booking.id),
@@ -497,6 +513,8 @@ const mapAdminBooking = (booking: AdminUserBookingResponse): AdminBooking => ({
   guestId: toNumberId(booking.guestId),
   property: booking.listingTitle || `Listing #${booking.listingId}`,
   listingId: toNumberId(booking.listingId),
+  host: booking.hostId ? `Host #${booking.hostId}` : 'Unknown host',
+  hostId: toNumberId(booking.hostId),
   dates: `${booking.checkInDate} to ${booking.checkOutDate}`,
   status: mapBookingStatus(booking.status),
   totalPrice: Number(booking.totalPrice || 0),
@@ -712,8 +730,20 @@ export const adminApi = {
 
   async getBookings(): Promise<AdminBooking[]> {
     return withFallback(async () => {
-      const data = await fetchAdminBookings()
-      const mapped = data.map(mapBooking)
+      const [data, listings] = await Promise.all([
+        fetchAdminBookings(),
+        this.getListings(),
+      ])
+
+      const hostsByListingId = new Map<number, { host: string; hostId?: number }>()
+      listings.forEach((listing) => {
+        hostsByListingId.set(listing.id, {
+          host: listing.host,
+          hostId: listing.hostId,
+        })
+      })
+
+      const mapped = data.map((booking) => mapBooking(booking, hostsByListingId))
       return ensureUniqueIds(mapped)
     }, async () => {
       await sleep(220)

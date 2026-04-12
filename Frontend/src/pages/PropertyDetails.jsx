@@ -217,8 +217,9 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
         if (!active) return
         setUnavailableDateRanges(Array.isArray(data) ? data : [])
       })
-      .catch(() => {
+      .catch((error) => {
         if (!active) return
+        console.log('Error fetching unavailable dates:', error)
         setUnavailableDateRanges([])
       })
 
