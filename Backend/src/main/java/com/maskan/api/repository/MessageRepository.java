@@ -13,6 +13,10 @@ public interface MessageRepository extends MongoRepository<Message, String> {
 	                                                                                   String receiverId,
 	                                                                                   String receiverId2,
 	                                                                                   String senderId2);
+	boolean existsBySenderIdAndReceiverIdOrReceiverIdAndSenderId(String senderId,
+	                                                             String receiverId,
+	                                                             String receiverId2,
+	                                                             String senderId2);
 	long countByReceiverId(String receiverId);
 }
 

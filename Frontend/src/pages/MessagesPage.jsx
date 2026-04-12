@@ -263,6 +263,7 @@ export default function MessagesPage({ user }) {
   const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(search.toLowerCase()))
   const activeContact = contacts.find((contact) => String(contact.id) === String(activeContactId)) || null
   const bookingContactIds = useMemo(() => new Set(bookingContacts.map((contact) => String(contact.id))), [bookingContacts])
+  const conversationContactIds = useMemo(() => new Set(conversations.map((conversation) => String(conversation.userId))), [conversations])
 
   const formatRelativeTime = (value) => {
     if (!value) return ''
@@ -315,7 +316,11 @@ export default function MessagesPage({ user }) {
   }
 
   const canMessageActiveContact = Boolean(
-    activeContactId && (connectedIds.has(String(activeContactId)) || bookingContactIds.has(String(activeContactId)))
+    activeContactId && (
+      connectedIds.has(String(activeContactId))
+      || bookingContactIds.has(String(activeContactId))
+      || conversationContactIds.has(String(activeContactId))
+    )
   )
 
   return (
@@ -456,11 +461,13 @@ export default function MessagesPage({ user }) {
                     </p>
                     <p className="text-xs text-primary-500 truncate">
                       {activeContactId
-                        ? (connectedIds.has(String(activeContactId))
+                        ? (conversationContactIds.has(String(activeContactId))
+                          ? 'Conversation active'
+                          : (connectedIds.has(String(activeContactId))
                           ? 'Connexion active'
                           : (bookingContactIds.has(String(activeContactId))
                             ? 'Client ayant reserve chez vous'
-                            : 'En attente d\'acceptation de connexion'))
+                            : 'En attente d\'acceptation de connexion')))
                         : 'Choisissez un contact à gauche pour démarrer'}
                     </p>
                   </div>

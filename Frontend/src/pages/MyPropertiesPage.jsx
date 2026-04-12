@@ -81,6 +81,7 @@ export default function MyPropertiesPage({ user }) {
       title: p.title,
       location: p.location,
       description: p.description || '',
+      houseRules: p.houseRules || '',
       type: p.type || 'Appartement',
       price: p.price ?? p.pricePerNight ?? '',
       bedrooms: p.bedrooms ?? p.rooms ?? p.roomCount ?? '',
@@ -103,6 +104,7 @@ export default function MyPropertiesPage({ user }) {
     const updated = {
       title: editForm.title.trim(),
       description: editForm.description.trim(),
+      houseRules: (editForm.houseRules || '').trim(),
       location: editForm.location.trim(),
       pricePerNight: Number(editForm.price),
       type: editForm.type,
@@ -508,6 +510,17 @@ export default function MyPropertiesPage({ user }) {
                     value={editForm.description || ''}
                     onChange={e => ef('description', e.target.value)}
                     rows={3}
+                    className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-primary-700 mb-1">Règles de la maison</label>
+                  <textarea
+                    value={editForm.houseRules || ''}
+                    onChange={e => ef('houseRules', e.target.value)}
+                    rows={3}
+                    placeholder="Ex : Arrivée après 15h, pas de fête, non fumeur..."
                     className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900 resize-none"
                   />
                 </div>

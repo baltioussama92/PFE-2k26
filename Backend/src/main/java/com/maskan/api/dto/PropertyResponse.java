@@ -25,6 +25,7 @@ public class PropertyResponse {
     Integer bedrooms;
     Integer bathrooms;
     Integer area;
+    String houseRules;
     List<String> amenities;
     Double rating;
     Integer reviewCount;

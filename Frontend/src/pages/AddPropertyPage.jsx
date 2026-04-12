@@ -45,6 +45,7 @@ export default function AddPropertyPage({ user }) {
     title: '',
     location: '',
     description: '',
+    houseRules: '',
     type: 'Appartement',
     price: 1000,
     bedrooms: 2,
@@ -128,6 +129,7 @@ export default function AddPropertyPage({ user }) {
         title: form.title.trim(),
         description: form.description.trim(),
         location: form.location.trim(),
+        houseRules: form.houseRules.trim(),
         latitude: form.latitude == null ? undefined : Number(form.latitude),
         longitude: form.longitude == null ? undefined : Number(form.longitude),
         pricePerNight: Number(form.price),
@@ -183,6 +185,7 @@ export default function AddPropertyPage({ user }) {
                   title: '',
                   location: '',
                   description: '',
+                  houseRules: '',
                   type: 'Appartement',
                   price: 1000,
                   bedrooms: 2,
@@ -314,6 +317,17 @@ export default function AddPropertyPage({ user }) {
                   onChange={e => set('description', e.target.value)}
                   placeholder="Décrivez votre bien en détail…"
                   rows={4}
+                  className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-primary-700 mb-1">Règles de la maison</label>
+                <textarea
+                  value={form.houseRules}
+                  onChange={e => set('houseRules', e.target.value)}
+                  placeholder="Ex : Arrivée après 15h, pas de fête, non fumeur..."
+                  rows={3}
                   className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900 resize-none"
                 />
               </div>

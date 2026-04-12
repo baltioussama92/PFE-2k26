@@ -50,6 +50,7 @@ public class PropertyServiceImpl implements PropertyService {
             .bedrooms(request.getBedrooms())
             .bathrooms(request.getBathrooms())
             .area(request.getArea())
+            .houseRules(request.getHouseRules())
             .amenities(request.getAmenities() == null ? List.of() : request.getAmenities())
             .pendingApproval(Boolean.FALSE)
             .hostId(owner.getId())
@@ -79,6 +80,7 @@ public class PropertyServiceImpl implements PropertyService {
         property.setBedrooms(request.getBedrooms());
         property.setBathrooms(request.getBathrooms());
         property.setArea(request.getArea());
+        property.setHouseRules(request.getHouseRules());
         property.setAmenities(request.getAmenities() == null ? List.of() : request.getAmenities());
         Property updated = propertyRepository.save(property);
         return toResponse(updated);
@@ -216,6 +218,7 @@ public class PropertyServiceImpl implements PropertyService {
             .bedrooms(property.getBedrooms())
             .bathrooms(property.getBathrooms())
             .area(property.getArea())
+            .houseRules(property.getHouseRules())
             .amenities(property.getAmenities())
             .rating(property.getRating())
             .reviewCount(property.getReviewCount())

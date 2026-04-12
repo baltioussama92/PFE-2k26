@@ -80,6 +80,7 @@ export interface PropertyRequest {
   longitude?: number
   pricePerNight: number
   images?: string[]
+  houseRules?: string
 }
 
 export interface PropertyResponse {
@@ -102,6 +103,7 @@ export interface PropertyResponse {
   bedrooms?: number
   bathrooms?: number
   area?: number
+  houseRules?: string
   rating?: number
   reviewCount?: number
   type?: string

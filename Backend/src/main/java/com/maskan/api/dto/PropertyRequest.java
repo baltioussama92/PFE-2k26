@@ -31,6 +31,7 @@ public class PropertyRequest {
     Integer bedrooms;
     Integer bathrooms;
     Integer area;
+    String houseRules;
     List<String> amenities;
 
     public BigDecimal getPrice() {

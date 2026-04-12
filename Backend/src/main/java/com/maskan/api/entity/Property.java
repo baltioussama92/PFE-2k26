@@ -56,6 +56,7 @@ public class Property {
     private Integer bedrooms;
     private Integer bathrooms;
     private Integer area;
+    private String houseRules;
 
     @Builder.Default
     private List<String> amenities = List.of();

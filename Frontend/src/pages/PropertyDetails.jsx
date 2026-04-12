@@ -30,9 +30,25 @@ const buildMaptilerViewerUrl = (lat, lng) => (
   `https://api.maptiler.com/maps/019d7cf7-51a0-7f23-b2b3-eb3785692ca9/?key=${MAPTILER_KEY}#15/${Number(lat)}/${Number(lng)}`
 )
 
+const DEFAULT_HOUSE_RULES = [
+  'Arrivée : à partir de 15h00',
+  'Départ : avant 11h00',
+  'Non fumeur à l\'intérieur',
+  'Animaux acceptés sur demande',
+]
+
 function isIdentityApproved(user) {
   const identityStatus = user?.identityStatus
   return identityStatus === 'approved' || identityStatus === 'verified'
+}
+
+function parseHouseRules(houseRules) {
+  if (!houseRules || typeof houseRules !== 'string') return DEFAULT_HOUSE_RULES
+  const normalized = houseRules
+    .split(/\r?\n|[•\-]/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  return normalized.length ? normalized : DEFAULT_HOUSE_RULES
 }
 
 // ── Amenity icon map ──────────────────────────────────────────
@@ -807,10 +823,9 @@ export default function PropertyDetails({ user, onAuthClick }) {
             >
               <h2 className="text-lg font-bold text-primary-900 mb-3">Règles de la maison</h2>
               <div className="space-y-2 text-sm text-primary-700">
-                <p>• Arrivée : à partir de 15h00</p>
-                <p>• Départ : avant 11h00</p>
-                <p>• Non fumeur à l'intérieur</p>
-                <p>• Animaux acceptés sur demande</p>
+                {parseHouseRules(property.houseRules).map((rule, index) => (
+                  <p key={`${rule}-${index}`}>• {rule}</p>
+                ))}
               </div>
             </motion.div>
           </div>

@@ -136,7 +136,17 @@ public class MessageServiceImpl implements MessageService {
     private boolean canUsersMessage(String firstUserId, String secondUserId) {
         return connectionService.areUsersConnected(firstUserId, secondUserId)
                 || haveBookingRelationship(firstUserId, secondUserId)
-                || haveBookingRelationship(secondUserId, firstUserId);
+                || haveBookingRelationship(secondUserId, firstUserId)
+                || haveExistingConversation(firstUserId, secondUserId);
+    }
+
+    private boolean haveExistingConversation(String firstUserId, String secondUserId) {
+        return messageRepository.existsBySenderIdAndReceiverIdOrReceiverIdAndSenderId(
+                firstUserId,
+                secondUserId,
+                firstUserId,
+                secondUserId
+        );
     }
 
     private boolean haveBookingRelationship(String hostId, String guestId) {
