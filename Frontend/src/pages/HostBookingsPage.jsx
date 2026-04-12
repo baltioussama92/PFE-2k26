@@ -3,13 +3,13 @@ import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarCheck, MapPin, Clock, CheckCircle2, XCircle,
-  Hourglass, ChevronDown, ChevronUp, Search, Building2,
+  Hourglass, ChevronDown, Search, Building2,
   Users, CreditCard, Calendar, UserCheck, AlertCircle,
-  Home, Loader2, MessageSquare,
+  Loader2, MessageSquare,
 } from 'lucide-react'
 import { bookingService } from '../services/bookingService'
 import { propertyService } from '../services/propertyService'
-import HostCheckInScanner from '../components/bookings/HostCheckInScanner'
+import HostBookingCard from '../components/bookings/HostBookingCard'
 
 const STATUS_MAP = {
   pending:   { label: 'En attente',  color: 'text-amber-600',   bg: 'bg-amber-50',   icon: Hourglass },
@@ -39,11 +39,13 @@ export default function HostBookingsPage({ user }) {
   const [expanded, setExpanded] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
-  const [verifyingId, setVerifyingId] = useState(null)
+  const [scannerBookingId, setScannerBookingId] = useState(null)
   const [actionError, setActionError] = useState('')
 
-  const loadBookings = async (active = true) => {
-    setLoading(true)
+  const loadBookings = async (active = true, silent = false) => {
+    if (!silent) {
+      setLoading(true)
+    }
     setActionError('')
     try {
       const data = await bookingService.getOwnerBookings()
@@ -100,20 +102,29 @@ export default function HostBookingsPage({ user }) {
         setActionError('Impossible de charger les réservations.')
       }
     } finally {
-      if (active) setLoading(false)
+      if (active && !silent) setLoading(false)
     }
   }
 
   useEffect(() => {
     if (!user) return
     let active = true
-    loadBookings(active)
-    const timer = window.setInterval(() => loadBookings(active), 8000)
+    if (!scannerBookingId) {
+      loadBookings(active)
+    }
+
+    let timer = null
+    if (!scannerBookingId) {
+      timer = window.setInterval(() => loadBookings(active, true), 8000)
+    }
+
     return () => {
       active = false
-      window.clearInterval(timer)
+      if (timer) {
+        window.clearInterval(timer)
+      }
     }
-  }, [user])
+  }, [user, scannerBookingId])
 
   if (!user || (user.role !== 'PROPRIETOR' && user.role !== 'ADMIN')) {
     return <Navigate to="/profile" replace />
@@ -144,29 +155,17 @@ export default function HostBookingsPage({ user }) {
     }
   }
 
-  const verifyCheckIn = async (bookingId, secretCode) => {
-    if (verifyingId) return
+  const handleCheckInVerified = async (bookingId, verified) => {
     setActionError('')
-    setVerifyingId(bookingId)
-    try {
-      const verified = await bookingService.verifyCheckIn(bookingId, secretCode)
-      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: String(verified.status || 'completed').toLowerCase() } : b))
-      window.dispatchEvent(new CustomEvent('booking:status-updated', {
-        detail: {
-          bookingId,
-          status: String(verified.status || 'COMPLETED').toUpperCase(),
-        },
-      }))
-      await loadBookings(true)
-    } catch (error) {
-      const apiMessage =
-        error?.response?.data?.message ||
-        (error?.response?.data?.errors && Object.values(error.response.data.errors)[0]) ||
-        error?.message
-      setActionError(apiMessage || 'Vérification du check-in impossible.')
-    } finally {
-      setVerifyingId(null)
-    }
+    setScannerBookingId(null)
+    setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: String(verified?.status || 'completed').toLowerCase() } : b))
+    window.dispatchEvent(new CustomEvent('booking:status-updated', {
+      detail: {
+        bookingId,
+        status: String(verified?.status || 'COMPLETED').toUpperCase(),
+      },
+    }))
+    await loadBookings(true)
   }
 
   const filtered = bookings
@@ -432,10 +431,12 @@ export default function HostBookingsPage({ user }) {
                             )}
 
                             {b.status === 'paid_awaiting_checkin' && (
-                              <HostCheckInScanner
+                              <HostBookingCard
                                 bookingId={b.id}
-                                onVerify={verifyCheckIn}
-                                loading={verifyingId === b.id}
+                                onVerified={handleCheckInVerified}
+                                isScannerOpen={scannerBookingId === b.id}
+                                onOpenScanner={() => setScannerBookingId(b.id)}
+                                onCloseScanner={() => setScannerBookingId(null)}
                               />
                             )}
 

@@ -139,7 +139,8 @@ Point d’entrée: `com.example.houserental.HouseRentalApplication`
 ## `Booking`
 - lien annonce/invité: `listingId`, `guestId`
 - dates: `checkInDate`, `checkOutDate`
-- état: `PENDING|CONFIRMED|CANCELLED|REJECTED|COMPLETED`
+- état: `PENDING|AWAITING_PAYMENT|PAID_AWAITING_CHECKIN|CONFIRMED|CANCELLED|REJECTED|COMPLETED`
+- paiement/sécurité: `stripePaymentIntentId`, `checkInSecretCode`, `paymentStatus`
 
 ## `Message`
 - messagerie privée: `senderId`, `receiverId`, `content`, `createdAt`
@@ -203,6 +204,7 @@ La sécurité est **en 2 niveaux**:
 - `POST /` (`GUEST|TENANT`)
 - `PATCH /{id}/status` (`HOST|PROPRIETOR|ADMIN`)
 - `PUT /{id}/status` (`HOST|PROPRIETOR|ADMIN`)
+- `POST /{id}/verify-checkin` (`HOST|PROPRIETOR`)
 - `DELETE /{id}` (`GUEST|TENANT|ADMIN`)
 - `GET /me` (`GUEST|TENANT`)
 - `GET /owner` (`HOST|PROPRIETOR|ADMIN`)
@@ -278,6 +280,20 @@ La sécurité est **en 2 niveaux**:
 - message autorisé si:
   - utilisateurs connectés (request acceptée), **ou**
   - relation host/guest via bookings
+
+## 7.5 Sécurité des Transactions : Modèle Escrow & Handshake QR
+
+- **Concept d'Escrow**: le paiement du Guest est encaissé mais **séquestré** (état pending côté plateforme). Les fonds ne sont transférés au Propriétaire qu'après validation physique de la remise des clés.
+
+- **Handshake Cryptographique (QR Code)**:
+  - Une fois le paiement effectué, le backend génère un UUID unique et sécurisé (QR Code) côté Guest.
+  - Ce code sert de **Preuve de Présence**.
+
+- **Validation du Check-in**:
+  - Le Propriétaire doit scanner le QR Code du Guest via l'application.
+  - Le backend vérifie la correspondance du hash. Si valide, le statut du Booking passe à `COMPLETED` et le virement (payout) est déclenché vers le compte du Propriétaire.
+
+- **Anti-Scam**: ce processus garantit que le Propriétaire ne reçoit l'argent que si le Guest est réellement devant la porte avec les clés, et que le Guest ne peut pas prétendre ne pas avoir reçu les clés s'il a présenté son code.
 
 ## Verification
 - OTP de démo codé (`123456`)
