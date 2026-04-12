@@ -3,7 +3,9 @@ package com.maskan.api.controller;
 import com.maskan.api.dto.BookingRequest;
 import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.BookingStatusUpdateRequest;
+import com.maskan.api.dto.CheckInVerificationResponse;
 import com.maskan.api.dto.UnavailableDateRangeResponse;
+import com.maskan.api.dto.VerifyCheckInRequest;
 import com.maskan.api.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,14 @@ public class BookingController {
                                        @AuthenticationPrincipal UserDetails principal) {
         bookingService.cancelBooking(id, principal.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/verify-checkin")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR')")
+    public ResponseEntity<CheckInVerificationResponse> verifyCheckIn(@PathVariable String id,
+                                                                     @Valid @RequestBody VerifyCheckInRequest request,
+                                                                     @AuthenticationPrincipal UserDetails principal) {
+        return ResponseEntity.ok(bookingService.verifyCheckIn(id, request, principal.getUsername()));
     }
 
     @GetMapping("/me")

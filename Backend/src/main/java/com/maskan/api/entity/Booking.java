@@ -45,6 +45,10 @@ public class Booking {
     @Builder.Default
     private Instant createdAt = Instant.now();
 
+    private String stripePaymentIntentId;
+
+    private String checkInSecretCode;
+
     public LocalDate getStartDate() {
         return checkInDate;
     }

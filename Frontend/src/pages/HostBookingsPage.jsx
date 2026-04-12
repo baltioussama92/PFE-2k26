@@ -9,9 +9,12 @@ import {
 } from 'lucide-react'
 import { bookingService } from '../services/bookingService'
 import { propertyService } from '../services/propertyService'
+import HostCheckInScanner from '../components/bookings/HostCheckInScanner'
 
 const STATUS_MAP = {
   pending:   { label: 'En attente',  color: 'text-amber-600',   bg: 'bg-amber-50',   icon: Hourglass },
+  awaiting_payment: { label: 'En attente paiement', color: 'text-orange-600', bg: 'bg-orange-50', icon: CreditCard },
+  paid_awaiting_checkin: { label: 'Payée · Check-in requis', color: 'text-sky-700', bg: 'bg-sky-50', icon: UserCheck },
   confirmed: { label: 'Confirmée',   color: 'text-emerald-600', bg: 'bg-emerald-50',  icon: CheckCircle2 },
   completed: { label: 'Terminée',    color: 'text-blue-600',    bg: 'bg-blue-50',     icon: CalendarCheck },
   rejected:  { label: 'Refusée',     color: 'text-red-500',     bg: 'bg-red-50',      icon: XCircle },
@@ -21,6 +24,8 @@ const STATUS_MAP = {
 const TABS = [
   { key: 'all',       label: 'Toutes' },
   { key: 'pending',   label: 'En attente' },
+  { key: 'awaiting_payment', label: 'Paiement attendu' },
+  { key: 'paid_awaiting_checkin', label: 'Check-in QR' },
   { key: 'confirmed', label: 'Confirmées' },
   { key: 'completed', label: 'Terminées' },
   { key: 'rejected',  label: 'Refusées' },
@@ -34,6 +39,7 @@ export default function HostBookingsPage({ user }) {
   const [expanded, setExpanded] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState(null)
+  const [verifyingId, setVerifyingId] = useState(null)
   const [actionError, setActionError] = useState('')
 
   const loadBookings = async (active = true) => {
@@ -138,6 +144,31 @@ export default function HostBookingsPage({ user }) {
     }
   }
 
+  const verifyCheckIn = async (bookingId, secretCode) => {
+    if (verifyingId) return
+    setActionError('')
+    setVerifyingId(bookingId)
+    try {
+      const verified = await bookingService.verifyCheckIn(bookingId, secretCode)
+      setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: String(verified.status || 'completed').toLowerCase() } : b))
+      window.dispatchEvent(new CustomEvent('booking:status-updated', {
+        detail: {
+          bookingId,
+          status: String(verified.status || 'COMPLETED').toUpperCase(),
+        },
+      }))
+      await loadBookings(true)
+    } catch (error) {
+      const apiMessage =
+        error?.response?.data?.message ||
+        (error?.response?.data?.errors && Object.values(error.response.data.errors)[0]) ||
+        error?.message
+      setActionError(apiMessage || 'Vérification du check-in impossible.')
+    } finally {
+      setVerifyingId(null)
+    }
+  }
+
   const filtered = bookings
     .filter(b => tab === 'all' || b.status === tab)
     .filter(b =>
@@ -147,8 +178,8 @@ export default function HostBookingsPage({ user }) {
     )
 
   const pendingCount = bookings.filter(b => b.status === 'pending').length
-  const confirmedCount = bookings.filter(b => b.status === 'confirmed').length
-  const totalRevenue = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed')
+  const confirmedCount = bookings.filter(b => b.status === 'confirmed' || b.status === 'awaiting_payment' || b.status === 'paid_awaiting_checkin').length
+  const totalRevenue = bookings.filter(b => b.status === 'completed')
     .reduce((s, b) => s + b.totalPrice, 0)
 
   return (
@@ -398,6 +429,14 @@ export default function HostBookingsPage({ user }) {
                                   Annuler
                                 </button>
                               </div>
+                            )}
+
+                            {b.status === 'paid_awaiting_checkin' && (
+                              <HostCheckInScanner
+                                bookingId={b.id}
+                                onVerify={verifyCheckIn}
+                                loading={verifyingId === b.id}
+                              />
                             )}
 
                             <p className="text-[11px] text-primary-400 text-right">

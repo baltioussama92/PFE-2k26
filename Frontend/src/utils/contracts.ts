@@ -124,7 +124,14 @@ export interface PropertyQuery {
 }
 
 // ── Bookings ─────────────────────────────────────────────────
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'REJECTED' | 'COMPLETED'
+export type BookingStatus =
+  | 'PENDING'
+  | 'AWAITING_PAYMENT'
+  | 'PAID_AWAITING_CHECKIN'
+  | 'CONFIRMED'
+  | 'CANCELLED'
+  | 'REJECTED'
+  | 'COMPLETED'
 
 export interface BookingRequest {
   listingId: string
@@ -148,6 +155,26 @@ export interface BookingResponse {
   listingImage?: string
   guestEmail?: string
   guestName?: string
+  stripePaymentIntentId?: string
+  checkInSecretCode?: string
+}
+
+export interface PaymentCheckoutResponse {
+  bookingId: string
+  status: BookingStatus
+  stripePaymentIntentId: string
+  checkInSecretCode: string
+  message: string
+}
+
+export interface VerifyCheckInRequest {
+  secretCode: string
+}
+
+export interface CheckInVerificationResponse {
+  bookingId: string
+  status: BookingStatus
+  message: string
 }
 
 export interface BookingStatusUpdateRequest {

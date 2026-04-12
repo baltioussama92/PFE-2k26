@@ -5,6 +5,7 @@ import com.maskan.api.entity.BookingStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface BookingRepository extends MongoRepository<Booking, String> {
@@ -25,6 +26,8 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
 			String id
 	);
 	boolean existsByGuestIdAndStatusAndCheckOutDateAfter(String guestId, BookingStatus status, LocalDate checkOutDate);
+	boolean existsByGuestIdAndStatusInAndCheckOutDateAfter(String guestId, Collection<BookingStatus> statuses, LocalDate checkOutDate);
+	boolean existsByListingIdInAndGuestIdAndStatusIn(List<String> listingIds, String guestId, Collection<BookingStatus> statuses);
 	long countByGuestId(String guestId);
 	long countByListingIdIn(List<String> listingIds);
 	long countByListingIdInAndStatus(List<String> listingIds, BookingStatus status);

@@ -25,5 +25,7 @@ public class BookingResponse {
     String listingImage;
     String guestEmail;
     String guestName;
+    String stripePaymentIntentId;
+    String checkInSecretCode;
 }
 

@@ -4,6 +4,7 @@ import com.maskan.api.dto.MessageRequest;
 import com.maskan.api.dto.MessageResponse;
 import com.maskan.api.dto.ConversationSummaryResponse;
 import com.maskan.api.entity.Message;
+import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.User;
 import com.maskan.api.exception.NotFoundException;
@@ -11,7 +12,6 @@ import com.maskan.api.repository.BookingRepository;
 import com.maskan.api.repository.MessageRepository;
 import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.repository.UserRepository;
-import com.maskan.api.service.ConnectionService;
 import com.maskan.api.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,9 +30,14 @@ public class MessageServiceImpl implements MessageService {
 
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
-    private final ConnectionService connectionService;
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
+
+        private static final Set<BookingStatus> MESSAGE_ALLOWED_STATUSES = Set.of(
+            BookingStatus.AWAITING_PAYMENT,
+            BookingStatus.PAID_AWAITING_CHECKIN,
+            BookingStatus.COMPLETED
+        );
 
     @Override
     public MessageResponse send(MessageRequest request, String email) {
@@ -40,7 +46,7 @@ public class MessageServiceImpl implements MessageService {
                 .orElseThrow(() -> new NotFoundException("Receiver not found"));
 
         if (!canUsersMessage(sender.getId(), receiver.getId())) {
-            throw new IllegalArgumentException("Connection request must be accepted before messaging");
+            throw new IllegalArgumentException("Messaging is allowed only when an active booking exists between guest and host");
         }
 
         Message message = Message.builder()
@@ -76,7 +82,7 @@ public class MessageServiceImpl implements MessageService {
     public List<MessageResponse> conversation(String email, String otherUserId) {
         User user = getUserByEmail(email);
         if (!canUsersMessage(user.getId(), otherUserId)) {
-            throw new IllegalArgumentException("Connection request must be accepted before opening conversation");
+            throw new IllegalArgumentException("Messaging is allowed only when an active booking exists between guest and host");
         }
         return messageRepository
                 .findBySenderIdAndReceiverIdOrReceiverIdAndSenderIdOrderByCreatedAtAsc(
@@ -134,22 +140,11 @@ public class MessageServiceImpl implements MessageService {
     }
 
     private boolean canUsersMessage(String firstUserId, String secondUserId) {
-        return connectionService.areUsersConnected(firstUserId, secondUserId)
-                || haveBookingRelationship(firstUserId, secondUserId)
-                || haveBookingRelationship(secondUserId, firstUserId)
-                || haveExistingConversation(firstUserId, secondUserId);
+        return haveEligibleHostGuestBooking(firstUserId, secondUserId)
+            || haveEligibleHostGuestBooking(secondUserId, firstUserId);
     }
 
-    private boolean haveExistingConversation(String firstUserId, String secondUserId) {
-        return messageRepository.existsBySenderIdAndReceiverIdOrReceiverIdAndSenderId(
-                firstUserId,
-                secondUserId,
-                firstUserId,
-                secondUserId
-        );
-    }
-
-    private boolean haveBookingRelationship(String hostId, String guestId) {
+        private boolean haveEligibleHostGuestBooking(String hostId, String guestId) {
         List<String> hostPropertyIds = propertyRepository.findByHostId(hostId).stream()
                 .map(Property::getId)
                 .collect(Collectors.toList());
@@ -158,8 +153,11 @@ public class MessageServiceImpl implements MessageService {
             return false;
         }
 
-        return bookingRepository.findByListingIdIn(hostPropertyIds).stream()
-                .anyMatch(booking -> guestId.equals(booking.getGuestId()));
+        return bookingRepository.existsByListingIdInAndGuestIdAndStatusIn(
+            hostPropertyIds,
+            guestId,
+            MESSAGE_ALLOWED_STATUSES
+        );
     }
 }
 

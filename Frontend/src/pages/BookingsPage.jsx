@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { bookingService } from '../services/bookingService'
 import { propertyService } from '../services/propertyService'
+import GuestCheckInQRCode from '../components/bookings/GuestCheckInQRCode'
 
 // ── Status config ────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -18,6 +19,22 @@ const STATUS_CONFIG = {
     text: 'text-emerald-700',
     border: 'border-emerald-200',
     dot: 'bg-emerald-500',
+  },
+  awaiting_payment: {
+    label: 'Paiement requis',
+    icon: CreditCard,
+    bg: 'bg-orange-50',
+    text: 'text-orange-700',
+    border: 'border-orange-200',
+    dot: 'bg-orange-500',
+  },
+  paid_awaiting_checkin: {
+    label: 'Payée · En attente check-in',
+    icon: CheckCircle2,
+    bg: 'bg-sky-50',
+    text: 'text-sky-700',
+    border: 'border-sky-200',
+    dot: 'bg-sky-500',
   },
   pending: {
     label: 'En attente',
@@ -43,11 +60,21 @@ const STATUS_CONFIG = {
     border: 'border-red-200',
     dot: 'bg-red-400',
   },
+  rejected: {
+    label: 'Refusée',
+    icon: XCircle,
+    bg: 'bg-red-50',
+    text: 'text-red-600',
+    border: 'border-red-200',
+    dot: 'bg-red-400',
+  },
 }
 
 const FILTER_TABS = [
   { value: 'all',       label: 'Toutes'     },
   { value: 'confirmed', label: 'Confirmées' },
+  { value: 'awaiting_payment', label: 'À payer' },
+  { value: 'paid_awaiting_checkin', label: 'En check-in' },
   { value: 'pending',   label: 'En attente' },
   { value: 'completed', label: 'Terminées'  },
   { value: 'cancelled', label: 'Annulées'   },
@@ -70,6 +97,8 @@ export default function BookingsPage({ user }) {
   const [expandedId, setExpandedId] = useState(null)
   const [allBookings, setAllBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [payingBookingId, setPayingBookingId] = useState(null)
+  const [paymentError, setPaymentError] = useState('')
 
   const loadBookings = async (active = true, silent = false) => {
     if (!silent) {
@@ -110,10 +139,11 @@ export default function BookingsPage({ user }) {
           propertyId: b.listingId,
           checkIn: b.checkInDate,
           checkOut: b.checkOutDate,
-          guests: 1,
-          totalPrice: (property?.price ?? 0) * nights,
+          guests: b.guests ?? 1,
+          totalPrice: Number(b.totalPrice ?? (property?.price ?? 0) * nights),
           status: (b.status || '').toLowerCase(),
-          createdAt: b.checkInDate,
+          createdAt: b.createdAt || b.checkInDate,
+          checkInSecretCode: b.checkInSecretCode || '',
           property: property || { title: 'Propriété', location: 'Non disponible', image: '' },
         }
       }))
@@ -142,6 +172,24 @@ export default function BookingsPage({ user }) {
       window.removeEventListener('booking:status-updated', onStatusUpdated)
     }
   }, [user])
+
+  const handlePayNow = async (bookingId) => {
+    if (payingBookingId) return
+    setPaymentError('')
+    setPayingBookingId(bookingId)
+    try {
+      await bookingService.checkoutPayment(bookingId)
+      await loadBookings(true, true)
+      window.dispatchEvent(new CustomEvent('booking:status-updated', {
+        detail: { bookingId, status: 'PAID_AWAITING_CHECKIN' },
+      }))
+    } catch (error) {
+      const apiMessage = error?.response?.data?.message || error?.message
+      setPaymentError(apiMessage || 'Paiement impossible pour cette réservation.')
+    } finally {
+      setPayingBookingId(null)
+    }
+  }
 
   if (!user) return <Navigate to="/" replace />
 
@@ -182,6 +230,12 @@ export default function BookingsPage({ user }) {
 
         {!loading && (
         <>
+
+        {paymentError && (
+          <div className="mb-4 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-600">
+            {paymentError}
+          </div>
+        )}
 
         {/* ── Header ──────────────────────────────────────── */}
         <motion.div
@@ -296,7 +350,7 @@ export default function BookingsPage({ user }) {
         <div className="space-y-4">
           <AnimatePresence mode="popLayout">
             {bookings.map((b, i) => {
-              const sc = STATUS_CONFIG[b.status]
+              const sc = STATUS_CONFIG[b.status] || STATUS_CONFIG.pending
               const StatusIcon = sc.icon
               const nights = daysBetween(b.checkIn, b.checkOut)
               const expanded = expandedId === b.id
@@ -390,13 +444,26 @@ export default function BookingsPage({ user }) {
                               >
                                 Voir la propriété
                               </Link>
-                              {b.status === 'confirmed' && (
+                              {(b.status === 'confirmed' || b.status === 'awaiting_payment' || b.status === 'paid_awaiting_checkin') && (
                                 <button className="px-3.5 py-2 rounded-xl bg-primary-500 text-xs font-bold text-primary-50 shadow-sm hover:bg-primary-600 transition">
                                   Contacter l'hôte
                                 </button>
                               )}
+                              {b.status === 'awaiting_payment' && (
+                                <button
+                                  onClick={() => handlePayNow(b.id)}
+                                  disabled={payingBookingId === b.id}
+                                  className="px-3.5 py-2 rounded-xl bg-emerald-500 text-xs font-bold text-white shadow-sm hover:bg-emerald-600 transition disabled:opacity-60"
+                                >
+                                  {payingBookingId === b.id ? 'Paiement...' : 'Pay Now'}
+                                </button>
+                              )}
                             </div>
                           </div>
+
+                          {b.status === 'paid_awaiting_checkin' && (
+                            <GuestCheckInQRCode secretCode={b.checkInSecretCode} />
+                          )}
                         </div>
                       </motion.div>
                     )}

@@ -3,7 +3,9 @@ package com.maskan.api.service.impl;
 import com.maskan.api.dto.BookingRequest;
 import com.maskan.api.dto.BookingResponse;
 import com.maskan.api.dto.BookingStatusUpdateRequest;
+import com.maskan.api.dto.CheckInVerificationResponse;
 import com.maskan.api.dto.UnavailableDateRangeResponse;
+import com.maskan.api.dto.VerifyCheckInRequest;
 import com.maskan.api.entity.Booking;
 import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.entity.Property;
@@ -51,7 +53,12 @@ public class BookingServiceImpl implements BookingService {
             request.getCheckInDate(),
             request.getCheckOutDate(),
             null,
-            List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING)
+            List.of(
+                    BookingStatus.PENDING,
+                    BookingStatus.CONFIRMED,
+                    BookingStatus.AWAITING_PAYMENT,
+                    BookingStatus.PAID_AWAITING_CHECKIN
+            )
         );
 
         Booking booking = Booking.builder()
@@ -64,7 +71,7 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         Booking saved = bookingRepository.save(booking);
-        return toResponse(saved);
+        return toResponse(saved, true);
     }
 
     @Override
@@ -93,13 +100,23 @@ public class BookingServiceImpl implements BookingService {
                     booking.getCheckInDate(),
                     booking.getCheckOutDate(),
                     booking.getId(),
-                    List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING)
+                List.of(
+                    BookingStatus.PENDING,
+                    BookingStatus.CONFIRMED,
+                    BookingStatus.AWAITING_PAYMENT,
+                    BookingStatus.PAID_AWAITING_CHECKIN
+                )
             );
         }
 
-        booking.setStatus(request.getStatus());
+        BookingStatus nextStatus = request.getStatus();
+        if (nextStatus == BookingStatus.CONFIRMED) {
+            nextStatus = BookingStatus.AWAITING_PAYMENT;
+        }
+
+        booking.setStatus(nextStatus);
         Booking saved = bookingRepository.save(booking);
-        return toResponse(saved);
+        return toResponse(saved, true);
     }
 
     @Override
@@ -118,11 +135,46 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public CheckInVerificationResponse verifyCheckIn(String bookingId, VerifyCheckInRequest request, String email) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new NotFoundException("Booking not found"));
+
+        User host = getUserByEmail(email);
+        if (host.getRole() != Role.HOST) {
+            throw new IllegalArgumentException("Not authorized to verify check-in");
+        }
+
+        Property property = propertyRepository.findById(booking.getListingId())
+                .orElseThrow(() -> new NotFoundException("Property not found"));
+
+        if (!host.getId().equals(property.getHostId())) {
+            throw new IllegalArgumentException("Not authorized to verify this booking");
+        }
+
+        if (booking.getStatus() != BookingStatus.PAID_AWAITING_CHECKIN) {
+            throw new IllegalArgumentException("Booking is not ready for check-in verification");
+        }
+
+        if (booking.getCheckInSecretCode() == null || !booking.getCheckInSecretCode().equals(request.getSecretCode())) {
+            throw new IllegalArgumentException("Invalid check-in secret code");
+        }
+
+        booking.setStatus(BookingStatus.COMPLETED);
+        Booking saved = bookingRepository.save(booking);
+
+        return CheckInVerificationResponse.builder()
+                .bookingId(saved.getId())
+                .status(saved.getStatus())
+                .message("Check-in verified successfully. Payout triggered.")
+                .build();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<BookingResponse> getMyBookings(String email) {
         User user = getUserByEmail(email);
         return bookingRepository.findByGuestId(user.getId()).stream()
-                .map(this::toResponse)
+                .map(booking -> toResponse(booking, true))
                 .toList();
     }
 
@@ -133,7 +185,7 @@ public class BookingServiceImpl implements BookingService {
 
         if (owner.getRole() == Role.ADMIN) {
             return bookingRepository.findAll().stream()
-                    .map(this::toResponse)
+                    .map(booking -> toResponse(booking, false))
                     .toList();
         }
 
@@ -150,7 +202,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         return bookingRepository.findByListingIdIn(ownerPropertyIds).stream()
-                .map(this::toResponse)
+            .map(booking -> toResponse(booking, false))
                 .toList();
     }
 
@@ -158,7 +210,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public List<BookingResponse> getAllBookings() {
         return bookingRepository.findAll().stream()
-                .map(this::toResponse)
+                .map(booking -> toResponse(booking, false))
                 .toList();
     }
 
@@ -167,7 +219,12 @@ public class BookingServiceImpl implements BookingService {
     public List<UnavailableDateRangeResponse> getUnavailableDateRangesForListing(String listingId) {
         return bookingRepository.findByListingIdAndStatusIn(
                 listingId,
-                List.of(BookingStatus.CONFIRMED, BookingStatus.PENDING)
+            List.of(
+                BookingStatus.PENDING,
+                BookingStatus.CONFIRMED,
+                BookingStatus.AWAITING_PAYMENT,
+                BookingStatus.PAID_AWAITING_CHECKIN
+            )
         ).stream()
                 .filter(booking -> booking.getCheckInDate() != null && booking.getCheckOutDate() != null)
                 .sorted(Comparator.comparing(Booking::getCheckInDate))
@@ -178,7 +235,7 @@ public class BookingServiceImpl implements BookingService {
                 .toList();
     }
 
-    private BookingResponse toResponse(Booking booking) {
+    private BookingResponse toResponse(Booking booking, boolean includeSecretCode) {
         Property listing = propertyRepository.findById(booking.getListingId()).orElse(null);
         BigDecimal totalPrice = BigDecimal.ZERO;
         if (listing != null && listing.getPricePerNight() != null) {
@@ -207,6 +264,8 @@ public class BookingServiceImpl implements BookingService {
             .listingImage(listing != null && listing.getImages() != null && !listing.getImages().isEmpty() ? listing.getImages().get(0) : null)
             .guestEmail(guest != null ? guest.getEmail() : null)
             .guestName(guest != null ? guest.getName() : null)
+            .stripePaymentIntentId(booking.getStripePaymentIntentId())
+            .checkInSecretCode(includeSecretCode ? booking.getCheckInSecretCode() : null)
                 .build();
     }
 
@@ -216,9 +275,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void ensureGuestHasNoActiveConfirmedBooking(String guestId) {
-        boolean hasActiveConfirmedBooking = bookingRepository.existsByGuestIdAndStatusAndCheckOutDateAfter(
+        boolean hasActiveConfirmedBooking = bookingRepository.existsByGuestIdAndStatusInAndCheckOutDateAfter(
                 guestId,
+            List.of(
                 BookingStatus.CONFIRMED,
+                BookingStatus.AWAITING_PAYMENT,
+                BookingStatus.PAID_AWAITING_CHECKIN
+            ),
                 LocalDate.now()
         );
 
