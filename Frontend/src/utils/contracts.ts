@@ -191,6 +191,7 @@ export interface ReviewRequest {
   listingId: string
   rating: number
   comment?: string
+  targetType?: 'HOUSE' | 'OWNER' | 'SERVICE'
 }
 
 export interface ReviewResponse {
@@ -198,7 +199,10 @@ export interface ReviewResponse {
   rating: number
   comment: string
   guestId: string
+  authorId?: string
+  authorRole?: 'HOST' | 'GUEST' | 'ADMIN'
   listingId: string
+  targetType?: 'HOUSE' | 'OWNER' | 'SERVICE'
   createdAt: string
 }
 

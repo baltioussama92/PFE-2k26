@@ -2,8 +2,10 @@ package com.maskan.api.service.impl;
 
 import com.maskan.api.dto.ReviewRequest;
 import com.maskan.api.dto.ReviewResponse;
+import com.maskan.api.entity.Role;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.Review;
+import com.maskan.api.entity.ReviewTargetType;
 import com.maskan.api.entity.User;
 import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.exception.NotFoundException;
@@ -34,21 +36,44 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElseThrow(() -> new NotFoundException("Property not found"));
         User user = getUserByEmail(email);
 
-        boolean isVerifiedTenant = bookingRepository.existsByGuestIdAndListingIdAndStatus(
-            user.getId(),
-            property.getId(),
-            BookingStatus.COMPLETED
-        );
-
-        if (!isVerifiedTenant) {
-            throw new IllegalArgumentException("Only tenants with completed bookings can post reviews");
+        if (reviewRepository.existsByListingIdAndGuestId(property.getId(), user.getId())) {
+            throw new IllegalArgumentException("You already reviewed this listing");
         }
+
+        boolean isAllowed;
+        if (user.getRole() == Role.HOST) {
+            boolean isListingOwner = property.getHostId().equals(user.getId());
+            boolean hasConfirmedReservation = bookingRepository.existsByListingIdAndStatus(
+                property.getId(),
+                BookingStatus.CONFIRMED
+            );
+            isAllowed = isListingOwner && hasConfirmedReservation;
+            if (!isAllowed) {
+                throw new IllegalArgumentException("Host can review only after a confirmed reservation on owned listing");
+            }
+        } else {
+            isAllowed = bookingRepository.existsByGuestIdAndListingIdAndStatus(
+                user.getId(),
+                property.getId(),
+                BookingStatus.COMPLETED
+            );
+            if (!isAllowed) {
+                throw new IllegalArgumentException("Only tenants with completed bookings can post reviews");
+            }
+        }
+
+        ReviewTargetType targetType = request.getTargetType() == null
+                ? ReviewTargetType.HOUSE
+                : request.getTargetType();
 
         Review review = Review.builder()
             .listingId(property.getId())
             .guestId(user.getId())
+                .authorId(user.getId())
+                .authorRole(user.getRole())
                 .rating(request.getRating())
                 .comment(request.getComment())
+                .targetType(targetType)
                 .build();
         Review saved = reviewRepository.save(review);
         return toResponse(saved);
@@ -68,7 +93,10 @@ public class ReviewServiceImpl implements ReviewService {
                 .rating(review.getRating())
                 .comment(review.getComment())
             .guestId(review.getGuestId())
+            .authorId(review.getAuthorId())
+            .authorRole(review.getAuthorRole())
             .listingId(review.getListingId())
+            .targetType(review.getTargetType())
             .createdAt(review.getCreatedAt())
                 .build();
     }

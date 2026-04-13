@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -26,10 +27,19 @@ public class Review {
     private String id;
 
     @NotNull
+    @Indexed
     private String listingId;
 
     @NotNull
+    @Indexed
     private String guestId;
+
+    @NotNull
+    @Indexed
+    private String authorId;
+
+    @NotNull
+    private Role authorRole;
 
     @NotNull
     @Min(1)
@@ -38,6 +48,9 @@ public class Review {
 
     @Size(max = 1000)
     private String comment;
+
+    @Builder.Default
+    private ReviewTargetType targetType = ReviewTargetType.HOUSE;
 
     @Builder.Default
     private Instant createdAt = Instant.now();

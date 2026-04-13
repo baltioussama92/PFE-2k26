@@ -28,7 +28,7 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('GUEST','TENANT')")
+    @PreAuthorize("hasAnyRole('GUEST','TENANT','HOST')")
     public ResponseEntity<ReviewResponse> create(@Valid @RequestBody ReviewRequest request,
                                                  @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(reviewService.createReview(request, principal.getUsername()));

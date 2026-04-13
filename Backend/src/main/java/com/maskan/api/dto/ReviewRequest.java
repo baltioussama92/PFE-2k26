@@ -1,5 +1,6 @@
 package com.maskan.api.dto;
 
+import com.maskan.api.entity.ReviewTargetType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -18,6 +19,8 @@ public class ReviewRequest {
 
     @Size(max = 1000)
     String comment;
+
+    ReviewTargetType targetType;
 
     public String getPropertyId() {
         return listingId;
