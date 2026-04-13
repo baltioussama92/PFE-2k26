@@ -9,8 +9,6 @@ const USER_STORAGE_KEY = 'user'
 const ROLE_STORAGE_KEY = 'userRole'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const PAGE_BG_IMAGE =
-  'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=2200&q=80'
 const LOGIN_SIDE_IMAGE =
   'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1600&q=80'
 const SIGNUP_SIDE_IMAGE =
@@ -307,10 +305,7 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0">
-        <img src={PAGE_BG_IMAGE} alt="Arrière-plan propriété de luxe" className="h-full w-full object-cover object-center" />
-        <div className="absolute inset-0 bg-black/45 backdrop-blur-md" />
-      </div>
+      <div className="absolute inset-0 bg-black/35 backdrop-blur-md" />
 
       <AnimatePresence mode="wait">
         <motion.div
