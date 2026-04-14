@@ -203,14 +203,17 @@ La sécurité est **en 2 niveaux**:
 ## Bookings (`/api/bookings` et alias `/api/reservations`)
 - `POST /` (`GUEST|TENANT`)
 - `PATCH /{id}/status` (`HOST|PROPRIETOR|ADMIN`)
-- `PUT /{id}/status` (`HOST|PROPRIETOR|ADMIN`)
 - `POST /{id}/verify-checkin` (`HOST|PROPRIETOR`)
 - `DELETE /{id}` (`GUEST|TENANT|ADMIN`)
 - `GET /me` (`GUEST|TENANT`)
 - `GET /owner` (`HOST|PROPRIETOR|ADMIN`)
+- `GET /listing/{listingId}/unavailable-dates` (public)
+
+## Payments (`/api/payments`)
+- `POST /checkout/{bookingId}` (`GUEST|TENANT`)
 
 ## Reviews (`/api/reviews`)
-- `POST /` (`GUEST|TENANT`)
+- `POST /` (`GUEST|TENANT|HOST`)
 - `GET /listing/{listingId}` (public)
 
 ## Wishlist (`/api/wishlist`)
@@ -244,6 +247,10 @@ La sécurité est **en 2 niveaux**:
 - `POST /phone/verify-otp` (auth)
 - `POST /identity` (auth, multipart)
 
+## Verifications Host (`/api/verifications`)
+- `POST /host` (auth, multipart)
+- `GET /me?type=HOST` (auth)
+
 ## Uploads (`/api/uploads`)
 - `POST /images` (`HOST|PROPRIETOR|ADMIN`, multipart)
 
@@ -271,10 +278,14 @@ La sécurité est **en 2 niveaux**:
 ## Booking
 - validation des dates
 - calcul `totalPrice = pricePerNight * nbJours * guests`
-- owner/admin peut changer statut; guest/admin peut annuler
+- owner/admin peut changer statut (`CONFIRMED` est converti en `AWAITING_PAYMENT`)
+- guest effectue le checkout via `/api/payments/checkout/{bookingId}` (état `PAID_AWAITING_CHECKIN` + génération `checkInSecretCode`)
+- host valide le check-in via secret code pour clôturer en `COMPLETED`
+- guest/admin peut annuler
 
 ## Review
-- un avis n’est autorisé que si le guest a un booking `COMPLETED` sur ce logement
+- guest: avis autorisé uniquement avec booking `COMPLETED`
+- host: avis autorisé sur son propre logement s’il existe une réservation `CONFIRMED`
 
 ## Messaging
 - message autorisé si:
@@ -299,6 +310,12 @@ La sécurité est **en 2 niveaux**:
 - OTP de démo codé (`123456`)
 - upload pièces d’identité dans `uploads/verifications/<userId>/`
 - niveau de vérification calculé (0 à 3)
+- ajout d’un flux de vérification host (`POST /api/verifications/host`) avec documents (government ID, selfie, proof, images)
+
+## Payment
+- checkout protégé: seul le guest du booking peut payer
+- paiement simulé (`pi_sim_*`) + génération d’un `checkInSecretCode` UUID
+- transition d’état: `AWAITING_PAYMENT` → `PAID_AWAITING_CHECKIN` avant validation check-in
 
 ## Admin
 - modération globale utilisateurs/logements
@@ -363,4 +380,4 @@ Dans `application.properties`:
 
 ## 11) Résumé final
 
-Le backend est un **monolithe Spring Boot REST sécurisé JWT**, adossé à MongoDB, avec une séparation claire Controller/Service/Repository. Il couvre les domaines Auth, Users, Listings, Bookings, Reviews, Messaging, Connections, Verification et Admin. La communication frontend/backend est proprement structurée (endpoints centralisés, token Bearer, CORS configuré, upload multipart, réponses JSON cohérentes).
+Le backend est un **monolithe Spring Boot REST sécurisé JWT**, adossé à MongoDB, avec une séparation claire Controller/Service/Repository. Il couvre les domaines Auth, Users, Listings, Bookings, Payments, Reviews, Messaging, Connections, Verification (guest + host) et Admin. La communication frontend/backend est proprement structurée (endpoints centralisés, token Bearer, CORS configuré, upload multipart, réponses JSON cohérentes).
