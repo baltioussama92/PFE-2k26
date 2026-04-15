@@ -1,6 +1,6 @@
 ﻿import { API_BASE_URL, apiClient, getStoredAuthToken } from '../../api/apiClient'
 import { ENDPOINTS } from '../../api/endpoints'
-import type { BookingResponse, PropertyResponse, UserDto } from '../../utils/contracts'
+import type { BookingResponse, MessageResponse, PropertyResponse, UserDto } from '../../utils/contracts'
 
 export type UserRole = 'guest' | 'host'
 export type UserStatus = 'active' | 'banned'
@@ -803,6 +803,8 @@ export const adminApi = {
       return []
     }
   },
+
+
 
   async getUserEarningsSummary(userId: number | string): Promise<AdminUserEarningsSummary> {
     const [overviewResponse, earningsResponse] = await Promise.all([

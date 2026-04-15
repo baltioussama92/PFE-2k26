@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
+import MapLibreMap, { Marker } from 'react-map-gl/maplibre'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import {
   ArrowLeft, Heart, Share2, MapPin, Star, Bed, Bath, Maximize2,
   Wifi, Car, Waves, Shield, TreePine, Wind, ChefHat, Building,
@@ -26,10 +28,6 @@ const getPropertyTypePin = (type) => {
   if (normalized.includes('appartement') || normalized.includes('apartment')) return '🏢'
   return '📍'
 }
-
-const buildMaptilerViewerUrl = (lat, lng) => (
-  `https://api.maptiler.com/maps/019d7cf7-51a0-7f23-b2b3-eb3785692ca9/?key=${MAPTILER_KEY}#15/${Number(lat)}/${Number(lng)}`
-)
 
 const DEFAULT_HOUSE_RULES = [
   'Arrivée : à partir de 15h00',
@@ -546,6 +544,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
     comment: '',
   })
   const [reviewFormError, setReviewFormError] = useState('')
+  const displayLocation = property?.location || property?.address || property?.locationName || property?.city || 'Localisation indisponible'
 
   useEffect(() => {
     let active = true
@@ -845,7 +844,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
             >
               <h2 className="text-lg font-bold text-primary-900 mb-3">À propos de ce logement</h2>
               <p className="text-sm text-primary-700 leading-relaxed">
-                Découvrez ce magnifique {property.type?.toLowerCase() || 'logement'} situé à {property.location}.
+                Découvrez ce magnifique {property.type?.toLowerCase() || 'logement'} situé à {displayLocation}.
                 {property.bedrooms && ` Avec ${property.bedrooms} chambre${property.bedrooms > 1 ? 's' : ''}`}
                 {property.bathrooms && ` et ${property.bathrooms} salle${property.bathrooms > 1 ? 's' : ''} de bain`}
                 {property.area && `, ce bien de ${property.area} m² offre un espace de vie confortable et lumineux`}.
@@ -890,29 +889,35 @@ export default function PropertyDetails({ user, onAuthClick }) {
               <h2 className="text-lg font-bold text-primary-900 mb-3">Localisation</h2>
               {property.lat != null && property.lng != null ? (
                 <div className="rounded-2xl overflow-hidden border border-primary-200">
-                  <div className="relative">
-                    <iframe
-                      title={`Carte de ${property.location}`}
-                      src={buildMaptilerViewerUrl(property.lat, property.lng)}
-                      className="w-full h-[260px] border-0"
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                    />
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                      <div className="-translate-y-3">
+                  <MapLibreMap
+                    initialViewState={{
+                      latitude: Number(property.lat),
+                      longitude: Number(property.lng),
+                      zoom: 14,
+                    }}
+                    mapStyle={`https://api.maptiler.com/maps/019d7cf7-51a0-7f23-b2b3-eb3785692ca9/style.json?key=${MAPTILER_KEY}`}
+                    style={{ width: '100%', height: 260 }}
+                    attributionControl={true}
+                  >
+                    <Marker
+                      latitude={Number(property.lat)}
+                      longitude={Number(property.lng)}
+                      anchor="bottom"
+                    >
+                      <div className="select-none -translate-y-1">
                         <div className="w-9 h-9 rounded-full bg-primary-500 text-white flex items-center justify-center shadow-lg border-2 border-white text-base">
                           {getPropertyTypePin(property.type)}
                         </div>
                         <div className="w-0 h-0 mx-auto border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[10px] border-t-primary-500" />
                       </div>
-                    </div>
-                  </div>
+                    </Marker>
+                  </MapLibreMap>
                 </div>
               ) : (
                 <div className="rounded-2xl overflow-hidden border border-primary-200 bg-primary-100 h-48 flex items-center justify-center">
                   <div className="text-center">
                     <MapPin className="w-8 h-8 text-primary-400 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-primary-700">{property.location}</p>
+                    <p className="text-sm font-semibold text-primary-700">{displayLocation}</p>
                     <p className="text-xs text-primary-400 mt-1">Coordonnées non définies par l'hôte</p>
                   </div>
                 </div>

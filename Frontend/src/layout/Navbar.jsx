@@ -176,8 +176,20 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
           {/* -- Logo ------------------------------------------- */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
             <motion.img
-              whileHover={{ rotate: -6, scale: 1.08 }}
-              transition={{ type: 'spring', stiffness: 400 }}
+              animate={{ 
+                y: [0, -3, 0],
+                rotate: [0, 2, 0]
+              }}
+              transition={{ 
+                duration: 3,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
+              whileHover={{ 
+                rotate: -6, 
+                scale: 1.08,
+                y: 0,
+              }}
               src="/maskan no name logo.png"
               alt="Maskan logo"
               className="h-10 w-auto shrink-0 drop-shadow-sm"
@@ -372,14 +384,15 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                         </Link>
                       ))}
                       <div className="my-1 border-t border-primary-200" />
-                      <button
+                      <motion.button
+                        whileHover={{ x: 4 }}
                         onClick={() => { setDropdownOpen(false); onLogout?.() }}
                         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-500
                                    hover:bg-red-50 transition-colors duration-100"
                       >
                         <LogOut className="w-4 h-4" />
                         Se déconnecter
-                      </button>
+                      </motion.button>
                     </motion.div>
                   )}
                 </AnimatePresence>

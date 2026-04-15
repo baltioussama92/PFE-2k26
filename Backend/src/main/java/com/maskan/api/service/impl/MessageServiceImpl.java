@@ -5,6 +5,7 @@ import com.maskan.api.dto.MessageResponse;
 import com.maskan.api.dto.ConversationSummaryResponse;
 import com.maskan.api.entity.Message;
 import com.maskan.api.entity.BookingStatus;
+import com.maskan.api.entity.Role;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.User;
 import com.maskan.api.exception.NotFoundException;
@@ -45,7 +46,7 @@ public class MessageServiceImpl implements MessageService {
         User receiver = userRepository.findById(request.getReceiverId())
                 .orElseThrow(() -> new NotFoundException("Receiver not found"));
 
-        if (!canUsersMessage(sender.getId(), receiver.getId())) {
+        if (!canUsersMessage(sender, receiver)) {
             throw new IllegalArgumentException("Messaging is allowed only when an active booking exists between guest and host");
         }
 
@@ -81,9 +82,13 @@ public class MessageServiceImpl implements MessageService {
     @Transactional(readOnly = true)
     public List<MessageResponse> conversation(String email, String otherUserId) {
         User user = getUserByEmail(email);
-        if (!canUsersMessage(user.getId(), otherUserId)) {
+        User otherUser = userRepository.findById(otherUserId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        if (!canUsersMessage(user, otherUser)) {
             throw new IllegalArgumentException("Messaging is allowed only when an active booking exists between guest and host");
         }
+
         return messageRepository
                 .findBySenderIdAndReceiverIdOrReceiverIdAndSenderIdOrderByCreatedAtAsc(
                         user.getId(),
@@ -139,7 +144,10 @@ public class MessageServiceImpl implements MessageService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
-    private boolean canUsersMessage(String firstUserId, String secondUserId) {
+    private boolean canUsersMessage(User sender, User receiver) {
+        String firstUserId = sender.getId();
+        String secondUserId = receiver.getId();
+
         return haveEligibleHostGuestBooking(firstUserId, secondUserId)
             || haveEligibleHostGuestBooking(secondUserId, firstUserId);
     }
