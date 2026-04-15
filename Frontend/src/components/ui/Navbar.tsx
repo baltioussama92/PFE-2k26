@@ -31,9 +31,11 @@ import {
   Settings,
   PlusSquare,
   ShieldCheck,
+  Globe,
 } from 'lucide-react'
 import { AUTH_TOKEN_KEY } from '../../api/apiClient'
 import { authService } from '../../services/authService'
+import { useLanguage } from '../../context/LanguageContext'
 
 // --- Types --------------------------------------------------------------------
 interface NavUser {
@@ -64,9 +66,9 @@ const hasAuthToken = (): boolean => Boolean(localStorage.getItem(AUTH_TOKEN_KEY)
 
 // --- Nav links ----------------------------------------------------------------
 const NAV_LINKS = [
-  { label: 'Home',    to: '/',       icon: <Home      size={16} /> },
-  { label: 'Explore', to: '/search', icon: <Search    size={16} /> },
-  { label: 'About',   to: '/#about-house', icon: <Building2 size={16} /> },
+  { labelKey: 'nav.home',    to: '/',       icon: <Home      size={16} /> },
+  { labelKey: 'nav.explore', to: '/search', icon: <Search    size={16} /> },
+  { labelKey: 'nav.about',   to: '/#about-house', icon: <Building2 size={16} /> },
 ]
 
 // --- Motion variants ----------------------------------------------------------
@@ -94,8 +96,11 @@ const Navbar: React.FC = () => {
   const [scrolled,     setScrolled]     = useState(false)
   const [mobileOpen,   setMobileOpen]   = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [languageOpen, setLanguageOpen] = useState(false)
+  const { language, setLanguage, languageOptions, t } = useLanguage()
 
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const languageRef = useRef<HTMLDivElement>(null)
   const { pathname } = useLocation()
   const useSolidNavbar = scrolled || pathname !== '/'
 
@@ -112,6 +117,9 @@ const Navbar: React.FC = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false)
       }
+      if (languageRef.current && !languageRef.current.contains(e.target as Node)) {
+        setLanguageOpen(false)
+      }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -119,6 +127,8 @@ const Navbar: React.FC = () => {
 
   // -- Close mobile menu on route change ---------------------------------------
   useEffect(() => { setMobileOpen(false) }, [pathname])
+
+  const currentLanguage = languageOptions.find((option) => option.code === language) || languageOptions[1]
 
   // Keep navbar auth state synced with localStorage updates.
   useEffect(() => {
@@ -189,7 +199,7 @@ const Navbar: React.FC = () => {
                 alt="Maskan Logo"
                 className="h-20 w-auto group-hover:scale-105 transition-transform"
               />
-              <span
+                    {t('nav.signup')}
                 className={[
                   'text-xl font-bold tracking-tight transition-colors',
                   useSolidNavbar ? 'text-primary-900' : 'text-primary-50 drop-shadow',
@@ -201,7 +211,7 @@ const Navbar: React.FC = () => {
 
             {/* -- Desktop nav links --------------------------------------- */}
             <nav className="hidden md:flex items-center gap-1">
-              {NAV_LINKS.map(({ label, to, icon }) => {
+              {NAV_LINKS.map(({ labelKey, to, icon }) => {
                 const active = pathname === to
                 return (
                   <Link
@@ -217,7 +227,7 @@ const Navbar: React.FC = () => {
                     ].join(' ')}
                   >
                     {icon}
-                    {label}
+                    {t(labelKey)}
                   </Link>
                 )
               })}
@@ -225,6 +235,57 @@ const Navbar: React.FC = () => {
 
             {/* -- Right-side actions -------------------------------------- */}
             <div className="flex items-center gap-2">
+
+              <div ref={languageRef} className="relative hidden sm:block">
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setLanguageOpen((value) => !value)}
+                  className={[
+                    'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors',
+                    useSolidNavbar
+                      ? 'border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100'
+                      : 'border-primary-50/20 bg-primary-50/10 text-primary-50 hover:bg-primary-50/20',
+                  ].join(' ')}
+                  aria-label={t('nav.chooseLanguage')}
+                >
+                  <Globe size={16} />
+                  <span>{currentLanguage.shortLabel}</span>
+                  <motion.span animate={{ rotate: languageOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronDown size={14} />
+                  </motion.span>
+                </motion.button>
+
+                <AnimatePresence>
+                  {languageOpen && (
+                    <motion.div
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-primary-200/50 bg-primary-50/90 backdrop-blur-xl shadow-glass-lg overflow-hidden py-1"
+                    >
+                      {languageOptions.map((option) => (
+                        <button
+                          key={option.code}
+                          onClick={() => {
+                            setLanguage(option.code)
+                            setLanguageOpen(false)
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors duration-100 ${
+                            language === option.code
+                              ? 'bg-primary-100 text-primary-700 font-semibold'
+                              : 'text-primary-700 hover:bg-primary-50'
+                          }`}
+                        >
+                          <span>{option.label}</span>
+                          <span className="text-[11px] font-bold text-primary-400">{option.shortLabel}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Notification bell only when logged in */}
               {isLoggedIn && (
@@ -239,7 +300,7 @@ const Navbar: React.FC = () => {
                           ? 'text-primary-600 hover:bg-primary-50'
                           : 'text-primary-50/90 hover:bg-primary-50/10',
                     ].join(' ')}
-                    aria-label="Open messages"
+                    aria-label={t('nav.messages')}
                   >
                     <MessageSquare size={20} />
                   </Link>
@@ -317,15 +378,15 @@ const Navbar: React.FC = () => {
 
                         {/* Menu items */}
                         <div className="py-1">
-                          <DropdownItem to="/profile"      icon={<UserCircle size={15}  />} label="My Profile" />
-                          <DropdownItem to="/messages"     icon={<MessageSquare size={15} />} label="Messages" />
+                          <DropdownItem to="/profile"      icon={<UserCircle size={15}  />} label={t('nav.myProfile')} />
+                          <DropdownItem to="/messages"     icon={<MessageSquare size={15} />} label={t('nav.messages')} />
                           {user.role === 'PROPRIETOR' && (
-                            <DropdownItem to="/add-property" icon={<PlusSquare  size={15}  />} label="Add Property" />
+                            <DropdownItem to="/add-property" icon={<PlusSquare  size={15}  />} label={t('nav.addProperty')} />
                           )}
                           {user.role === 'ADMIN' && (
-                            <DropdownItem to="/admin"        icon={<ShieldCheck size={15}  />} label="Admin Panel" />
+                            <DropdownItem to="/admin"        icon={<ShieldCheck size={15}  />} label={t('nav.adminDashboard')} />
                           )}
-                          <DropdownItem to="/settings"    icon={<Settings   size={15}  />} label="Settings" />
+                          <DropdownItem to="/settings"    icon={<Settings   size={15}  />} label={t('nav.settings')} />
                         </div>
 
                         {/* Logout */}
@@ -335,7 +396,7 @@ const Navbar: React.FC = () => {
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
                           >
                             <LogOut size={15} />
-                            Sign out
+                            {t('nav.signOut')}
                           </button>
                         </div>
                       </motion.div>
@@ -355,14 +416,14 @@ const Navbar: React.FC = () => {
                     ].join(' ')}
                   >
                     <LogIn size={15} />
-                    Login
+                    {t('nav.login')}
                   </Link>
                   <Link
                     to="/register"
                     className="flex items-center gap-1.5 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-primary-50 rounded-xl text-sm font-semibold shadow-md shadow-primary-500/30 hover:shadow-primary-500/50 transition-all duration-200 active:scale-95"
                   >
                     <User size={15} />
-                    Sign Up
+                    {t('nav.signup')}
                   </Link>
                 </div>
               )}
@@ -424,7 +485,7 @@ const Navbar: React.FC = () => {
 
               {/* Nav links */}
               <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-                {NAV_LINKS.map(({ label, to, icon }) => (
+                {NAV_LINKS.map(({ labelKey, to, icon }) => (
                   <Link
                     key={to}
                     to={to}
@@ -432,7 +493,7 @@ const Navbar: React.FC = () => {
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-primary-700 hover:bg-primary-50 hover:text-primary-600 font-medium transition-colors"
                   >
                     {icon}
-                    {label}
+                    {t(labelKey)}
                   </Link>
                 ))}
 
@@ -443,9 +504,32 @@ const Navbar: React.FC = () => {
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-primary-700 hover:bg-primary-50 hover:text-primary-600 font-medium transition-colors"
                   >
                     <MessageSquare size={16} />
-                    Messages
+                    {t('nav.messages')}
                   </Link>
                 )}
+
+                <div className="mt-4 rounded-2xl border border-primary-50/10 bg-primary-50/5 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-primary-100/70">{t('nav.language')}</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {languageOptions.map((option) => (
+                      <button
+                        key={option.code}
+                        onClick={() => {
+                          setLanguage(option.code)
+                          setLanguageOpen(false)
+                          setMobileOpen(false)
+                        }}
+                        className={`rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${
+                          language === option.code
+                            ? 'bg-primary-50 text-primary-900'
+                            : 'bg-primary-50/10 text-primary-100 hover:bg-primary-50/20'
+                        }`}
+                      >
+                        {option.shortLabel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </nav>
 
               {/* Auth buttons */}
@@ -457,7 +541,7 @@ const Navbar: React.FC = () => {
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-primary-200 text-primary-700 font-medium hover:bg-primary-50 transition-colors"
                   >
                     <LogIn size={16} />
-                    Login
+                    {t('nav.login')}
                   </Link>
                   <Link
                     to="/register"
@@ -475,7 +559,7 @@ const Navbar: React.FC = () => {
       </AnimatePresence>
     </>
   )
-}
+                    {t('nav.signup')}
 
 // --- Helper: single dropdown menu item ----------------------------------------
 const DropdownItem: React.FC<{ to: string; icon: React.ReactNode; label: string }> = ({ to, icon, label }) => (
