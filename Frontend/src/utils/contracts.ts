@@ -206,6 +206,10 @@ export interface ReviewResponse {
   createdAt: string
 }
 
+export interface ReviewEligibilityResponse {
+  canReview: boolean
+}
+
 // ── Messages ─────────────────────────────────────────────────
 export interface MessageRequest {
   receiverId: string | number

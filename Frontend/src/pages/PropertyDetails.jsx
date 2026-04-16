@@ -15,6 +15,7 @@ import { bookingService } from '../services/bookingService'
 import { wishlistService } from '../services/wishlistService'
 import { reviewService } from '../services/reviewService'
 import { useNotifications } from '../context/NotificationContext'
+import ReviewForm from '../components/reviews/ReviewForm'
 
 const MAPTILER_KEY = import.meta.env.VITE_MAPTILER_KEY || 'eOof1Hy8rLq0QdXVjQRl'
 
@@ -49,12 +50,6 @@ function parseHouseRules(houseRules) {
     .filter(Boolean)
   return normalized.length ? normalized : DEFAULT_HOUSE_RULES
 }
-
-const REVIEW_TARGET_OPTIONS = [
-  { value: 'HOUSE', label: 'Maison' },
-  { value: 'OWNER', label: 'Propriétaire' },
-  { value: 'SERVICE', label: 'Service' },
-]
 
 const REVIEW_TARGET_LABELS = {
   HOUSE: 'Maison',
@@ -537,10 +532,11 @@ export default function PropertyDetails({ user, onAuthClick }) {
   const [showVerificationPrompt, setShowVerificationPrompt] = useState(false)
   const [reviews, setReviews] = useState([])
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [canUserReview, setCanUserReview] = useState(false)
+  const [canReviewLoading, setCanReviewLoading] = useState(false)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewForm, setReviewForm] = useState({
     rating: 5,
-    targetType: 'HOUSE',
     comment: '',
   })
   const [reviewFormError, setReviewFormError] = useState('')
@@ -594,6 +590,33 @@ export default function PropertyDetails({ user, onAuthClick }) {
   }, [user, property?.id])
 
   useEffect(() => {
+    if (!property?.id || !user) {
+      setCanUserReview(false)
+      return
+    }
+
+    let active = true
+    setCanReviewLoading(true)
+    reviewService.canReview(property.id)
+      .then((canReview) => {
+        if (!active) return
+        setCanUserReview(Boolean(canReview))
+      })
+      .catch(() => {
+        if (!active) return
+        setCanUserReview(false)
+      })
+      .finally(() => {
+        if (!active) return
+        setCanReviewLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [property?.id, user])
+
+  useEffect(() => {
     if (!property?.id) {
       setReviews([])
       return
@@ -638,6 +661,11 @@ export default function PropertyDetails({ user, onAuthClick }) {
       return
     }
 
+    if (!canUserReview) {
+      setReviewFormError('Seuls les voyageurs ayant séjourné ici peuvent laisser un avis.')
+      return
+    }
+
     if (!reviewForm.rating || reviewForm.rating < 1 || reviewForm.rating > 5) {
       setReviewFormError('Veuillez sélectionner une note entre 1 et 5.')
       return
@@ -650,7 +678,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
         listingId: String(property.id),
         rating: reviewForm.rating,
         comment: reviewForm.comment?.trim() || undefined,
-        targetType: reviewForm.targetType,
+        targetType: 'HOUSE',
       })
 
       const updatedReviews = await reviewService.listByProperty(property.id)
@@ -950,69 +978,29 @@ export default function PropertyDetails({ user, onAuthClick }) {
                 Donnez une note et partagez votre avis sur la maison, le propriétaire ou le service.
               </p>
 
-              <form onSubmit={handleReviewSubmit} className="mt-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-primary-700">Catégorie</label>
-                    <select
-                      value={reviewForm.targetType}
-                      onChange={(event) => setReviewForm((previous) => ({
-                        ...previous,
-                        targetType: event.target.value,
-                      }))}
-                      className="mt-1 w-full rounded-xl border border-primary-200 bg-primary-100 px-3 py-2.5 text-sm text-primary-800 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200"
-                    >
-                      {REVIEW_TARGET_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
+              {canUserReview && (
+                <ReviewForm
+                  rating={reviewForm.rating}
+                  comment={reviewForm.comment}
+                  submitting={reviewSubmitting}
+                  error={reviewFormError}
+                  onSubmit={handleReviewSubmit}
+                  onRatingChange={(value) => setReviewForm((previous) => ({
+                    ...previous,
+                    rating: value,
+                  }))}
+                  onCommentChange={(value) => setReviewForm((previous) => ({
+                    ...previous,
+                    comment: value,
+                  }))}
+                />
+              )}
 
-                  <div>
-                    <label className="text-xs font-semibold text-primary-700">Étoiles</label>
-                    <div className="mt-2 flex items-center gap-1.5">
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <button
-                          type="button"
-                          key={value}
-                          onClick={() => setReviewForm((previous) => ({ ...previous, rating: value }))}
-                          className="p-1"
-                          aria-label={`${value} étoile${value > 1 ? 's' : ''}`}
-                        >
-                          <Star className={`w-5 h-5 ${value <= reviewForm.rating ? 'fill-amber-400 text-amber-400' : 'text-primary-300'}`} />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-primary-700">Commentaire</label>
-                  <textarea
-                    value={reviewForm.comment}
-                    onChange={(event) => setReviewForm((previous) => ({
-                      ...previous,
-                      comment: event.target.value,
-                    }))}
-                    rows={3}
-                    maxLength={1000}
-                    placeholder="Partagez ce que vous pensez du logement, du propriétaire ou du service..."
-                    className="mt-1 w-full rounded-xl border border-primary-200 bg-primary-100 px-3 py-2.5 text-sm text-primary-800 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-200 resize-none"
-                  />
-                </div>
-
-                {reviewFormError && (
-                  <p className="text-xs font-medium text-red-500">{reviewFormError}</p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={reviewSubmitting}
-                  className="rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 px-4 py-2.5 text-sm font-bold text-primary-50 disabled:opacity-70"
-                >
-                  {reviewSubmitting ? 'Publication...' : user ? 'Publier mon avis' : 'Connectez-vous pour publier un avis'}
-                </button>
-              </form>
+              {!canReviewLoading && user && !canUserReview && (
+                <p className="mt-4 text-xs text-primary-500">
+                  Seuls les voyageurs ayant séjourné ici peuvent laisser un avis.
+                </p>
+              )}
 
               <div className="mt-6 space-y-5">
                 {reviewsLoading ? (

@@ -25,6 +25,7 @@ export const ENDPOINTS = {
   reviews: {
     create: '/reviews',
     listByProperty: (propertyId: number | string) => `/reviews/listing/${propertyId}`,
+    canReview: (propertyId: number | string) => `/reviews/can-review/${propertyId}`,
   },
   messages: {
     send: '/messages',

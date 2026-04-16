@@ -2,7 +2,6 @@ package com.maskan.api.service.impl;
 
 import com.maskan.api.dto.ReviewRequest;
 import com.maskan.api.dto.ReviewResponse;
-import com.maskan.api.entity.Role;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.Review;
 import com.maskan.api.entity.ReviewTargetType;
@@ -40,26 +39,9 @@ public class ReviewServiceImpl implements ReviewService {
             throw new IllegalArgumentException("You already reviewed this listing");
         }
 
-        boolean isAllowed;
-        if (user.getRole() == Role.HOST) {
-            boolean isListingOwner = property.getHostId().equals(user.getId());
-            boolean hasConfirmedReservation = bookingRepository.existsByListingIdAndStatus(
-                property.getId(),
-                BookingStatus.CONFIRMED
-            );
-            isAllowed = isListingOwner && hasConfirmedReservation;
-            if (!isAllowed) {
-                throw new IllegalArgumentException("Host can review only after a confirmed reservation on owned listing");
-            }
-        } else {
-            isAllowed = bookingRepository.existsByGuestIdAndListingIdAndStatus(
-                user.getId(),
-                property.getId(),
-                BookingStatus.COMPLETED
-            );
-            if (!isAllowed) {
-                throw new IllegalArgumentException("Only tenants with completed bookings can post reviews");
-            }
+        boolean canReview = canUserReviewProperty(property.getId(), email);
+        if (!canReview) {
+            throw new IllegalArgumentException("Only tenants with completed bookings can post reviews");
         }
 
         ReviewTargetType targetType = request.getTargetType() == null
@@ -85,6 +67,17 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewRepository.findByListingId(propertyId).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canUserReviewProperty(String propertyId, String email) {
+        User user = getUserByEmail(email);
+        return bookingRepository.existsByGuestIdAndListingIdAndStatus(
+                user.getId(),
+                propertyId,
+                BookingStatus.COMPLETED
+        );
     }
 
     private ReviewResponse toResponse(Review review) {

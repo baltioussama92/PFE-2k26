@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reviews")
@@ -37,6 +40,19 @@ public class ReviewController {
     @GetMapping("/listing/{listingId}")
     public ResponseEntity<List<ReviewResponse>> listByProperty(@PathVariable String listingId) {
         return ResponseEntity.ok(reviewService.getReviewsByProperty(listingId));
+    }
+
+    @GetMapping("/can-review/{propertyId}")
+    public ResponseEntity<Map<String, Boolean>> canReview(@PathVariable String propertyId,
+                                                          Authentication authentication) {
+        boolean isAuthenticated = authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
+
+        boolean canReview = isAuthenticated
+                && reviewService.canUserReviewProperty(propertyId, authentication.getName());
+
+        return ResponseEntity.ok(Map.of("canReview", canReview));
     }
 }
 
