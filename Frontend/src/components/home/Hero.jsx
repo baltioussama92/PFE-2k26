@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Star, Shield, TrendingUp, ChevronDown } from 'lucide-react'
 import SearchBar from './SearchBar'
+import ScrollReveal from '../ui/ScrollReveal'
 import { propertyService } from '../../services/propertyService'
 
 // -- Floating badge helper ------------------------------------
@@ -204,8 +205,10 @@ export default function Hero({ onSearch }) {
           </motion.div>
 
           {/* Headline */}
-          <motion.h1
-            variants={itemVar}
+          <ScrollReveal
+            as="h1"
+            delay={0.1}
+            direction="up"
             className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-primary-50 leading-[1.1] max-w-4xl"
           >
             Trouvez le{' '}
@@ -234,7 +237,7 @@ export default function Hero({ onSearch }) {
               </motion.svg>
             </span>
             {' '}en Tunisie
-          </motion.h1>
+          </ScrollReveal>
 
           {/* Sub-heading */}
           <motion.p

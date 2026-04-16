@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { SlidersHorizontal, Grid3X3, List, TrendingUp, Loader2 } from 'lucide-react'
 import PropertyCard from './PropertyCard'
+import ScrollReveal from '../ui/ScrollReveal'
 import { propertyService } from '../../services/propertyService'
 import { wishlistService } from '../../services/wishlistService'
 
@@ -233,15 +234,20 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
               : 'grid-cols-1 max-w-2xl'
           }`}
         >
-          {sorted.map((property, i) => (
-            <PropertyCard
-              key={property.id}
-              property={property}
-              index={i}
-              liked={favoriteIds.has(String(property.id))}
-              onToggleLike={handleToggleFavorite}
-            />
-          ))}
+          {sorted.map((property, i) => {
+            const revealDelay = i === 0 ? 0.1 : i === 1 ? 0.2 : i === 2 ? 0.3 : 0.35
+
+            return (
+              <ScrollReveal key={property.id} delay={revealDelay} direction="up">
+                <PropertyCard
+                  property={property}
+                  index={i}
+                  liked={favoriteIds.has(String(property.id))}
+                  onToggleLike={handleToggleFavorite}
+                />
+              </ScrollReveal>
+            )
+          })}
         </div>
       )}
 

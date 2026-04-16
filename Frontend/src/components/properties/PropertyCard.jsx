@@ -11,7 +11,6 @@ const BADGE_STYLES = {
 
 export default function PropertyCard({
   property,
-  index = 0,
   id,
   title,
   location,
@@ -35,10 +34,6 @@ export default function PropertyCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.45, delay: index * 0.07 }}
       whileHover={{ y: -6 }}
       onClick={handleClick}
       className="group bg-primary-100 rounded-2xl border border-primary-200 overflow-hidden

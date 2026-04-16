@@ -1,6 +1,7 @@
 ﻿import React from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, Instagram, Twitter, Linkedin, Facebook, Mail, Phone, MapPin } from 'lucide-react'
+import ScrollReveal from '../components/ui/ScrollReveal'
 
 const LINKS = {
   Plateforme: [
@@ -30,7 +31,7 @@ const SOCIALS = [
 export default function Footer() {
   return (
     <footer className="bg-primary-900 text-primary-300 pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <ScrollReveal className="max-w-7xl mx-auto px-4 sm:px-6" direction="up" delay={0.05}>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
 
           {/* Brand */}
@@ -98,7 +99,7 @@ export default function Footer() {
             ))}
           </div>
         </div>
-      </div>
+      </ScrollReveal>
     </footer>
   )
 }
