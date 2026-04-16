@@ -356,12 +356,14 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
                           <p className="text-sm font-semibold text-primary-900">Se déconnecter</p>
                           <p className="text-xs text-primary-500 mt-0.5">Vous serez redirigé vers la page d'accueil</p>
                         </div>
-                        <button
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => onLogout?.()}
                           className="flex items-center gap-2 px-4 py-2 rounded-xl border border-primary-200 text-sm font-semibold text-primary-700 hover:bg-primary-100 transition"
                         >
                           <LogOut className="w-4 h-4" /> Déconnexion
-                        </button>
+                        </motion.button>
                       </div>
                       <div className="border-t border-primary-200" />
                       <div className="flex items-center justify-between gap-4 py-3">

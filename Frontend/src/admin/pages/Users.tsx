@@ -15,6 +15,8 @@ export default function Users() {
   const [selected, setSelected] = useState<AdminUser | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
+
+
   useEffect(() => {
     let active = true
     adminApi.getUsers()
@@ -75,6 +77,7 @@ export default function Users() {
           >
             View details
           </button>
+
           <button
             type="button"
             className="rounded-lg bg-[#3A2D28] px-2.5 py-1 text-xs font-medium text-[#FFFFFF] hover:bg-[#3A2D28]/90"
@@ -108,6 +111,8 @@ export default function Users() {
     }
   }
 
+
+
   return (
     <>
       <Card title="Users Management" subtitle="Moderate platform users and account status">
@@ -129,6 +134,8 @@ export default function Users() {
         onCancel={() => setSelected(null)}
         onConfirm={onConfirmBanToggle}
       />
+
+
     </>
   )
 }

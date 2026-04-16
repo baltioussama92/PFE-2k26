@@ -30,6 +30,7 @@ import AdminReportsPage from './admin/pages/Reports'
 import AdminSettingsPage from './admin/pages/Settings'
 import AdminHostDemandsPage from './admin/pages/HostDemands'
 import { DEMO_MODE } from './data/demo'
+import { useNotifications } from './context/NotificationContext'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const AUTH_TOKEN_KEY = 'authToken'
@@ -181,6 +182,7 @@ function AppRoutes() {
   const [user,      setUser]      = useState(null)
   const location = useLocation()
   const navigate = useNavigate()
+  const { notify } = useNotifications()
   const isDash   = location.pathname.startsWith('/dashboard')
   const isAdminArea = location.pathname.startsWith('/admin')
 
@@ -250,6 +252,7 @@ function AppRoutes() {
   const handleAuthSuccess = (nextUser) => {
     setUser(nextUser)
     setAuthModal(null)
+    notify(`Bienvenue ${nextUser.name} ! 👋`, 'success')
     navigate('/explorer', { replace: true })
   }
 
@@ -258,6 +261,7 @@ function AppRoutes() {
     localStorage.removeItem(USER_STORAGE_KEY)
     localStorage.removeItem(ROLE_STORAGE_KEY)
     setUser(null)
+    notify('À bientôt ! Vous êtes déconnecté.', 'success')
     navigate('/', { replace: true })
   }
 

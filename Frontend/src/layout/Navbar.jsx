@@ -5,51 +5,53 @@ import {
   Home, Compass, Bell, Heart, MessageSquare,
   ChevronDown, LogOut, Settings, User, Building2, Menu, X,
   Plus, CalendarCheck,
+  Globe,
 } from 'lucide-react'
 import { messageService } from '../services/messageService'
+import { useLanguage } from '../context/LanguageContext'
 
 // -- Nav Link definitions -------------------------------------
 const DEFAULT_NAV_LINKS = [
-  { to: '/',        label: 'Accueil',  icon: Home      },
-  { to: '/explorer', label: 'Explorer', icon: Compass   },
+  { to: '/',         labelKey: 'nav.home',    icon: Home    },
+  { to: '/explorer', labelKey: 'nav.explore', icon: Compass },
 ]
 
 const getUserNavLinks = (isHost) => [
   ...DEFAULT_NAV_LINKS,
-  { to: isHost ? '/host-bookings' : '/bookings', label: 'Réservations', icon: CalendarCheck },
-  { to: '/messages', label: 'Messages', icon: MessageSquare },
+  { to: isHost ? '/host-bookings' : '/bookings', labelKey: 'nav.bookings', icon: CalendarCheck },
+  { to: '/messages', labelKey: 'nav.messages', icon: MessageSquare },
 ]
 
 const ADMIN_NAV_LINKS = [
-  { to: '/admin/dashboard', label: 'Dashboard', icon: Home },
-  { to: '/admin/users',     label: 'Users Management',  icon: User    },
-  { to: '/admin/reports',   label: 'Reports',           icon: Bell    },
+  { to: '/admin/dashboard', labelKey: 'nav.dashboard',       icon: Home },
+  { to: '/admin/users',     labelKey: 'nav.usersManagement', icon: User },
+  { to: '/admin/reports',   labelKey: 'nav.reports',         icon: Bell },
 ]
 
 // -- User dropdown items (tenant) -----------------------------
 const TENANT_DROPDOWN = [
-  { label: 'Mon Profil',       icon: User,          to: '/profile'   },
-  { label: 'Mes Favoris',      icon: Heart,         to: '/favorites' },
-  { label: 'Paramètres',       icon: Settings,      to: '/settings'  },
+  { labelKey: 'nav.myProfile', icon: User,     to: '/profile' },
+  { labelKey: 'nav.favorites', icon: Heart,    to: '/favorites' },
+  { labelKey: 'nav.settings',  icon: Settings, to: '/settings' },
 ]
 
 // -- Host dropdown items (proprietor) -------------------------
 const HOST_DROPDOWN = [
-  { label: 'Mon Profil',          icon: User,          to: '/profile'        },
-  { label: 'Mes Propriétés',      icon: Building2,     to: '/my-properties'  },
-  { label: 'Ajouter un bien',     icon: Plus,          to: '/add-property'   },
-  { label: 'Paramètres',          icon: Settings,      to: '/settings'       },
+  { labelKey: 'nav.myProfile',   icon: User,      to: '/profile' },
+  { labelKey: 'nav.myProperties', icon: Building2, to: '/my-properties' },
+  { labelKey: 'nav.addProperty',  icon: Plus,      to: '/add-property' },
+  { labelKey: 'nav.settings',     icon: Settings,  to: '/settings' },
 ]
 
 // -- Admin dropdown items -------------------------------------
 const ADMIN_DROPDOWN = [
-  { label: 'Dashboard',         icon: Building2,     to: '/admin/dashboard' },
-  { label: 'Users Management',  icon: User,          to: '/admin/users' },
-  { label: 'Listings',          icon: Building2,     to: '/admin/listings' },
-  { label: 'Bookings',          icon: CalendarCheck, to: '/admin/bookings' },
-  { label: 'Payments',          icon: Compass,       to: '/admin/payments' },
-  { label: 'Reports',           icon: Bell,          to: '/admin/reports' },
-  { label: 'Settings',          icon: Settings,      to: '/admin/settings' },
+  { labelKey: 'nav.dashboard',      icon: Building2,     to: '/admin/dashboard' },
+  { labelKey: 'nav.usersManagement', icon: User,          to: '/admin/users' },
+  { labelKey: 'nav.listings',       icon: Building2,     to: '/admin/listings' },
+  { labelKey: 'nav.bookingsAdmin',  icon: CalendarCheck, to: '/admin/bookings' },
+  { labelKey: 'nav.payments',       icon: Compass,       to: '/admin/payments' },
+  { labelKey: 'nav.reports',        icon: Bell,          to: '/admin/reports' },
+  { labelKey: 'nav.settings',       icon: Settings,      to: '/admin/settings' },
 ]
 
 export default function Navbar({ user = null, onAuthClick, onLogout }) {
@@ -57,10 +59,13 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
   const [dropdownOpen,   setDropdownOpen]   = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [notificationOpen, setNotificationOpen] = useState(false)
+  const [languageOpen, setLanguageOpen] = useState(false)
   const [unreadItems, setUnreadItems] = useState([])
   const dropdownRef = useRef(null)
   const notificationRef = useRef(null)
+  const languageRef = useRef(null)
   const location    = useLocation()
+  const { language, setLanguage, languageOptions, t } = useLanguage()
 
   const isAdmin = user?.role === 'ADMIN'
   const isHost = user?.role === 'PROPRIETOR'
@@ -81,6 +86,8 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
         setDropdownOpen(false)
       if (notificationRef.current && !notificationRef.current.contains(e.target))
         setNotificationOpen(false)
+      if (languageRef.current && !languageRef.current.contains(e.target))
+        setLanguageOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -88,6 +95,8 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
 
   // -- Close mobile menu on route change --------------------
   useEffect(() => { setMobileMenuOpen(false) }, [location.pathname])
+
+  const currentLanguage = languageOptions.find((option) => option.code === language) || languageOptions[1]
 
   const isActive = (to) =>
     to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
@@ -176,8 +185,20 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
           {/* -- Logo ------------------------------------------- */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
             <motion.img
-              whileHover={{ rotate: -6, scale: 1.08 }}
-              transition={{ type: 'spring', stiffness: 400 }}
+              animate={{ 
+                y: [0, -3, 0],
+                rotate: [0, 2, 0]
+              }}
+              transition={{ 
+                duration: 3,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
+              whileHover={{ 
+                rotate: -6, 
+                scale: 1.08,
+                y: 0,
+              }}
               src="/maskan no name logo.png"
               alt="Maskan logo"
               className="h-10 w-auto shrink-0 drop-shadow-sm"
@@ -190,7 +211,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
 
           {/* -- Desktop Nav Links ------------------------------- */}
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map(({ to, label, icon: Icon }) => (
+            {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
               <Link
                 key={to}
                 to={to}
@@ -202,7 +223,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                 }`}
               >
                 <Icon className="w-4 h-4" />
-                {label}
+                {t(labelKey)}
                 {isActive(to) && (
                   <motion.div
                     layoutId="nav-pill"
@@ -217,6 +238,53 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
           {/* -- Right side ------------------------------------- */}
           <div className="flex items-center gap-2">
 
+            {/* Language picker */}
+            <div ref={languageRef} className="relative">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setLanguageOpen((value) => !value)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold border transition-colors duration-150 text-primary-700 border-primary-200 bg-primary-50 hover:bg-primary-100"
+                aria-label={t('nav.chooseLanguage')}
+              >
+                <Globe className="w-4 h-4" />
+                <span>{currentLanguage.shortLabel}</span>
+                <motion.span animate={{ rotate: languageOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </motion.span>
+              </motion.button>
+
+              <AnimatePresence>
+                {languageOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-primary-200/60 bg-primary-50/95 backdrop-blur-xl shadow-glass-lg overflow-hidden"
+                  >
+                    {languageOptions.map((option) => (
+                      <button
+                        key={option.code}
+                        onClick={() => {
+                          setLanguage(option.code)
+                          setLanguageOpen(false)
+                        }}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors duration-100 ${
+                          language === option.code
+                            ? 'bg-primary-100 text-primary-700 font-semibold'
+                            : 'text-primary-700 hover:bg-primary-100/80'
+                        }`}
+                      >
+                        <span>{option.label}</span>
+                        <span className="text-[11px] font-bold text-primary-400">{option.shortLabel}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Notification bell (shown only if logged in) */}
             {user && (
               <div ref={notificationRef} className="relative">
@@ -226,7 +294,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                   onClick={() => setNotificationOpen((v) => !v)}
                   className="relative p-2 rounded-xl text-primary-500 hover:text-primary-600 hover:bg-primary-50
                            transition-colors duration-150"
-                  aria-label="Notifications"
+                  aria-label={t('nav.notifications')}
                 >
                   <Bell className="w-5 h-5" />
                   {unreadItems.length > 0 && (
@@ -245,7 +313,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                                  bg-primary-50/95 backdrop-blur-xl shadow-glass-lg overflow-hidden"
                     >
                       <div className="px-4 py-3 border-b border-primary-200/60 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-primary-900">Notifications</p>
+                        <p className="text-sm font-semibold text-primary-900">{t('nav.notifications')}</p>
                         {unreadItems.length > 0 && (
                           <span className="text-xs font-semibold text-red-600">{unreadItems.length} nouveau{unreadItems.length > 1 ? 'x' : ''}</span>
                         )}
@@ -253,7 +321,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
 
                       {unreadItems.length === 0 ? (
                         <div className="px-4 py-6 text-sm text-primary-500 text-center">
-                          Aucune nouvelle notification.
+                          {t('nav.noNewNotifications')}
                         </div>
                       ) : (
                         <div className="max-h-80 overflow-y-auto">
@@ -282,7 +350,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                         onClick={() => setNotificationOpen(false)}
                         className="block px-4 py-2.5 text-xs font-semibold text-primary-600 text-center hover:bg-primary-100/60"
                       >
-                        Voir tous les messages
+                        {t('nav.viewAllMessages')}
                       </Link>
                     </motion.div>
                   )}
@@ -298,7 +366,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                            text-primary-600 hover:text-primary-700 hover:bg-primary-100 transition-colors duration-150"
               >
                 <Building2 className="w-4 h-4" />
-                Devenir Hôte
+                {t('nav.becomeHost')}
               </Link>
             )}
             {user && user.role === 'PROPRIETOR' && (
@@ -308,7 +376,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                            text-primary-600 hover:text-primary-700 hover:bg-primary-100 transition-colors duration-150"
               >
                 <Building2 className="w-4 h-4" />
-                Mes Propriétés
+                {t('nav.myProperties')}
               </Link>
             )}
 
@@ -319,7 +387,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                            text-primary-600 hover:text-primary-700 hover:bg-primary-100 transition-colors duration-150"
               >
                 <Building2 className="w-4 h-4" />
-                Admin Dashboard
+                {t('nav.adminDashboard')}
               </Link>
             )}
 
@@ -359,7 +427,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                       className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-primary-200/50
                                  bg-primary-50/80 backdrop-blur-xl overflow-hidden shadow-glass-lg py-1"
                     >
-                      {DROPDOWN_ITEMS.map(({ label, icon: Icon, to }) => (
+                      {DROPDOWN_ITEMS.map(({ labelKey, icon: Icon, to }) => (
                         <Link
                           key={to}
                           to={to}
@@ -368,18 +436,19 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                                      hover:bg-primary-50 hover:text-primary-600 transition-colors duration-100"
                         >
                           <Icon className="w-4 h-4 shrink-0" />
-                          {label}
+                          {t(labelKey)}
                         </Link>
                       ))}
                       <div className="my-1 border-t border-primary-200" />
-                      <button
+                      <motion.button
+                        whileHover={{ x: 4 }}
                         onClick={() => { setDropdownOpen(false); onLogout?.() }}
                         className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-500
                                    hover:bg-red-50 transition-colors duration-100"
                       >
                         <LogOut className="w-4 h-4" />
-                        Se déconnecter
-                      </button>
+                        {t('nav.signOut')}
+                      </motion.button>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -394,7 +463,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                   className="px-5 py-2 rounded-xl text-sm font-semibold text-primary-700
                              hover:text-primary-600 hover:bg-primary-50 transition-colors duration-150"
                 >
-                  Connexion
+                  {t('nav.login')}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.03, boxShadow: '0 8px 20px rgba(164,131,116,0.3)' }}
@@ -404,7 +473,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                              bg-gradient-to-r from-primary-500 to-primary-600
                              shadow-md transition-all duration-150"
                 >
-                  S'inscrire
+                  {t('nav.signup')}
                 </motion.button>
               </div>
             )}
@@ -442,7 +511,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
               className="fixed top-0 right-0 bottom-0 z-50 w-72 border-l border-primary-200/10
                          bg-primary-900/90 backdrop-blur-2xl flex flex-col pt-20 pb-8 px-5 gap-2 md:hidden"
             >
-              {NAV_LINKS.map(({ to, label, icon: Icon }) => (
+              {NAV_LINKS.map(({ to, labelKey, icon: Icon }) => (
                 <Link
                   key={to}
                   to={to}
@@ -454,22 +523,45 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {label}
+                  {t(labelKey)}
                 </Link>
               ))}
+
+              <div className="mt-4 pt-4 border-t border-primary-200/10">
+                <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary-200/70">{t('nav.language')}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {languageOptions.map((option) => (
+                    <button
+                      key={option.code}
+                      onClick={() => {
+                        setLanguage(option.code)
+                        setLanguageOpen(false)
+                        setMobileMenuOpen(false)
+                      }}
+                      className={`rounded-xl px-2 py-2 text-xs font-semibold transition-colors duration-100 ${
+                        language === option.code
+                          ? 'bg-primary-500 text-primary-50'
+                          : 'bg-primary-50/10 text-primary-100 hover:bg-primary-50/20'
+                      }`}
+                    >
+                      {option.shortLabel}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {!user && (
                 <div className="mt-auto flex flex-col gap-3">
                   <button
                     onClick={() => { setMobileMenuOpen(false); onAuthClick?.('login') }}
                     className="inline-flex w-full items-center justify-center rounded-xl border border-primary-300/40 px-4 py-3 text-sm font-semibold text-primary-100 transition hover:bg-primary-50/10"
                   >
-                    Connexion
+                    {t('nav.login')}
                   </button>
                   <button
                     onClick={() => { setMobileMenuOpen(false); onAuthClick?.('register') }}
                     className="inline-flex w-full items-center justify-center rounded-xl bg-primary-500 px-4 py-3 text-sm font-semibold text-primary-50 shadow-md shadow-primary-950/20 transition hover:bg-primary-600"
                   >
-                    S'inscrire
+                    {t('nav.signup')}
                   </button>
                 </div>
               )}
@@ -480,7 +572,7 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-primary-100 hover:bg-primary-50/10"
                   >
                     <Building2 className="w-4 h-4" />
-                    Admin Dashboard
+                    {t('nav.adminDashboard')}
                   </Link>
                 )}
             </motion.div>

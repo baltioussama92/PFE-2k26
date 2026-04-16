@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const NotificationContext = createContext({
   notify: (_message, _type = 'info') => {},
@@ -41,20 +42,26 @@ export function NotificationProvider({ children }) {
     <NotificationContext.Provider value={value}>
       {children}
       <div className="fixed top-4 right-4 z-[100] space-y-2">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`min-w-[260px] max-w-sm px-4 py-3 rounded-xl shadow-lg border text-sm font-medium ${
-              toast.type === 'error'
-                ? 'bg-red-50 border-red-200 text-red-700'
-                : toast.type === 'success'
-                  ? 'bg-primary-50 border-primary-200 text-primary-700'
-                  : 'bg-white border-primary-200 text-primary-700'
-            }`}
-          >
-            {toast.message}
-          </div>
-        ))}
+        <AnimatePresence mode="popLayout">
+          {toasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 400, scale: 0.8 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 400, scale: 0.8 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className={`min-w-[260px] max-w-sm px-4 py-3 rounded-xl shadow-lg border text-sm font-medium ${
+                toast.type === 'error'
+                  ? 'bg-red-50 border-red-200 text-red-700'
+                  : toast.type === 'success'
+                    ? 'bg-primary-50 border-primary-200 text-primary-700'
+                    : 'bg-white border-primary-200 text-primary-700'
+              }`}
+            >
+              {toast.message}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </NotificationContext.Provider>
   )
