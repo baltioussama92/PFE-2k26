@@ -1,10 +1,14 @@
 package com.maskan.api.controller;
 
+import com.maskan.api.dto.PhoneOtpSendRequest;
+import com.maskan.api.dto.PhoneOtpSendResponse;
+import com.maskan.api.dto.PhoneOtpVerifyRequest;
 import com.maskan.api.dto.SendOtpRequest;
 import com.maskan.api.dto.VerificationSummaryResponse;
 import com.maskan.api.dto.VerifyOtpRequest;
 import com.maskan.api.entity.User;
 import com.maskan.api.repository.UserRepository;
+import com.maskan.api.service.MoceanSmsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +33,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -40,6 +45,7 @@ public class VerificationController {
     private static final Path VERIFICATION_UPLOAD_ROOT = Paths.get("uploads", "verifications");
 
     private final UserRepository userRepository;
+    private final MoceanSmsService moceanSmsService;
 
     @GetMapping("/status")
     public ResponseEntity<VerificationSummaryResponse> getStatus(@AuthenticationPrincipal UserDetails userDetails) {
@@ -76,28 +82,37 @@ public class VerificationController {
     }
 
     @PostMapping("/phone/send-otp")
-    public ResponseEntity<Void> sendPhoneOtp(
+    public ResponseEntity<PhoneOtpSendResponse> sendPhoneOtp(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody(required = false) SendOtpRequest request
+            @Valid @RequestBody PhoneOtpSendRequest request
     ) {
         getCurrentUser(userDetails);
-        if (request == null || !StringUtils.hasText(request.getPhone())) {
-            throw new IllegalArgumentException("Phone number is required");
-        }
-        return ResponseEntity.noContent().build();
+        String reqId = moceanSmsService.sendOtp(request.getPhoneNumber());
+        return ResponseEntity.ok(new PhoneOtpSendResponse(reqId));
     }
 
     @PostMapping("/phone/verify-otp")
     public ResponseEntity<VerificationSummaryResponse> verifyPhoneOtp(
             @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody VerifyOtpRequest request
+            @Valid @RequestBody PhoneOtpVerifyRequest request
     ) {
         User user = getCurrentUser(userDetails);
-        validateOtp(request.getOtp());
+        boolean isValid = moceanSmsService.checkOtp(request.getReqId(), request.getCode());
+        if (!isValid) {
+            throw new IllegalArgumentException("Incorrect OTP code");
+        }
         user.setPhoneVerified(true);
         applyDerivedVerificationLevel(user);
         User saved = userRepository.save(user);
         return ResponseEntity.ok(toSummary(saved));
+    }
+
+    @GetMapping("/phone/debug-last")
+    public ResponseEntity<Map<String, Object>> getLastPhoneOtpDebug(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        getCurrentUser(userDetails);
+        return ResponseEntity.ok(moceanSmsService.getLastDebugSnapshot());
     }
 
     @PostMapping("/identity")

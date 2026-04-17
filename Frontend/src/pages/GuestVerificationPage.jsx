@@ -6,6 +6,7 @@ import {
   Camera, RefreshCw, Check, Loader2, ArrowLeft, AlertCircle
 } from 'lucide-react'
 import { guestVerificationService } from '../services/guestVerificationService'
+import PhoneVerificationModal from '../components/profile/PhoneVerificationModal'
 
 const STORAGE_KEY = 'guestVerificationDraft'
 const OTP_LENGTH = 6
@@ -224,9 +225,8 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
 
   const [phone, setPhone] = useState(draft.phone || '')
   const [emailOtp, setEmailOtp] = useState('')
-  const [phoneOtp, setPhoneOtp] = useState('')
   const [emailOtpSent, setEmailOtpSent] = useState(Boolean(draft.emailOtpSent))
-  const [phoneOtpSent, setPhoneOtpSent] = useState(Boolean(draft.phoneOtpSent))
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false)
   const [governmentIdFiles, setGovernmentIdFiles] = useState([])
   const [governmentIdPreviews, setGovernmentIdPreviews] = useState([])
   const [otherAttachmentFiles, setOtherAttachmentFiles] = useState([])
@@ -260,10 +260,9 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
     persistDraft({
       phone,
       emailOtpSent,
-      phoneOtpSent,
       selfiePreview,
     })
-  }, [phone, emailOtpSent, phoneOtpSent, selfiePreview])
+  }, [phone, emailOtpSent, selfiePreview])
 
   useEffect(() => {
     let active = true
@@ -422,46 +421,6 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
     }
   }
 
-  const sendPhoneOtp = async () => {
-    try {
-      if (!phone.trim()) {
-        setError('Phone number is required before sending OTP.')
-        return
-      }
-
-      setLoading(true)
-      setError('')
-      setSuccess('')
-      await guestVerificationService.sendPhoneOtp({ phone: phone.trim() })
-      setPhoneOtpSent(true)
-      setSuccess('Verification code sent to your phone.')
-    } catch (err) {
-      setError(err.message || 'Could not send phone OTP')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const verifyPhoneOtp = async () => {
-    try {
-      if (phoneOtp.length !== OTP_LENGTH) {
-        setError('Please enter a valid 6-digit phone OTP.')
-        return
-      }
-
-      setLoading(true)
-      setError('')
-      setSuccess('')
-      const nextSummary = await guestVerificationService.verifyPhoneOtp({ otp: phoneOtp })
-      patchSummary(nextSummary)
-      setSuccess('Phone number verified successfully.')
-    } catch (err) {
-      setError(err.message || 'Invalid phone OTP')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const submitIdentity = async () => {
     try {
       if (governmentIdFiles.length === 0 || !selfieFile) {
@@ -570,28 +529,20 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
                 <input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
-                  placeholder="Phone number"
+                  placeholder="Phone number (E.164, ex: +216XXXXXXXX)"
                   className="w-full rounded-xl border border-[#DDCCBB] bg-white px-4 py-2.5 text-sm text-black outline-none transition focus:border-[#CBAD8D] focus:ring-2 focus:ring-[#E6D5C3]"
                 />
                 <button
-                  onClick={sendPhoneOtp}
+                  onClick={() => {
+                    setError('')
+                    setSuccess('')
+                    setPhoneModalOpen(true)
+                  }}
                   disabled={loading}
-                  className="rounded-xl bg-[#CBAD8D] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#B99875] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="rounded-xl bg-[#A65B32] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {loading ? 'Sending...' : phoneOtpSent ? 'Resend code' : 'Send code'}
+                  Verify phone number
                 </button>
-                {phoneOtpSent && (
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <OtpInput value={phoneOtp} onChange={setPhoneOtp} />
-                    <button
-                      onClick={verifyPhoneOtp}
-                      disabled={loading}
-                      className="rounded-xl border border-[#CCB092] bg-white px-4 py-2 text-sm font-semibold text-[#6E533B] hover:bg-[#F8F1EA]"
-                    >
-                      Verify phone
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
@@ -704,6 +655,19 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
           </div>
         </div>
       </div>
+
+      <PhoneVerificationModal
+        isOpen={phoneModalOpen}
+        initialPhoneNumber={phone}
+        onClose={() => setPhoneModalOpen(false)}
+        onVerified={({ summary: nextSummary, phoneNumber }) => {
+          setPhone(phoneNumber)
+          patchSummary(nextSummary)
+          setSuccess('Phone number verified successfully.')
+          setError('')
+          setPhoneModalOpen(false)
+        }}
+      />
     </section>
   )
 }

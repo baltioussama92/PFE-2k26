@@ -8,9 +8,22 @@ interface VerifyOtpPayload {
   otp: string
 }
 
+interface VerifyPhoneOtpPayload {
+  reqId: string
+  code: string
+}
+
 interface SendOtpPayload {
   email?: string
   phone?: string
+}
+
+interface SendPhoneOtpPayload {
+  phoneNumber: string
+}
+
+interface SendPhoneOtpResponse {
+  reqId: string
 }
 
 interface IdentitySubmissionPayload {
@@ -73,6 +86,15 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 
   if (!response.ok) {
     const errorBody = await response.text()
+    try {
+      const parsed = JSON.parse(errorBody)
+      const message = parsed?.message || parsed?.error
+      if (message) {
+        throw new Error(String(message))
+      }
+    } catch {
+      // ignore parsing error and fallback to raw body
+    }
     throw new Error(errorBody || 'Verification request failed')
   }
 
@@ -105,11 +127,11 @@ export const guestVerificationService = {
     return normalizeSummary(data)
   },
 
-  async sendPhoneOtp(payload: SendOtpPayload): Promise<void> {
-    await postJson(ENDPOINTS.verifications.sendPhoneOtp, payload)
+  async sendPhoneOtp(payload: SendPhoneOtpPayload): Promise<SendPhoneOtpResponse> {
+    return postJson<SendPhoneOtpResponse>(ENDPOINTS.verifications.sendPhoneOtp, payload)
   },
 
-  async verifyPhoneOtp(payload: VerifyOtpPayload): Promise<GuestVerificationSummary> {
+  async verifyPhoneOtp(payload: VerifyPhoneOtpPayload): Promise<GuestVerificationSummary> {
     const data = await postJson<ApiSummaryResponse>(ENDPOINTS.verifications.verifyPhoneOtp, payload)
     return normalizeSummary(data)
   },
