@@ -16,8 +16,6 @@ Ce dossier décrit l'architecture fonctionnelle du Frontend et les besoins exact
 
 ## Résumé des gaps détectés
 
-- Endpoint manquant: `GET /api/admin/host-demands`
-- Endpoint manquant: `GET /api/admin/host-demands/{demandId}`
-- Endpoint manquant: `PUT /api/admin/host-demands/{demandId}/approve`
-- Endpoint manquant: `PUT /api/admin/host-demands/{demandId}/reject`
-- Incohérence méthode HTTP: le Frontend appelle aussi `PUT /api/bookings/{id}/status` (en plus de `PATCH`).
+- Les endpoints Host Demands sont maintenant disponibles et connectés au frontend admin.
+- Gaps restants (backend admin): reports/disputes, chat moderation, support tickets, finance admin, analytics détaillées, settings/content/notifications persistés.
+- Incohérence méthode HTTP à surveiller: le Frontend appelle aussi `PUT /api/bookings/{id}/status` (en plus de `PATCH`).

@@ -68,6 +68,10 @@ export const ENDPOINTS = {
     pendingListings: '/admin/pending-listings',
     verifyProperty: (id: number | string) => `/admin/properties/${id}/verify`,
     growthMetrics: '/admin/growth-metrics',
+    hostDemands: '/admin/host-demands',
+    hostDemandById: (id: number | string) => `/admin/host-demands/${id}`,
+    approveHostDemand: (id: number | string) => `/admin/host-demands/${id}/approve`,
+    rejectHostDemand: (id: number | string) => `/admin/host-demands/${id}/reject`,
   },
   connections: {
     list: '/connections',

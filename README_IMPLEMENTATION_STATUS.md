@@ -1,164 +1,54 @@
-# PFE-2k26 Implementation Status (Frontend + Backend)
+# PFE-2k26 Remaining Work Only
 
-Last updated: 2026-04-08
+Last updated: 2026-04-20
 
-This file summarizes:
-- Frontend pages that are done
-- Whether their backend endpoints are working
-- What is not ready yet
-- Backend APIs that are ready vs missing
-- What you still need to build
+This file intentionally keeps only unfinished work.
+Completed items were removed to avoid noise.
 
-Note: status is based on code scan (routes, controllers, services), not full runtime QA.
+## Backend Remaining Work
 
-## 1) Frontend Pages Status
+Source of truth: `Backend/ADMIN_WORKSPACE_BACKEND_GAPS.md`
 
-| Area | Page | Status | Endpoint Status | Notes |
-|---|---|---|---|---|
-| Public | Home (`/`) | Done | Working | Uses listings/search flow via services |
-| Public | Explorer (`/explorer`) | Done | Working | Uses `/api/listings` and `/api/listings/search` |
-| Public | Property Details (`/property/:id`) | Done | Working | Uses `/api/listings/{id}` + reviews |
-| Auth | Auth Modal (login/register) | Done | Working | `/api/auth/login`, `/api/auth/register`, `/api/auth/me` |
-| User | Profile (`/profile`) | Done | Working | `/api/users/me` read/update |
-| User | Settings (`/settings`) | Done | Mostly Working | Core auth/profile is wired |
-| User | Wishlist (`/favorites`) | Done | Working | `/api/wishlist` endpoints |
-| User | Bookings (`/bookings`) | Done | Working | `/api/bookings` endpoints |
-| User | Messages (`/messages`) | Done | Working | `/api/messages/*` endpoints |
-| Host | Add Property (`/add-property`) | Done | Working | `/api/listings` create + upload support |
-| Host | My Properties (`/my-properties`) | Done | Working | `/api/listings/owner/me` |
-| Host | Host Bookings (`/host-bookings`) | Done | Working | `/api/bookings/owner` |
-| Guest Verification | Guest Verification (`/guest-verification`) | Done | Working | `/api/verifications/guest/*` |
-| Host Verification | Host Verification (`/host-verification`) | Partial | Backend Ready (frontend still simulated) | Backend endpoints exist; frontend submit still simulated |
-| Admin | Admin Dashboard (`/admin/dashboard`) | Done | Working | Uses admin summary/bookings/users data |
-| Admin | Users (`/admin/users`) | Done | Working | `/api/admin/users`, block/ban |
-| Admin | User Details (`/admin/users/:userId`) | Done | Working | Overview/history/chats/listings/bookings/earnings/security |
-| Admin | Guest Verifications (`/admin/guest-verifications`) | Done | Working | approve/reject endpoints exist |
-| Admin | Listings (`/admin/listings`) | Done | Working | pending listings + verify listing |
-| Admin | Bookings (`/admin/bookings`) | Done | Working | `/api/admin/bookings` |
-| Admin | Payments (`/admin/payments`) | Partial | No dedicated payments API | Derived from bookings data |
-| Admin | Reports (`/admin/reports`) | Partial | No dedicated reports API | Built from pending listings + fallback data |
-| Admin | Settings (`/admin/settings`) | Partial | Not backend-persisted | Saved in localStorage only |
-| Admin | Host Demands (`/admin/host-demands`) | Partial | Backend Ready | Frontend may still contain mock/fallback logic in `adminApi` |
+1. Reports and disputes APIs
+- Add report/dispute entities and admin endpoints for list/details/status/actions.
 
-## 2) Backend API Status
+2. Chat moderation APIs
+- Add flagged conversations endpoints and moderation action endpoint.
 
-## Ready Backend APIs
+3. Support ticket APIs
+- Add ticket list/detail/update/message endpoints.
 
-### Auth
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
+4. Finance operations APIs
+- Add payout/refund/history/invoice/export endpoints for admin workspace.
 
-### Users
-- `GET /api/users/me`
-- `PUT /api/users/me`
-- `GET /api/users/search`
+5. Analytics data APIs
+- Add trend/top-cities/conversion/complaints datasets for admin charts.
 
-### Listings
-- `GET /api/listings`
-- `GET /api/listings/{id}`
-- `POST /api/listings`
-- `PUT /api/listings/{id}`
-- `DELETE /api/listings/{id}`
-- `GET /api/listings/owner/me`
-- `GET /api/listings/search`
-- `GET /api/listings/search/advanced`
+6. Platform settings persistence APIs
+- Add `GET/PUT /api/admin/settings` and store shared platform settings.
 
-### Uploads
-- `POST /api/uploads/images`
+7. Content management APIs
+- Add `GET/PUT /api/admin/content` for banners/FAQ/terms/privacy/footer.
 
-### Bookings
-- `POST /api/bookings`
-- `GET /api/bookings/me`
-- `GET /api/bookings/owner`
-- `PATCH /api/bookings/{id}/status`
-- `DELETE /api/bookings/{id}`
+8. Notification APIs
+- Add templates/send/schedule/history endpoints for admin notifications.
 
-### Reviews
-- `POST /api/reviews`
-- `GET /api/reviews/listing/{listingId}`
+## Frontend Remaining Work
 
-### Messages
-- `POST /api/messages`
-- `GET /api/messages/inbox`
-- `GET /api/messages/sent`
-- `GET /api/messages/conversations`
-- `GET /api/messages/conversations/{userId}`
+1. Replace placeholder admin data with real backend modules when available
+- `Frontend/src/admin/pages/Reports.tsx`
+- `Frontend/src/admin/pages/Payments.tsx`
+- `Frontend/src/admin/pages/Settings.tsx`
+- `Frontend/src/admin/pages/Dashboard.tsx`
 
-### Wishlist
-- `GET /api/wishlist`
-- `POST /api/wishlist/{listingId}`
-- `DELETE /api/wishlist/{listingId}`
+2. Final host verification UX validation
+- Verify host verification page submits fully against backend flow and handles all error states.
 
-### Dashboard
-- `GET /api/dashboard/tenant/summary`
-- `GET /api/dashboard/host/summary`
-- `GET /api/dashboard/admin/summary`
+3. Optional cleanup
+- Rename legacy method names ending in `FrontendOnly` in `Frontend/src/admin/services/adminApi.ts`.
 
-### Connections
-- `POST /api/connections/request`
-- `PATCH /api/connections/{id}/accept`
-- `GET /api/connections/pending`
-- `GET /api/connections`
+## Verification Checklist (still pending)
 
-### Guest Verification
-- `GET /api/verifications/guest/status`
-- `POST /api/verifications/guest/email/send-otp`
-- `POST /api/verifications/guest/email/verify-otp`
-- `POST /api/verifications/guest/phone/send-otp`
-- `POST /api/verifications/guest/phone/verify-otp`
-- `POST /api/verifications/guest/identity`
-
-### Host Verification
-- `POST /api/verifications/host`
-- `GET /api/verifications/me?type=HOST`
-
-### Admin
-- `GET /api/admin/users`
-- `PUT /api/admin/users/{id}/ban`
-- `PUT /api/admin/users/{id}/block`
-- `GET /api/admin/bookings`
-- `GET /api/admin/pending-listings`
-- `PUT /api/admin/properties/{id}/verify`
-- `GET /api/admin/growth-metrics`
-- `GET /api/admin/stats`
-- `GET /api/admin/users/{userId}/overview`
-- `GET /api/admin/users/{userId}/history`
-- `GET /api/admin/users/{userId}/messages`
-- `GET /api/admin/users/{userId}/listings`
-- `GET /api/admin/users/{userId}/bookings`
-- `GET /api/admin/users/{userId}/earnings`
-- `PATCH /api/admin/users/{userId}`
-- `PATCH /api/admin/users/{userId}/password`
-- `DELETE /api/admin/users/{userId}`
-- `GET /api/admin/users/{userId}/permissions`
-- `PATCH /api/admin/guest-verifications/{userId}/approve`
-- `PATCH /api/admin/guest-verifications/{userId}/reject`
-- `GET /api/admin/host-demands`
-- `GET /api/admin/host-demands/{demandId}`
-- `PUT /api/admin/host-demands/{demandId}/approve`
-- `PUT /api/admin/host-demands/{demandId}/reject`
-
-## Not Ready / Missing Backend APIs
-
-### Optional but currently absent dedicated APIs
-- Dedicated admin payments endpoint (if you do not want payments derived from bookings)
-- Dedicated admin reports endpoint (if you want real abuse/report moderation data)
-- Backend-persisted admin settings endpoint
-
-## 3) What You Need To Build Next
-
-1. Replace Host Demands frontend mock/fallback calls with real API calls if still used.
-2. Replace Host Verification page simulated submit with real API integration to `/api/verifications/host`.
-3. Decide if Admin Payments should stay derived from bookings or become a dedicated payments module.
-4. Decide if Admin Reports should stay synthesized or become a dedicated reports module.
-5. Add backend settings API if admin settings must persist for all admins/users.
-6. Run end-to-end API tests (Postman) for all ready endpoints and add regression tests for new endpoints.
-
-## 4) Quick Readiness Summary
-
-- Core rental platform (auth, listings, bookings, messages, wishlist, dashboard): READY.
-- Guest verification flow: READY.
-- Admin user management and user details tabs: READY.
-- Host demands workflow: BACKEND READY, FRONTEND INTEGRATION TO VERIFY.
-- Host verification submission workflow: BACKEND READY, FRONTEND STILL SIMULATED.
+1. Run full end-to-end Postman/API validation for all admin critical paths.
+2. Add regression tests for newly delivered backend admin modules.
+3. Perform production-like UAT on admin flows once placeholders are removed.

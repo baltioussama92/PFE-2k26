@@ -155,6 +155,24 @@ export interface HostDemand {
   notes?: string
 }
 
+interface HostDemandApiResponse {
+  id: string
+  userId: string
+  userName: string
+  userEmail: string
+  userPhone?: string
+  status: string
+  submittedDate: string
+  documents: string[]
+  idDocument: string
+  idVerificationStatus: string
+  housePictures: string[]
+  proposedPrice: number
+  proposedLocation: string
+  bio?: string
+  notes?: string
+}
+
 export interface DashboardStats {
   totalUsers: number
   totalListings: number
@@ -445,6 +463,40 @@ const mapUser = (user: UserDto): AdminUser => ({
   selfieFile: user.selfieFile || undefined,
   identitySubmittedAt: user.identitySubmittedAt || undefined,
 })
+
+const mapHostDemandStatus = (status: string | undefined): HostDemandStatus => {
+  const normalized = String(status || '').toLowerCase()
+  if (normalized === 'approved') return 'approved'
+  if (normalized === 'rejected') return 'rejected'
+  return 'pending'
+}
+
+const mapIdVerificationStatus = (status: string | undefined): IdVerificationStatus => {
+  const normalized = String(status || '').toLowerCase()
+  if (normalized === 'verified' || normalized === 'approved') return 'verified'
+  if (normalized === 'rejected') return 'rejected'
+  return 'pending'
+}
+
+const mapHostDemand = (item: HostDemandApiResponse): HostDemand => ({
+  id: toNumberId(item.id),
+  backendId: item.id,
+  userId: String(item.userId || item.id),
+  userName: item.userName,
+  userEmail: item.userEmail,
+  userPhone: item.userPhone || undefined,
+  status: mapHostDemandStatus(item.status),
+  submittedDate: item.submittedDate,
+  documents: item.documents || [],
+  idDocument: item.idDocument,
+  idVerificationStatus: mapIdVerificationStatus(item.idVerificationStatus),
+  housePictures: item.housePictures || [],
+  proposedPrice: Number(item.proposedPrice || 0),
+  proposedLocation: item.proposedLocation || 'N/A',
+  bio: item.bio || undefined,
+  notes: item.notes || undefined,
+})
+
 const mapListing = (listing: PropertyResponse, isPending: boolean): AdminListing => ({
   id: toNumberId(listing.id),
   backendId: String(listing.id), // Preserve original backend ID
@@ -1096,11 +1148,8 @@ export const adminApi = {
 
   async getHostDemands(): Promise<HostDemand[]> {
     return withFallback(async () => {
-      // TODO: Replace with actual API call when backend endpoint is ready
-      // const { data } = await apiClient.get<HostDemand[]>(ENDPOINTS.admin.hostDemands)
-      // return data
-      await sleep(300)
-      return [...mockHostDemands]
+      const { data } = await apiClient.get<HostDemandApiResponse[]>(ENDPOINTS.admin.hostDemands)
+      return data.map(mapHostDemand)
     }, async () => {
       await sleep(300)
       return [...mockHostDemands]
@@ -1108,19 +1157,19 @@ export const adminApi = {
   },
 
   async getHostDemandById(demandId: number | string): Promise<HostDemand | null> {
-    const demands = await this.getHostDemands()
-    return demands.find((demand) => demand.id === demandId || demand.backendId === String(demandId)) || null
+    return withFallback(async () => {
+      const { data } = await apiClient.get<HostDemandApiResponse>(ENDPOINTS.admin.hostDemandById(demandId))
+      return mapHostDemand(data)
+    }, async () => {
+      const demands = await this.getHostDemands()
+      return demands.find((demand) => demand.id === demandId || demand.backendId === String(demandId)) || null
+    })
   },
 
   async approveHostDemand(demandId: number | string): Promise<HostDemand | null> {
     try {
-      // TODO: Replace with actual API call when backend endpoint is ready
-      // const { data } = await apiClient.put<HostDemand>(ENDPOINTS.admin.approveHostDemand(demandId))
-      // return data
-      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
-      if (!demand) return null
-      demand.status = 'approved'
-      return { ...demand }
+      const { data } = await apiClient.put<HostDemandApiResponse>(ENDPOINTS.admin.approveHostDemand(demandId))
+      return mapHostDemand(data)
     } catch {
       const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
       if (!demand) return null
@@ -1131,13 +1180,7 @@ export const adminApi = {
 
   async rejectHostDemand(demandId: number | string, reason?: string): Promise<void> {
     try {
-      // TODO: Replace with actual API call when backend endpoint is ready
-      // await apiClient.put(ENDPOINTS.admin.rejectHostDemand(demandId), { reason })
-      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
-      if (demand) {
-        demand.status = 'rejected'
-        demand.notes = reason || 'No reason provided'
-      }
+      await apiClient.put(ENDPOINTS.admin.rejectHostDemand(demandId), { reason })
     } catch {
       const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
       if (demand) {
