@@ -1,8 +1,9 @@
 ﻿import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Search, ShieldCheck, Headphones, BadgePercent, Star, ArrowRight } from 'lucide-react'
+import { Search, ShieldCheck, Headphones, BadgePercent, Star } from 'lucide-react'
 import Hero from '../components/home/Hero'
 import PropertyGrid from '../components/properties/PropertyGrid'
+import CtaSection from '../components/CtaSection'
 import { propertyService } from '../services/propertyService'
 
 // ── Why Maskan Features ──────────────────────────────────────
@@ -192,59 +193,10 @@ export default function HomePage({ user = null, onAuthClick = null }) {
         </div>
       </section>
 
-      {/* ── CTA Banner ────────────────────────────────────────── */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-600 to-primary-800
-                       px-8 py-14 text-center text-primary-50 shadow-glass-lg"
-          >
-            {/* Decorative orbs */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-50/10 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary-300/20 rounded-full blur-3xl -translate-x-1/4 translate-y-1/4" />
-
-            <div className="relative z-10">
-              <span className="inline-flex items-center gap-1.5 bg-primary-50/15 border border-primary-200/20
-                               rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest mb-5">
-                Rejoignez Maskan
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold mb-3 leading-tight">
-                Prêt à trouver votre maison idéale ?
-              </h2>
-              <p className="text-primary-50/75 text-sm mb-8 max-w-md mx-auto">
-                Inscrivez-vous gratuitement et accédez à des milliers d'annonces vérifiées.
-                Aucune carte bancaire requise.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => onAuthClick?.('register')}
-                  className="flex items-center gap-2 px-8 py-3.5 rounded-xl
-                             bg-primary-100 text-primary-700 font-bold text-sm shadow-lg
-                             hover:shadow-xl transition-all duration-200"
-                >
-                  S'inscrire gratuitement <ArrowRight className="w-4 h-4" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => onAuthClick?.('login')}
-                  className="flex items-center gap-2 px-8 py-3.5 rounded-xl
-                             border-2 border-primary-200/40 text-primary-50 font-semibold text-sm
-                             hover:bg-primary-50/10 transition-all duration-200"
-                >
-                  Se connecter
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+      <CtaSection
+        onPrimaryClick={() => onAuthClick?.('register')}
+        onSecondaryClick={() => onAuthClick?.('login')}
+      />
 
     </>
   )

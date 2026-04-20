@@ -1,0 +1,69 @@
+<svg width="960" height="720" viewBox="0 0 960 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="canvas" x1="130" y1="85" x2="840" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8F2EA"/>
+      <stop offset="1" stop-color="#EFE0CF"/>
+    </linearGradient>
+
+    <linearGradient id="roofTop" x1="480" y1="185" x2="480" y2="286" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C77A4D"/>
+      <stop offset="1" stop-color="#A65B32"/>
+    </linearGradient>
+
+    <linearGradient id="leftWall" x1="294" y1="286" x2="472" y2="555" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7EFE6"/>
+      <stop offset="1" stop-color="#E8D7C3"/>
+    </linearGradient>
+
+    <linearGradient id="rightWall" x1="472" y1="286" x2="668" y2="555" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFE1CF"/>
+      <stop offset="1" stop-color="#DDC3A8"/>
+    </linearGradient>
+
+    <linearGradient id="door" x1="472" y1="380" x2="472" y2="555" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B6673C"/>
+      <stop offset="1" stop-color="#8F4B2A"/>
+    </linearGradient>
+
+    <linearGradient id="window" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFF4E8"/>
+      <stop offset="1" stop-color="#EFD8BF"/>
+    </linearGradient>
+
+    <filter id="shadowSoft" x="150" y="120" width="660" height="560" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="24"/>
+      <feGaussianBlur stdDeviation="26"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.258824 0 0 0 0 0.137255 0 0 0 0 0.0745098 0 0 0 0.22 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect x="70" y="70" width="820" height="580" rx="50" fill="url(#canvas)"/>
+
+  <ellipse cx="482" cy="590" rx="250" ry="48" fill="#A65B32" fill-opacity="0.16"/>
+
+  <g filter="url(#shadowSoft)">
+    <path d="M480 172L272 286L480 402L688 286L480 172Z" fill="url(#roofTop)"/>
+    <path d="M272 286L272 500L480 616V402L272 286Z" fill="url(#leftWall)"/>
+    <path d="M688 286L688 500L480 616V402L688 286Z" fill="url(#rightWall)"/>
+
+    <path d="M402 434L480 476L480 598L402 556V434Z" fill="url(#door)"/>
+    <path d="M558 434L480 476L480 598L558 556V434Z" fill="#9A522F"/>
+    <circle cx="548" cy="516" r="4.5" fill="#EED7C0"/>
+
+    <path d="M328 350L402 390L402 468L328 428V350Z" fill="url(#window)"/>
+    <path d="M632 350L558 390L558 468L632 428V350Z" fill="url(#window)"/>
+    <path d="M328 350L402 390" stroke="#D2B392" stroke-width="3"/>
+    <path d="M632 350L558 390" stroke="#D2B392" stroke-width="3"/>
+
+    <path d="M480 402L272 286" stroke="#D7B18F" stroke-opacity="0.8" stroke-width="3"/>
+    <path d="M480 402L688 286" stroke="#C78B60" stroke-opacity="0.8" stroke-width="3"/>
+  </g>
+
+  <text x="480" y="628" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="650" fill="#7B4A2F">
+    Illustration 3D maison Maskan
+  </text>
+</svg>
