@@ -19,13 +19,13 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 
 const titleByPath: Record<string, string> = {
   '/admin/dashboard': 'Dashboard',
-  '/admin/users': 'Users',
-  '/admin/guest-verifications': 'Guest Verification',
+  '/admin/users': 'User Management',
+  '/admin/guest-verifications': 'Verification Center',
   '/admin/users/details': 'User Details',
-  '/admin/listings': 'Listings',
-  '/admin/bookings': 'Bookings',
-  '/admin/payments': 'Payments',
-  '/admin/reports': 'Reports',
+  '/admin/listings': 'Property Management',
+  '/admin/bookings': 'Booking Management',
+  '/admin/payments': 'Revenue & Payments',
+  '/admin/reports': 'Reports & Disputes',
   '/admin/settings': 'Settings',
   '/admin/host-demands': 'Host Demands',
 }
@@ -67,6 +67,8 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const { isChecking, isAdmin } = useAdminAuth()
   const [toasts, setToasts] = useState<ToastItem[]>([])
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const toastApi = useMemo<ToastContextValue>(() => ({
     showToast: (message, tone = 'success') => {
@@ -99,14 +101,23 @@ export default function AdminLayout() {
 
   return (
     <ToastContext.Provider value={toastApi}>
-      <div className="relative flex min-h-screen overflow-hidden bg-[#F5EEE5]">
-        <div className="pointer-events-none absolute -top-28 -left-28 h-80 w-80 rounded-full bg-[#CBAD8D]/30 blur-3xl" />
-        <div className="pointer-events-none absolute top-1/2 -right-28 h-96 w-96 rounded-full bg-[#3A2D28]/12 blur-3xl" />
+      <div className="relative flex min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#EFE0CF_0%,#F6EFE5_42%,#F2E9DC_100%)] [font-family:'Manrope',ui-sans-serif,system-ui]">
+        <div className="pointer-events-none absolute -top-28 -left-28 h-80 w-80 rounded-full bg-[#C29A70]/20 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/2 -right-28 h-96 w-96 rounded-full bg-[#3A2D28]/10 blur-3xl" />
 
-        <Sidebar onNavigateHome={goHome} onNavigateExplore={goExplore} onLogout={handleLogout} />
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          mobileOpen={mobileSidebarOpen}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
+          onNavigateHome={goHome}
+          onNavigateExplore={goExplore}
+          onLogout={handleLogout}
+        />
         <div className="relative z-10 flex min-w-0 flex-1 flex-col">
           <Topbar
             title={resolveTitle(location.pathname)}
+            onToggleSidebar={() => setMobileSidebarOpen((prev) => !prev)}
             onNavigateHome={goHome}
             onNavigateExplore={goExplore}
             onLogout={handleLogout}

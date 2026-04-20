@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
+import { cx } from './ui'
 
 interface CardProps {
   title?: string
@@ -15,8 +16,10 @@ export default function Card({ title, subtitle, rightSlot, className = '', child
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.24, ease: 'easeOut' }}
-      whileHover={{ y: -2 }}
-      className={`rounded-3xl border border-[#D6BEA5]/50 bg-[linear-gradient(180deg,#FFFFFF_0%,#FFFCF8_100%)] p-5 shadow-[0_12px_30px_rgba(58,45,40,0.09)] ${className}`}
+      className={cx(
+        'rounded-3xl border border-[#E1D2C0] bg-gradient-to-b from-[#FFFFFF] to-[#FFFCF8] p-5 shadow-[0_12px_28px_rgba(58,45,40,0.08)]',
+        className,
+      )}
     >
       {(title || subtitle || rightSlot) && (
         <header className="mb-4 flex items-start justify-between gap-3">

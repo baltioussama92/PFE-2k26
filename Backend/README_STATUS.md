@@ -1,43 +1,42 @@
-# Backend Status
+# Backend Remaining Work
 
-_Last update: 2026-04-13_
+Last update: 2026-04-20
 
-## ✅ Ce qui est prêt
+This file keeps only pending backend work.
+Detailed admin API gap plan is in `Backend/ADMIN_WORKSPACE_BACKEND_GAPS.md`.
 
-### APIs core
-- Auth: register, login, me.
-- Users: profil courant (read/update), search.
-- Listings: CRUD + search + advanced search + listings owner.
-- Bookings: création, mes bookings, bookings host, update status, suppression.
-- Messages: envoi, inbox/sent, conversations.
-- Wishlist: endpoints CRUD disponibles.
-- Reviews: create + list by listing.
-- Dashboard: tenant/host/admin summary.
-- Connections: request/accept/pending/list.
+## Priority A
 
-### Verification
-- Guest verification prête (OTP email/téléphone + identité).
-- Host verification prête côté API (`POST /api/verifications/host`, status endpoint).
+1. Reports and disputes module
+- Implement real report/dispute storage and moderation endpoints.
 
-### Admin
-- Gestion users (list, ban/block, update, password, delete).
-- Bookings admin, pending listings, verify listing.
-- User details admin: overview, history, messages, listings, bookings, earnings, permissions.
-- Guest verifications: approve/reject.
-- Host demands: list/details/approve/reject.
+2. Chat moderation module
+- Implement flagged conversation retrieval and moderation actions.
 
-## ⏳ Ce qui reste à préparer
+3. Support center module
+- Implement support tickets CRUD lifecycle (assign/escalate/resolve/close) and ticket message thread.
 
-### À confirmer / finaliser
-- Vérifier que tous les endpoints attendus par le frontend admin ne passent plus par fallback mock.
-- Exécuter une validation E2E complète sur tous les endpoints “ready”.
+## Priority B
 
-### Optionnel (selon scope produit)
-- API dédiée paiements admin (au lieu de données dérivées des bookings).
-- API dédiée reports/modération admin.
-- API de persistance des settings admin.
+4. Finance module for admin workspace
+- Add payouts/refunds/payment-history/invoice-download/export endpoints.
 
-## 🎯 Prochaines actions backend
-1. Vérification Postman complète (happy path + erreurs).
-2. Ajouter/compléter tests d’intégration pour endpoints admin critiques.
-3. Documenter officiellement les APIs optionnelles retenues (payments/reports/settings).
+5. Analytics datasets
+- Add endpoints for revenue/booking/user growth trends, top cities, conversion, complaints categories.
+
+## Priority C
+
+6. Platform settings persistence
+- Add backend persistence and APIs for shared platform settings.
+
+7. Content management persistence
+- Add APIs for homepage banner, FAQ, terms, privacy, footer/contact.
+
+8. Notifications module
+- Add notification templates, send-now, schedule, and delivery history endpoints.
+
+## Validation Still Required
+
+1. End-to-end Postman coverage for all admin endpoints.
+2. Integration tests for newly added admin modules.
+3. UAT pass with frontend admin workspace after placeholders are replaced.
