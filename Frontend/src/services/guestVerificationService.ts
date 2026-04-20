@@ -13,11 +13,6 @@ interface VerifyPhoneOtpPayload {
   code: string
 }
 
-interface SendOtpPayload {
-  email?: string
-  phone?: string
-}
-
 interface SendPhoneOtpPayload {
   phoneNumber: string
 }
@@ -86,14 +81,19 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 
   if (!response.ok) {
     const errorBody = await response.text()
+    let parsedMessage: string | undefined
     try {
       const parsed = JSON.parse(errorBody)
       const message = parsed?.message || parsed?.error
       if (message) {
-        throw new Error(String(message))
+        parsedMessage = String(message)
       }
     } catch {
       // ignore parsing error and fallback to raw body
+    }
+
+    if (parsedMessage) {
+      throw new Error(parsedMessage)
     }
     throw new Error(errorBody || 'Verification request failed')
   }
@@ -118,8 +118,43 @@ export const guestVerificationService = {
     return normalizeSummary(payload)
   },
 
-  async sendEmailOtp(payload: SendOtpPayload): Promise<void> {
-    await postJson(ENDPOINTS.verifications.sendEmailOtp, payload)
+  async sendEmailOtp(userEmail: string): Promise<void> {
+    const normalizedEmail = typeof userEmail === 'string'
+      ? userEmail.trim().toLowerCase()
+      : ''
+
+    if (!normalizedEmail) {
+      throw new Error('Email non trouvé')
+    }
+
+    console.log('Sending request to backend with:', normalizedEmail)
+
+    const response = await authedFetch(ENDPOINTS.verifications.sendEmailOtp, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: normalizedEmail }),
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.text()
+      let parsedMessage: string | undefined
+      try {
+        const parsed = JSON.parse(errorBody)
+        const message = parsed?.message || parsed?.error
+        if (message) {
+          parsedMessage = String(message)
+        }
+      } catch {
+        // ignore parsing error and fallback to raw body
+      }
+
+      if (parsedMessage) {
+        throw new Error(parsedMessage)
+      }
+      throw new Error(errorBody || 'Verification request failed')
+    }
   },
 
   async verifyEmailOtp(payload: VerifyOtpPayload): Promise<GuestVerificationSummary> {

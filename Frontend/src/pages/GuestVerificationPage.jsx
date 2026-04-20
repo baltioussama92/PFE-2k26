@@ -7,9 +7,9 @@ import {
 } from 'lucide-react'
 import { guestVerificationService } from '../services/guestVerificationService'
 import PhoneVerificationModal from '../components/profile/PhoneVerificationModal'
+import EmailVerificationModal from '../components/profile/EmailVerificationModal'
 
 const STORAGE_KEY = 'guestVerificationDraft'
-const OTP_LENGTH = 6
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -104,18 +104,6 @@ function Stepper({ level }) {
         />
       </div>
     </div>
-  )
-}
-
-function OtpInput({ value, onChange }) {
-  return (
-    <input
-      value={value}
-      onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
-      inputMode="numeric"
-      placeholder="Enter 6-digit code"
-      className="w-full rounded-xl border border-[#DDCCBB] bg-white px-4 py-2.5 text-sm text-black outline-none transition focus:border-[#CBAD8D] focus:ring-2 focus:ring-[#E6D5C3]"
-    />
   )
 }
 
@@ -224,8 +212,7 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
   const draft = useMemo(() => loadDraft(), [])
 
   const [phone, setPhone] = useState(draft.phone || '')
-  const [emailOtp, setEmailOtp] = useState('')
-  const [emailOtpSent, setEmailOtpSent] = useState(Boolean(draft.emailOtpSent))
+  const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [phoneModalOpen, setPhoneModalOpen] = useState(false)
   const [governmentIdFiles, setGovernmentIdFiles] = useState([])
   const [governmentIdPreviews, setGovernmentIdPreviews] = useState([])
@@ -259,10 +246,9 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
   useEffect(() => {
     persistDraft({
       phone,
-      emailOtpSent,
       selfiePreview,
     })
-  }, [phone, emailOtpSent, selfiePreview])
+  }, [phone, selfiePreview])
 
   useEffect(() => {
     let active = true
@@ -386,41 +372,6 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
     onUserUpdate?.({ ...user, ...nextSummary })
   }
 
-  const sendEmailOtp = async () => {
-    try {
-      setLoading(true)
-      setError('')
-      setSuccess('')
-      await guestVerificationService.sendEmailOtp({ email: user.email })
-      setEmailOtpSent(true)
-      setSuccess('Verification code sent to your email.')
-    } catch (err) {
-      setError(err.message || 'Could not send email OTP')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const verifyEmailOtp = async () => {
-    try {
-      if (emailOtp.length !== OTP_LENGTH) {
-        setError('Please enter a valid 6-digit email OTP.')
-        return
-      }
-
-      setLoading(true)
-      setError('')
-      setSuccess('')
-      const nextSummary = await guestVerificationService.verifyEmailOtp({ otp: emailOtp })
-      patchSummary(nextSummary)
-      setSuccess('Email verified successfully.')
-    } catch (err) {
-      setError(err.message || 'Invalid email OTP')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const submitIdentity = async () => {
     try {
       if (governmentIdFiles.length === 0 || !selfieFile) {
@@ -502,24 +453,16 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
               <div className="space-y-3 rounded-2xl border border-[#E8DDD2] bg-[#FBF8F4] p-4">
                 <p className="text-sm font-semibold text-black">Verify your email</p>
                 <button
-                  onClick={sendEmailOtp}
+                  onClick={() => {
+                    setError('')
+                    setSuccess('')
+                    setEmailModalOpen(true)
+                  }}
                   disabled={loading}
                   className="rounded-xl bg-[#CBAD8D] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#B99875] disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {loading ? 'Sending...' : emailOtpSent ? 'Resend code' : 'Send code'}
+                  Envoyer le code
                 </button>
-                {emailOtpSent && (
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <OtpInput value={emailOtp} onChange={setEmailOtp} />
-                    <button
-                      onClick={verifyEmailOtp}
-                      disabled={loading}
-                      className="rounded-xl border border-[#CCB092] bg-white px-4 py-2 text-sm font-semibold text-[#6E533B] hover:bg-[#F8F1EA]"
-                    >
-                      Verify email
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
@@ -666,6 +609,18 @@ export default function GuestVerificationPage({ user, onUserUpdate }) {
           setSuccess('Phone number verified successfully.')
           setError('')
           setPhoneModalOpen(false)
+        }}
+      />
+
+      <EmailVerificationModal
+        isOpen={emailModalOpen}
+        email={user.email || ''}
+        onClose={() => setEmailModalOpen(false)}
+        onVerified={(nextSummary) => {
+          patchSummary(nextSummary)
+          setSuccess('Email vérifié avec succès.')
+          setError('')
+          setEmailModalOpen(false)
         }}
       />
     </section>

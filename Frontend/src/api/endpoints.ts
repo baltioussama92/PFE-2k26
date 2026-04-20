@@ -77,8 +77,8 @@ export const ENDPOINTS = {
   },
   verifications: {
     guestStatus: '/verifications/guest/status',
-    sendEmailOtp: '/verifications/guest/email/send-otp',
-    verifyEmailOtp: '/verifications/guest/email/verify-otp',
+    sendEmailOtp: '/verifications/email/send-otp',
+    verifyEmailOtp: '/verifications/email/verify-otp',
     sendPhoneOtp: '/verifications/guest/phone/send-otp',
     verifyPhoneOtp: '/verifications/guest/phone/verify-otp',
     submitIdentity: '/verifications/guest/identity',

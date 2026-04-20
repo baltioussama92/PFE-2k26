@@ -41,7 +41,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class VerificationController {
 
-    private static final String DEMO_OTP = "123456";
     private static final Path VERIFICATION_UPLOAD_ROOT = Paths.get("uploads", "verifications");
 
     private final UserRepository userRepository;
@@ -58,14 +57,8 @@ public class VerificationController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody(required = false) SendOtpRequest request
     ) {
-        User user = getCurrentUser(userDetails);
-        if (request != null && StringUtils.hasText(request.getEmail())) {
-            String requestedEmail = request.getEmail().trim().toLowerCase();
-            if (!requestedEmail.equalsIgnoreCase(user.getEmail())) {
-                throw new IllegalArgumentException("Email does not match authenticated user");
-            }
-        }
-        return ResponseEntity.noContent().build();
+        getCurrentUser(userDetails);
+        throw new IllegalArgumentException("Utilisez /api/verifications/email/send-otp");
     }
 
     @PostMapping("/email/verify-otp")
@@ -73,12 +66,8 @@ public class VerificationController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody VerifyOtpRequest request
     ) {
-        User user = getCurrentUser(userDetails);
-        validateOtp(request.getOtp());
-        user.setEmailVerified(true);
-        applyDerivedVerificationLevel(user);
-        User saved = userRepository.save(user);
-        return ResponseEntity.ok(toSummary(saved));
+        getCurrentUser(userDetails);
+        throw new IllegalArgumentException("Utilisez /api/verifications/email/verify-otp");
     }
 
     @PostMapping("/phone/send-otp")
@@ -195,12 +184,6 @@ public class VerificationController {
 
         return userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
-    }
-
-    private void validateOtp(String otp) {
-        if (!DEMO_OTP.equals(otp)) {
-            throw new IllegalArgumentException("Invalid OTP. Use 123456 in demo flow.");
-        }
     }
 
     private void applyDerivedVerificationLevel(User user) {
