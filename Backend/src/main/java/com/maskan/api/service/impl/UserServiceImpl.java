@@ -1,12 +1,14 @@
 package com.maskan.api.service.impl;
 
 import com.maskan.api.dto.UpdateUserProfileRequest;
+import com.maskan.api.dto.UpdateMyPasswordRequest;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.entity.User;
 import com.maskan.api.exception.NotFoundException;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +20,7 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional(readOnly = true)
@@ -35,6 +38,22 @@ public class UserServiceImpl implements UserService {
         }
         User updated = userRepository.save(user);
         return toDto(updated);
+    }
+
+    @Override
+    public void updateMyPassword(String email, UpdateMyPasswordRequest request) {
+        User user = findByEmail(email);
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     @Override

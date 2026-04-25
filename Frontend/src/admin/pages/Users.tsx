@@ -136,7 +136,19 @@ export default function Users() {
             icon={<ShieldMinus size={13} />}
             onClick={() => setSelected(row)}
           />
-          <ActionButton label="Verify" icon={<UserRoundCheck size={13} />} onClick={() => showToast('Verification state updated (demo).')} />
+          <ActionButton
+            label="Verify"
+            icon={<UserRoundCheck size={13} />}
+            onClick={async () => {
+              try {
+                const updated = await adminApi.approveGuestVerification(row.backendId || row.id)
+                setUsers((prev) => prev.map((user) => (user.id === updated.id ? updated : user)))
+                showToast('Verification state updated.')
+              } catch {
+                showToast('Failed to update verification state.', 'error')
+              }
+            }}
+          />
           <ActionButton label={row.status === 'active' ? 'Ban' : 'Unban'} icon={<Ban size={13} />} onClick={() => setSelected(row)} tone="danger" />
         </div>
       ),

@@ -5,7 +5,6 @@ import com.maskan.api.dto.MessageResponse;
 import com.maskan.api.dto.ConversationSummaryResponse;
 import com.maskan.api.entity.Message;
 import com.maskan.api.entity.BookingStatus;
-import com.maskan.api.entity.Role;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.User;
 import com.maskan.api.exception.NotFoundException;

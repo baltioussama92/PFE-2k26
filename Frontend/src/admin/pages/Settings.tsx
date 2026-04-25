@@ -4,6 +4,8 @@ import { Save } from 'lucide-react'
 import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type AdminSettings } from '../services/adminApi'
 import { FilterSelect, SectionTabs, SurfaceCard } from '../components/ui'
+import { apiClient } from '../../api/apiClient'
+import { ENDPOINTS } from '../../api/endpoints'
 
 const defaultSettings: AdminSettings = {
   commissionPercentage: 10,
@@ -63,6 +65,11 @@ export default function Settings() {
   const [notificationBody, setNotificationBody] = useState('Scheduled maintenance on Saturday 01:00-03:00 UTC. Booking remains available.')
   const [notificationTemplate, setNotificationTemplate] = useState('maintenance')
   const [notificationSchedule, setNotificationSchedule] = useState('2026-04-27T10:00')
+  const [notificationTemplates, setNotificationTemplates] = useState<Array<{ label: string; value: string }>>([
+    { label: 'General Template', value: 'general' },
+    { label: 'Promotion Template', value: 'promo' },
+    { label: 'Maintenance Template', value: 'maintenance' },
+  ])
 
   const panel = (params.get('panel') === 'content' ? 'content' : params.get('panel') === 'notifications' ? 'notifications' : 'settings') as SettingsPanel
 
@@ -81,6 +88,31 @@ export default function Settings() {
         if (active) setLoading(false)
       })
 
+    Promise.all([
+      apiClient.get<Record<string, any>>(ENDPOINTS.admin.content),
+      apiClient.get<any[]>(ENDPOINTS.admin.notificationTemplates),
+    ]).then(([contentResponse, templatesResponse]) => {
+      if (!active) return
+
+      const content = contentResponse.data || {}
+      setBannerText(String(content.bannerText || bannerText))
+      setFaqText(String(content.faqText || faqText))
+      setTermsText(String(content.termsText || termsText))
+      setPrivacyText(String(content.privacyText || privacyText))
+      setFooterContact(String(content.footerContact || footerContact))
+
+      const mappedTemplates = (templatesResponse.data || []).map((tpl) => ({
+        label: String(tpl?.name || tpl?.title || tpl?.type || 'Template'),
+        value: String(tpl?.code || tpl?.id || tpl?.type || 'general'),
+      }))
+
+      if (mappedTemplates.length > 0) {
+        setNotificationTemplates(mappedTemplates)
+      }
+    }).catch(() => {
+      // Keep local defaults
+    })
+
     return () => {
       active = false
     }
@@ -97,6 +129,50 @@ export default function Settings() {
       showToast('Failed to save settings.', 'error')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saveContent = async () => {
+    try {
+      await apiClient.put(ENDPOINTS.admin.content, {
+        bannerText,
+        faqText,
+        termsText,
+        privacyText,
+        footerContact,
+      })
+      showToast('Content saved and published.')
+    } catch {
+      showToast('Failed to save content.', 'error')
+    }
+  }
+
+  const scheduleNotificationAction = async () => {
+    try {
+      await apiClient.post(ENDPOINTS.admin.notificationsSchedule, {
+        type: notificationType,
+        template: notificationTemplate,
+        title: notificationTitle,
+        body: notificationBody,
+        scheduledAt: notificationSchedule,
+      })
+      showToast('Notification queued successfully.')
+    } catch {
+      showToast('Failed to schedule notification.', 'error')
+    }
+  }
+
+  const applyTemplate = async () => {
+    try {
+      await apiClient.post(ENDPOINTS.admin.notificationsSend, {
+        type: notificationType,
+        template: notificationTemplate,
+        title: notificationTitle,
+        body: notificationBody,
+      })
+      showToast('Template applied.')
+    } catch {
+      showToast('Failed to apply template.', 'error')
     }
   }
 
@@ -226,7 +302,7 @@ export default function Settings() {
               <p className="mt-1 text-sm text-[#6F5D4D]">Push all edited blocks to production content delivery.</p>
               <button
                 type="button"
-                onClick={() => showToast('Content saved and published.')}
+                onClick={saveContent}
                 className="mt-3 rounded-xl bg-[#3A2D28] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2C221E]"
               >
                 Save Content
@@ -254,11 +330,7 @@ export default function Settings() {
                 <FilterSelect
                   value={notificationTemplate}
                   onChange={setNotificationTemplate}
-                  options={[
-                    { label: 'General Template', value: 'general' },
-                    { label: 'Promotion Template', value: 'promo' },
-                    { label: 'Maintenance Template', value: 'maintenance' },
-                  ]}
+                  options={notificationTemplates}
                 />
               </div>
             </div>
@@ -295,14 +367,14 @@ export default function Settings() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => showToast('Notification queued successfully.')}
+                onClick={scheduleNotificationAction}
                 className="rounded-xl bg-[#3A2D28] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2C221E]"
               >
                 Schedule Notification
               </button>
               <button
                 type="button"
-                onClick={() => showToast('Template applied.')}
+                onClick={applyTemplate}
                 className="rounded-xl border border-[#CBAD8D]/60 bg-white px-4 py-2 text-sm font-semibold text-[#3A2D28] transition hover:bg-[#F5EBDF]"
               >
                 Apply Template

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { AUTH_TOKEN_KEY } from '../../api/apiClient'
 import { authService } from '../../services/authService'
+import { messageService } from '../../services/messageService'
 import { useLanguage } from '../../context/LanguageContext'
 
 // --- Types --------------------------------------------------------------------
@@ -45,8 +46,6 @@ interface NavUser {
   role: 'PROPRIETOR' | 'TENANT' | 'ADMIN' | 'OWNER'
   avatarUrl?: string
 }
-
-const MOCK_UNREAD = 3
 
 const getStoredUser = (): NavUser | null => {
   try {
@@ -89,8 +88,8 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate()
 
   const [user, setUser] = useState<NavUser | null>(() => getStoredUser())
+  const [unreadCount, setUnreadCount] = useState(0)
   const displayName = user ? (user.fullName || user.name || 'User') : 'User'
-  const unreadCount = MOCK_UNREAD
   const isLoggedIn = !!user && hasAuthToken()
 
   const [scrolled,     setScrolled]     = useState(false)
@@ -167,6 +166,24 @@ const Navbar: React.FC = () => {
     }
     fetchUserData()
   }, [])
+
+  useEffect(() => {
+    const fetchUnread = async () => {
+      if (!hasAuthToken()) {
+        setUnreadCount(0)
+        return
+      }
+
+      try {
+        const inbox = await messageService.inbox()
+        setUnreadCount(Array.isArray(inbox) ? inbox.length : 0)
+      } catch {
+        setUnreadCount(0)
+      }
+    }
+
+    fetchUnread()
+  }, [user?.email])
 
   const handleLogout = () => {
     authService.logout()

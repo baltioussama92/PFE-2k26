@@ -1084,7 +1084,6 @@ public class AdminWorkspaceServiceImpl implements AdminWorkspaceService {
         return Boolean.parseBoolean(String.valueOf(value));
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> toMap(Object value) {
         if (value == null) {
             return Map.of();

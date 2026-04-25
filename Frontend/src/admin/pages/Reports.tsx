@@ -5,6 +5,8 @@ import Table, { type TableColumn } from '../components/Table'
 import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type AdminReport } from '../services/adminApi'
 import { SectionTabs, StatusBadge, SurfaceCard } from '../components/ui'
+import { apiClient } from '../../api/apiClient'
+import { ENDPOINTS } from '../../api/endpoints'
 
 type ReportsPanel = 'reports' | 'chat' | 'support'
 type ReportAction = 'warn' | 'suspend' | 'ban' | 'refund' | 'close'
@@ -25,18 +27,6 @@ interface FlaggedConversation {
   severity: 'low' | 'medium' | 'high'
 }
 
-const supportTickets: SupportTicket[] = [
-  { id: 'SUP-1042', subject: 'Double charge on booking #7743', priority: 'critical', status: 'open', requester: 'Fatima N.' },
-  { id: 'SUP-1038', subject: 'Host account suspended by mistake', priority: 'high', status: 'assigned', requester: 'Ahmed L.' },
-  { id: 'SUP-1029', subject: 'Unable to upload ownership proof', priority: 'medium', status: 'escalated', requester: 'Yasmine B.' },
-]
-
-const flaggedConversations: FlaggedConversation[] = [
-  { id: 'CHAT-887', users: 'guest#239 <> host#54', message: 'Repeated harassment language detected', time: '2026-04-18 14:32', severity: 'high' },
-  { id: 'CHAT-885', users: 'guest#451 <> host#88', message: 'Payment fraud solicitation phrase match', time: '2026-04-18 12:11', severity: 'high' },
-  { id: 'CHAT-879', users: 'guest#118 <> host#93', message: 'Aggressive language warning', time: '2026-04-17 22:03', severity: 'medium' },
-]
-
 export default function Reports() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -49,6 +39,8 @@ export default function Reports() {
   const [actionLoading, setActionLoading] = useState(false)
   const [internalNotes, setInternalNotes] = useState('')
   const [adminDecision, setAdminDecision] = useState('')
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([])
+  const [flaggedConversations, setFlaggedConversations] = useState<FlaggedConversation[]>([])
 
   const panel = (params.get('panel') === 'chat' ? 'chat' : params.get('panel') === 'support' ? 'support' : 'reports') as ReportsPanel
 
@@ -56,8 +48,48 @@ export default function Reports() {
     let active = true
 
     adminApi.getReports()
-      .then((data) => {
-        if (active) setReports(data)
+      .then(async (data) => {
+        if (!active) return
+        setReports(data)
+
+        const [flaggedResponse, supportResponse] = await Promise.all([
+          apiClient.get<any[]>(ENDPOINTS.admin.flaggedChats),
+          apiClient.get<any[]>(ENDPOINTS.admin.supportTickets),
+        ])
+
+        if (!active) return
+
+        setFlaggedConversations((flaggedResponse.data || []).map((row) => ({
+          id: String(row?.conversationId || row?.id || ''),
+          users: Array.isArray(row?.participants) ? row.participants.join(' <> ') : String(row?.participantsLabel || 'unknown'),
+          message: String(row?.lastFlaggedMessage || row?.lastMessage || 'Flagged conversation'),
+          time: String(row?.lastFlagAt || row?.createdAt || ''),
+          severity: String(row?.severity || 'medium').toLowerCase() === 'high'
+            ? 'high'
+            : String(row?.severity || 'medium').toLowerCase() === 'low'
+              ? 'low'
+              : 'medium',
+        })))
+
+        setSupportTickets((supportResponse.data || []).map((row) => ({
+          id: String(row?.id || ''),
+          subject: String(row?.subject || 'No subject'),
+          priority: String(row?.priority || 'medium').toLowerCase() === 'critical'
+            ? 'critical'
+            : String(row?.priority || 'medium').toLowerCase() === 'high'
+              ? 'high'
+              : String(row?.priority || 'medium').toLowerCase() === 'low'
+                ? 'low'
+                : 'medium',
+          status: String(row?.status || 'open').toLowerCase() === 'resolved'
+            ? 'resolved'
+            : String(row?.status || 'open').toLowerCase() === 'assigned'
+              ? 'assigned'
+              : String(row?.status || 'open').toLowerCase() === 'escalated'
+                ? 'escalated'
+                : 'open',
+          requester: String(row?.requesterLabel || row?.requesterId || 'unknown'),
+        })))
       })
       .catch(() => showToast('Failed to load reports.', 'error'))
       .finally(() => {
@@ -128,11 +160,11 @@ export default function Reports() {
     {
       key: 'moderate',
       header: 'Moderate',
-      render: () => (
+      render: (row) => (
         <div className="flex gap-1.5">
-          <ActionButton label="Mute" onClick={() => showToast('User muted (demo).')} />
-          <ActionButton label="Warn" onClick={() => showToast('Warning sent (demo).')} />
-          <ActionButton label="Suspend" onClick={() => showToast('User suspended (demo).')} tone="danger" />
+          <ActionButton label="Mute" onClick={() => moderateConversation(row.id, 'mute')} />
+          <ActionButton label="Warn" onClick={() => moderateConversation(row.id, 'warn')} />
+          <ActionButton label="Suspend" onClick={() => moderateConversation(row.id, 'suspend')} tone="danger" />
         </div>
       ),
     },
@@ -155,16 +187,48 @@ export default function Reports() {
     {
       key: 'actions',
       header: 'Actions',
-      render: () => (
+      render: (row) => (
         <div className="flex gap-1.5">
-          <ActionButton label="Resolve" onClick={() => showToast('Ticket marked resolved (demo).')} />
-          <ActionButton label="Escalate" onClick={() => showToast('Ticket escalated (demo).')} tone="danger" />
-          <ActionButton label="Assign" onClick={() => showToast('Assigned to team member (demo).')} />
-          <ActionButton label="Close" onClick={() => showToast('Ticket closed (demo).')} />
+          <ActionButton label="Resolve" onClick={() => updateSupportTicket(row.id, 'resolve')} />
+          <ActionButton label="Escalate" onClick={() => updateSupportTicket(row.id, 'escalate')} tone="danger" />
+          <ActionButton label="Assign" onClick={() => updateSupportTicket(row.id, 'assign')} />
+          <ActionButton label="Close" onClick={() => updateSupportTicket(row.id, 'close')} />
         </div>
       ),
     },
   ]
+
+  const moderateConversation = async (conversationId: string, moderationAction: 'mute' | 'warn' | 'suspend') => {
+    try {
+      await apiClient.post(ENDPOINTS.admin.moderationActions, {
+        conversationId,
+        action: moderationAction,
+        severity: moderationAction === 'suspend' ? 'high' : 'medium',
+      })
+      showToast(`Conversation ${moderationAction} action applied.`)
+    } catch {
+      showToast('Failed to apply moderation action.', 'error')
+    }
+  }
+
+  const updateSupportTicket = async (ticketId: string, ticketAction: 'resolve' | 'escalate' | 'assign' | 'close') => {
+    try {
+      await apiClient.patch(ENDPOINTS.admin.supportTicketById(ticketId), {
+        action: ticketAction,
+        assigneeId: ticketAction === 'assign' ? 'admin' : undefined,
+      })
+      setSupportTickets((prev) => prev.map((ticket) => {
+        if (ticket.id !== ticketId) return ticket
+        if (ticketAction === 'resolve') return { ...ticket, status: 'resolved' }
+        if (ticketAction === 'escalate') return { ...ticket, status: 'escalated' }
+        if (ticketAction === 'assign') return { ...ticket, status: 'assigned' }
+        return { ...ticket, status: 'resolved' }
+      }))
+      showToast('Support ticket updated.')
+    } catch {
+      showToast('Failed to update support ticket.', 'error')
+    }
+  }
 
   function openAction(report: AdminReport, nextAction: ReportAction) {
     setTarget(report)
@@ -179,16 +243,22 @@ export default function Reports() {
     setActionLoading(true)
     try {
       if (action === 'close') {
-        const updated = await adminApi.resolveReport(target.id)
-        if (updated) {
-          setReports((prev) => prev.map((report) => (report.id === updated.id ? updated : report)))
-          showToast('Case closed successfully.')
-        }
-      } else if (action === 'ban') {
-        await adminApi.banUserFromReport(target.id)
-        showToast('Target user banned.')
+        await apiClient.patch(ENDPOINTS.admin.updateReportStatus(target.id), {
+          status: 'closed',
+          internalNote: internalNotes || undefined,
+        })
+        setReports((prev) => prev.map((report) => report.id === target.id ? { ...report, resolved: true } : report))
+        showToast('Case closed successfully.')
       } else {
-        showToast(`${action[0].toUpperCase()}${action.slice(1)} action executed.`)
+        await apiClient.post(ENDPOINTS.admin.reportActions(target.id), {
+          action: action === 'refund' ? 'refund' : action,
+          note: adminDecision || internalNotes || undefined,
+        })
+        if (action === 'ban') {
+          showToast('Target user banned.')
+        } else {
+          showToast(`${action[0].toUpperCase()}${action.slice(1)} action executed.`)
+        }
       }
       setTarget(null)
       setAction(null)

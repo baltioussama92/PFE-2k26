@@ -1,7 +1,6 @@
 import { apiClient } from '../api/apiClient'
 import { ENDPOINTS } from '../api/endpoints'
 import type { MessageRequest, MessageResponse } from '../utils/contracts'
-import { DEMO_MODE } from '../data/demo'
 
 export interface ConversationSummary {
   userId: string

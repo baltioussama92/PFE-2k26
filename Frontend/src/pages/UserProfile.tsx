@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import PropertyCard from '../components/PropertyCard'
 import { authService } from '../services/authService'
 import { bookingService } from '../services/bookingService'
+import { wishlistService } from '../services/wishlistService'
 import type { BookingResponse, BookingStatus, Role } from '../utils/contracts'
 import './UserProfile.css'
 
@@ -28,27 +29,6 @@ const formatDate = (value: string): string => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-const mockSaved = [
-  {
-    id: '3',
-    title: 'Cozy Mountain Cabin',
-    location: 'Aspen, USA',
-    type: 'Cabin',
-    price: 120,
-    rating: 4.7,
-    image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=300&h=200&fit=crop',
-  },
-  {
-    id: '5',
-    title: 'Elegant Victorian Villa',
-    location: 'London, UK',
-    type: 'Villa',
-    price: 320,
-    rating: 4.9,
-    image: 'https://images.unsplash.com/photo-1570129477492-45a003537e57?w=300&h=200&fit=crop',
-  },
-]
-
 const UserProfile: React.FC = () => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'profile' | 'bookings' | 'saved'>('profile')
@@ -59,6 +39,7 @@ const UserProfile: React.FC = () => {
   const [bookingsError, setBookingsError] = useState('')
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(null)
   const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop')
+  const [savedProperties, setSavedProperties] = useState<any[]>([])
   const [profileData, setProfileData] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
@@ -137,6 +118,36 @@ const UserProfile: React.FC = () => {
       active = false
     }
   }, [loading, role])
+
+  useEffect(() => {
+    let active = true
+
+    const fetchSaved = async () => {
+      try {
+        const data = await wishlistService.list()
+        if (!active) return
+        setSavedProperties(data.map((property) => ({
+          id: String(property.id),
+          title: property.title,
+          location: property.location,
+          type: property.type || 'Property',
+          price: property.pricePerNight || property.price || 0,
+          rating: property.rating || 0,
+          image: property.images?.[0] || property.image || BOOKING_PLACEHOLDER_IMAGE,
+        })))
+      } catch {
+        if (active) setSavedProperties([])
+      }
+    }
+
+    if (!loading) {
+      fetchSaved()
+    }
+
+    return () => {
+      active = false
+    }
+  }, [loading])
 
   const handleUpdateBookingStatus = async (bookingId: string, status: BookingStatus) => {
     setBookingsError('')
@@ -391,7 +402,7 @@ const UserProfile: React.FC = () => {
               <h2>Saved Properties</h2>
 
               <div className="saved-grid">
-                {mockSaved.map(property => (
+                {savedProperties.map(property => (
                   <PropertyCard
                     key={property.id}
                     id={property.id}
@@ -405,7 +416,7 @@ const UserProfile: React.FC = () => {
                 ))}
               </div>
 
-              {mockSaved.length === 0 && (
+              {savedProperties.length === 0 && (
                 <div className="empty-state">
                   <p>No saved properties</p>
                   <p className="empty-sub">Save your favorite properties to view them later</p>

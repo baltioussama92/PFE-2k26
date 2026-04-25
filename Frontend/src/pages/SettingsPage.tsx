@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react'
 import Navbar from '../components/ui/Navbar'
 import Footer from '../components/Footer'
 import './SettingsPage.css'
+import { apiClient } from '../api/apiClient'
+import { ENDPOINTS } from '../api/endpoints'
 
 type UserRole = 'PROPRIETOR' | 'TENANT' | 'ADMIN' | 'OWNER'
 
@@ -69,6 +71,8 @@ const SettingsPage: React.FC = () => {
 
   const [accountMessage, setAccountMessage] = useState('')
   const [securityMessage, setSecurityMessage] = useState('')
+  const [savingAccount, setSavingAccount] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
 
   const role = storedUser?.role || 'TENANT'
 
@@ -80,24 +84,36 @@ const SettingsPage: React.FC = () => {
     setNotifications((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const handleAccountSave = (e: React.FormEvent) => {
+  const handleAccountSave = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const nextUser: StoredUser = {
-      ...storedUser,
-      name: account.fullName,
-      fullName: account.fullName,
-      email: account.email,
-      role,
+    setAccountMessage('')
+    setSavingAccount(true)
+
+    try {
+      const { data } = await apiClient.put(ENDPOINTS.users.updateMe, {
+        fullName: account.fullName,
+      })
+
+      const nextUser: StoredUser = {
+        ...storedUser,
+        name: data?.fullName || data?.name || account.fullName,
+        fullName: data?.fullName || data?.name || account.fullName,
+        email: data?.email || account.email,
+        role,
+      }
+
+      localStorage.setItem('user', JSON.stringify(nextUser))
+      setAccountMessage('Profile settings saved successfully.')
+      window.dispatchEvent(new Event('storage'))
+    } catch {
+      setAccountMessage('Failed to save profile settings.')
+    } finally {
+      setSavingAccount(false)
     }
-
-    localStorage.setItem('user', JSON.stringify(nextUser))
-    setAccountMessage('Profile settings saved successfully.')
-
-    window.dispatchEvent(new Event('storage'))
   }
 
-  const handlePasswordSave = (e: React.FormEvent) => {
+  const handlePasswordSave = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!currentPassword || !newPassword || !confirmPassword) {
@@ -115,10 +131,22 @@ const SettingsPage: React.FC = () => {
       return
     }
 
-    setSecurityMessage('Password updated successfully (demo mode).')
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
+    setSavingPassword(true)
+    try {
+      await apiClient.patch(ENDPOINTS.users.updatePassword, {
+        currentPassword,
+        newPassword,
+      })
+      setSecurityMessage('Password updated successfully.')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Failed to update password.'
+      setSecurityMessage(message)
+    } finally {
+      setSavingPassword(false)
+    }
   }
 
   return (
@@ -199,8 +227,8 @@ const SettingsPage: React.FC = () => {
                   </label>
                 </div>
 
-                <button type="submit" className="settings-btn">
-                  Save Profile
+                <button type="submit" className="settings-btn" disabled={savingAccount}>
+                  {savingAccount ? 'Saving...' : 'Save Profile'}
                 </button>
                 {accountMessage && <p className="settings-message success">{accountMessage}</p>}
               </form>
@@ -295,8 +323,8 @@ const SettingsPage: React.FC = () => {
                   />
                 </label>
 
-                <button type="submit" className="settings-btn secondary">
-                  Update Password
+                <button type="submit" className="settings-btn secondary" disabled={savingPassword}>
+                  {savingPassword ? 'Updating...' : 'Update Password'}
                 </button>
                 {securityMessage && <p className="settings-message">{securityMessage}</p>}
               </form>

@@ -1,6 +1,7 @@
 package com.maskan.api.controller;
 
 import com.maskan.api.dto.UpdateUserProfileRequest;
+import com.maskan.api.dto.UpdateMyPasswordRequest;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.service.UserService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,6 +38,14 @@ public class UserController {
     public ResponseEntity<UserDto> updateMe(@AuthenticationPrincipal UserDetails principal,
                                             @Valid @RequestBody UpdateUserProfileRequest request) {
         return ResponseEntity.ok(userService.updateMe(principal.getUsername(), request));
+    }
+
+    @PatchMapping("/me/password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> updateMyPassword(@AuthenticationPrincipal UserDetails principal,
+                                                 @Valid @RequestBody UpdateMyPasswordRequest request) {
+        userService.updateMyPassword(principal.getUsername(), request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search")

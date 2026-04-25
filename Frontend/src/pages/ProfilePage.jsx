@@ -1,28 +1,16 @@
-import React, { useState, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import {
-  Camera, Check, X, Loader2, Mail, Phone, Shield,
-  AlertCircle, BadgeCheck, User, AtSign, FileText,
-} from 'lucide-react'
-import { DEMO_MODE } from '../data/demo'
+import { Camera, Check, X, Loader2 } from 'lucide-react'
 import PortfolioHeader from '../components/profile/PortfolioHeader'
-import PortfolioGrid from '../components/profile/PortfolioGrid'
 import RoleSwitcher from '../components/profile/RoleSwitcher'
 import GuestView from '../components/profile/GuestView'
 import HostView from '../components/profile/HostView'
 import ProfileSettings from '../components/profile/ProfileSettings'
-
-// Import mock data
-import {
-  MOCK_GUEST_BOOKINGS,
-  MOCK_GUEST_REVIEWS,
-  MOCK_WISHLIST,
-  MOCK_HOST_STATS,
-  MOCK_HOST_LISTINGS,
-  MOCK_HOST_EARNINGS,
-  MOCK_HOST_REVIEWS,
-} from '../services/profileMockData'
+import { bookingService } from '../services/bookingService'
+import { wishlistService } from '../services/wishlistService'
+import { propertyService } from '../services/propertyService'
+import { reviewService } from '../services/reviewService'
 
 const USER_STORAGE_KEY = 'user'
 const AUTH_TOKEN_KEY = 'authToken'
@@ -31,7 +19,6 @@ const DISPLAY_ROLE_KEY = 'displayRole'
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '')
 const MAX_AVATAR_SIZE = 320
 
-// Avatar utilities
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -72,7 +59,6 @@ async function compressAvatar(file) {
   return canvas.toDataURL('image/jpeg', 0.82)
 }
 
-// Edit Profile Modal Component
 function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
   const fileInputRef = useRef(null)
   const [saving, setSaving] = useState(false)
@@ -88,11 +74,7 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
   })
 
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
-  }
-
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click()
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
   }
 
   const handleAvatarChange = (e) => {
@@ -103,7 +85,7 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
       .then((compressedAvatar) => {
         setSaveError('')
         setAvatarPreview(compressedAvatar)
-        setForm(prev => ({ ...prev, avatar: compressedAvatar }))
+        setForm((prev) => ({ ...prev, avatar: compressedAvatar }))
       })
       .catch((error) => {
         setSaveError(error?.message || 'Unable to update profile picture.')
@@ -113,6 +95,13 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
   const handleSave = async () => {
     setSaveError('')
     setSaving(true)
+
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) {
+      setSaveError('Session expired. Please sign in again.')
+      setSaving(false)
+      return
+    }
 
     const updatedUser = {
       ...user,
@@ -125,52 +114,37 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
     }
 
     try {
-      if (!DEMO_MODE) {
-        const token = localStorage.getItem(AUTH_TOKEN_KEY)
-        if (!token) {
-          throw new Error('Session expired. Please sign in again.')
-        }
+      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fullName: updatedUser.name,
+          avatar: updatedUser.avatar || '',
+        }),
+      })
 
-        const response = await fetch(`${API_BASE_URL}/api/users/me`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            fullName: updatedUser.name,
-            avatar: updatedUser.avatar || '',
-          }),
-        })
-
-        if (!response.ok) {
-          let message = 'Unable to save profile.'
-          try {
-            const payload = await response.json()
-            if (payload?.message) message = payload.message
-          } catch {
-            // ignore
-          }
-          throw new Error(message)
-        }
-
-        const backendUser = await response.json()
-        const mergedUser = {
-          ...updatedUser,
-          name: backendUser?.fullName || backendUser?.name || updatedUser.name,
-          avatar: backendUser?.avatar ?? updatedUser.avatar,
-        }
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mergedUser))
-        onUserUpdate?.(mergedUser)
-      } else {
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser))
-        onUserUpdate?.(updatedUser)
+      if (!response.ok) {
+        const payload = await response.text()
+        throw new Error(payload || 'Unable to save profile.')
       }
+
+      const backendUser = await response.json()
+      const mergedUser = {
+        ...updatedUser,
+        name: backendUser?.fullName || backendUser?.name || updatedUser.name,
+        avatar: backendUser?.avatar ?? updatedUser.avatar,
+      }
+
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(mergedUser))
+      onUserUpdate?.(mergedUser)
 
       setSaved(true)
       setTimeout(() => onSave?.(), 800)
     } catch (error) {
-      setSaveError(error?.message || 'Could not save profile. Try a smaller image.')
+      setSaveError(error?.message || 'Could not save profile.')
     } finally {
       setSaving(false)
     }
@@ -179,155 +153,50 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
   const displayAvatar = avatarPreview || form.avatar || user?.avatar
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-      >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-slate-900">Edit Profile</h2>
-          <button
-            onClick={onCancel}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
+          <button onClick={onCancel} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
             <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Avatar */}
           <div className="flex justify-center mb-6">
             <div className="relative group">
               {displayAvatar ? (
-                <img
-                  src={displayAvatar}
-                  alt={form.name}
-                  className="w-28 h-28 rounded-2xl object-cover ring-4 ring-slate-200 shadow-lg"
-                />
+                <img src={displayAvatar} alt={form.name} className="w-28 h-28 rounded-2xl object-cover ring-4 ring-slate-200 shadow-lg" />
               ) : (
                 <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 ring-4 ring-slate-200 shadow-lg flex items-center justify-center">
-                  <span className="text-3xl font-bold text-white">
-                    {form.name.split(' ').map(w => w[0]).slice(0, 2).join('')}
-                  </span>
+                  <span className="text-3xl font-bold text-white">{form.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}</span>
                 </div>
               )}
-              <button
-                onClick={handleAvatarClick}
-                className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-              >
+              <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Camera className="w-6 h-6 text-white" />
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="hidden"
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
             </div>
           </div>
 
-          {/* Fields */}
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">Full Name</label>
-              <input
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Your full name"
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">Username</label>
-              <input
-                type="text"
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                placeholder="Your username"
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="your@email.com"
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-900 mb-2">Bio</label>
-              <textarea
-                name="bio"
-                value={form.bio}
-                onChange={handleChange}
-                placeholder="Tell us about yourself..."
-                rows={3}
-                className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition resize-none"
-              />
-            </div>
+            <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your full name" className="w-full px-4 py-2 rounded-lg border border-slate-200" />
+            <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="your@email.com" className="w-full px-4 py-2 rounded-lg border border-slate-200" />
+            <textarea name="bio" value={form.bio} onChange={handleChange} rows={3} placeholder="Tell us about yourself..." className="w-full px-4 py-2 rounded-lg border border-slate-200 resize-none" />
           </div>
 
-          {saveError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-              {saveError}
-            </div>
-          )}
-
+          {saveError && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{saveError}</div>}
           {saved && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700 flex items-center gap-2"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700 flex items-center gap-2">
               <Check className="w-4 h-4" />
               Profile updated successfully!
             </motion.div>
           )}
 
-          {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-slate-200">
-            <button
-              onClick={onCancel}
-              className="flex-1 py-2 px-4 border border-slate-200 rounded-lg font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <motion.button
-              whileHover={!saving ? { scale: 1.02 } : {}}
-              whileTap={!saving ? { scale: 0.98 } : {}}
-              onClick={handleSave}
-              disabled={saving}
-              className="flex-1 py-2 px-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg font-semibold text-white hover:shadow-lg transition-all disabled:opacity-70 flex items-center justify-center gap-2"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  Save
-                </>
-              )}
+            <button onClick={onCancel} className="flex-1 py-2 px-4 border border-slate-200 rounded-lg font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+            <motion.button whileHover={!saving ? { scale: 1.02 } : {}} whileTap={!saving ? { scale: 0.98 } : {}} onClick={handleSave} disabled={saving} className="flex-1 py-2 px-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg font-semibold text-white disabled:opacity-70 flex items-center justify-center gap-2">
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><Check className="w-4 h-4" />Save</>}
             </motion.button>
           </div>
         </div>
@@ -336,229 +205,223 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
   )
 }
 
-// Main ProfilePage Component
 export default function ProfilePage({ user, onUserUpdate }) {
   const navigate = useNavigate()
-  const [displayRole, setDisplayRole] = useState(() => {
-    return localStorage.getItem(DISPLAY_ROLE_KEY) || 'GUEST'
-  })
+  const [displayRole, setDisplayRole] = useState(() => localStorage.getItem(DISPLAY_ROLE_KEY) || 'GUEST')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  const [guestBookings, setGuestBookings] = useState([])
+  const [guestReviews, setGuestReviews] = useState([])
+  const [wishlist, setWishlist] = useState([])
+
+  const [hostStats, setHostStats] = useState({
+    totalListings: 0,
+    totalBookings: 0,
+    responseRate: 0,
+    acceptanceRate: 0,
+    totalEarnings: 0,
+    monthlyEarnings: 0,
+    averageRating: 0,
+  })
+  const [hostListings, setHostListings] = useState([])
+  const [hostEarnings, setHostEarnings] = useState([])
+  const [hostReviews, setHostReviews] = useState([])
 
   if (!user) {
     return <Navigate to="/" replace />
   }
 
-  // Determine if user is a host
   const isHost = user?.role === 'PROPRIETOR' || user?.role === 'HOST'
 
-  // Handle role switching
+  useEffect(() => {
+    let active = true
+
+    const mapGuestBooking = (booking) => {
+      const now = new Date()
+      const checkIn = booking.checkInDate
+      const checkOut = booking.checkOutDate
+      const start = checkIn ? new Date(checkIn) : now
+      const end = checkOut ? new Date(checkOut) : now
+      const nights = Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)))
+      const rawStatus = String(booking.status || '').toUpperCase()
+      const status = rawStatus === 'CANCELLED' || rawStatus === 'REJECTED' ? 'cancelled' : end <= now ? 'completed' : 'upcoming'
+
+      return {
+        id: booking.id,
+        propertyTitle: booking.listingTitle || `Listing #${booking.listingId}`,
+        location: booking.listingLocation || 'Unknown location',
+        propertyImage: booking.listingImage,
+        checkIn,
+        checkOut,
+        status,
+        totalPrice: booking.totalPrice || 0,
+        nights,
+      }
+    }
+
+    const loadGuestData = async () => {
+      const [bookings, savedWishlist] = await Promise.all([bookingService.getMine(), wishlistService.list()])
+      if (!active) return
+
+      setGuestBookings(bookings.map(mapGuestBooking))
+      setWishlist(savedWishlist.map((property) => ({
+        id: property.id,
+        title: property.title,
+        location: property.location,
+        price: property.pricePerNight || property.price || 0,
+        image: property.images?.[0] || property.image,
+        rating: property.rating || 0,
+      })))
+
+      const completed = bookings.filter((booking) => ['COMPLETED', 'CONFIRMED', 'PAID_AWAITING_CHECKIN'].includes(String(booking.status || '').toUpperCase()))
+      const reviewCollections = await Promise.all(completed.slice(0, 10).map((booking) => reviewService.listByProperty(booking.listingId)))
+      if (!active) return
+
+      setGuestReviews(reviewCollections.flatMap((collection) =>
+        collection
+          .filter((review) => String(review.guestId) === String(user?.id))
+          .map((review) => ({
+            hostName: `Host #${review.authorId || 'unknown'}`,
+            date: review.createdAt,
+            rating: review.rating,
+            comment: review.comment || '',
+          }))
+      ))
+    }
+
+    const loadHostData = async () => {
+      const [listings, ownerBookings] = await Promise.all([propertyService.listMine(), bookingService.getOwnerBookings()])
+      if (!active) return
+
+      setHostListings(listings.map((listing) => ({
+        id: listing.id,
+        title: listing.title,
+        location: listing.location,
+        price: listing.pricePerNight || listing.price || 0,
+        image: listing.images?.[0] || listing.image,
+        status: listing.pendingApproval ? 'pending' : 'active',
+        views: 0,
+        bookings: ownerBookings.filter((booking) => String(booking.listingId) === String(listing.id)).length,
+        rating: listing.rating || 0,
+      })))
+
+      const completed = ownerBookings.filter((booking) => String(booking.status || '').toUpperCase() === 'COMPLETED')
+      const totalEarnings = completed.reduce((sum, booking) => sum + Number(booking.totalPrice || 0), 0)
+      const month = new Date().toISOString().slice(0, 7)
+      const monthlyEarnings = completed
+        .filter((booking) => String(booking.createdAt || '').slice(0, 7) === month)
+        .reduce((sum, booking) => sum + Number(booking.totalPrice || 0), 0)
+
+      setHostEarnings(completed.slice(0, 20).map((booking, index) => ({
+        id: index + 1,
+        bookingTitle: booking.listingTitle || `Booking #${booking.id}`,
+        date: booking.createdAt || booking.checkOutDate || booking.checkInDate,
+        amount: Number(booking.totalPrice || 0),
+      })))
+
+      const reviewCollections = await Promise.all(listings.slice(0, 10).map((listing) => reviewService.listByProperty(listing.id)))
+      if (!active) return
+
+      const mappedHostReviews = reviewCollections.flatMap((collection) =>
+        collection.map((review) => ({
+          id: review.id,
+          guestName: `Guest #${review.guestId}`,
+          propertyTitle: listings.find((listing) => String(listing.id) === String(review.listingId))?.title || `Listing #${review.listingId}`,
+          date: review.createdAt,
+          rating: review.rating,
+          comment: review.comment || '',
+        }))
+      )
+
+      setHostReviews(mappedHostReviews)
+      setHostStats({
+        totalListings: listings.length,
+        totalBookings: ownerBookings.length,
+        responseRate: 0,
+        acceptanceRate: 0,
+        totalEarnings,
+        monthlyEarnings,
+        averageRating: mappedHostReviews.length > 0
+          ? Number((mappedHostReviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / mappedHostReviews.length).toFixed(1))
+          : 0,
+      })
+    }
+
+    Promise.all([loadGuestData(), isHost ? loadHostData() : Promise.resolve()]).catch(() => {
+      // Keep empty states on API failures
+    })
+
+    return () => {
+      active = false
+    }
+  }, [isHost, user?.id])
+
   const handleRoleChange = (role) => {
     setDisplayRole(role)
     localStorage.setItem(DISPLAY_ROLE_KEY, role)
   }
 
-  // Handle become host
-  const handleBecomeHost = () => {
-    navigate('/host-verification')
-  }
-
-  // Handle edit profile
-  const handleEditProfile = () => {
-    setIsEditModalOpen(true)
-  }
-
-  // Handle settings click
   const handleSettingClick = (action) => {
-    switch (action) {
-      case 'edit_profile':
-        handleEditProfile()
-        break
-      case 'logout':
-        localStorage.removeItem(USER_STORAGE_KEY)
-        localStorage.removeItem(AUTH_TOKEN_KEY)
-        localStorage.removeItem(ROLE_STORAGE_KEY)
-        localStorage.removeItem(DISPLAY_ROLE_KEY)
-        navigate('/')
-        break
-      case 'help':
-        // Navigate to help or open support
-        break
-      default:
-        // Handle other settings
-        break
+    if (action === 'edit_profile') {
+      setIsEditModalOpen(true)
+      return
+    }
+
+    if (action === 'logout') {
+      localStorage.removeItem(USER_STORAGE_KEY)
+      localStorage.removeItem(AUTH_TOKEN_KEY)
+      localStorage.removeItem(ROLE_STORAGE_KEY)
+      localStorage.removeItem(DISPLAY_ROLE_KEY)
+      navigate('/')
     }
   }
 
-  // Calculate trust score (0-100)
-  const calculateTrustScore = () => {
-    let score = 50
-    if (user?.emailVerified) score += 15
-    if (user?.phoneVerified) score += 15
-    if (user?.identityStatus === 'approved') score += 20
-    return Math.min(score, 100)
-  }
+  const trustScore = Math.min(100,
+    50
+    + (user?.emailVerified ? 15 : 0)
+    + (user?.phoneVerified ? 15 : 0)
+    + (user?.identityStatus === 'approved' ? 20 : 0)
+  )
 
-  const trustScore = calculateTrustScore()
-  const totalStaysCompleted = MOCK_GUEST_BOOKINGS.filter(b => b.status === 'completed').length
+  const totalStaysCompleted = guestBookings.filter((booking) => booking.status === 'completed').length
 
   return (
     <section className="min-h-screen bg-gradient-to-b from-slate-50 to-white pt-24 pb-16 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        {/* Portfolio Header */}
         <PortfolioHeader
           user={user}
           role={displayRole}
-          onEdit={handleEditProfile}
-          onBecomeHost={!isHost ? handleBecomeHost : null}
+          onEdit={() => setIsEditModalOpen(true)}
+          onBecomeHost={!isHost ? () => navigate('/host-verification') : null}
           totalStaysCompleted={totalStaysCompleted}
           trustScore={trustScore}
-          isSuperHost={isHost && MOCK_HOST_STATS.totalEarnings > 5000}
+          isSuperHost={isHost && hostStats.totalEarnings > 5000}
           memberSince={user?.createdAt}
-          reviewCount={displayRole === 'GUEST' ? MOCK_GUEST_REVIEWS.length : MOCK_HOST_REVIEWS.length}
+          reviewCount={displayRole === 'GUEST' ? guestReviews.length : hostReviews.length}
         />
 
-        {/* Role Switcher */}
         <div className="mt-6">
           <RoleSwitcher
             currentRole={displayRole}
             isHost={isHost}
             onRoleChange={handleRoleChange}
-            onBecomeHost={handleBecomeHost}
+            onBecomeHost={() => navigate('/host-verification')}
           />
         </div>
 
-        {/* Main Content Grid */}
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Content Area */}
           <div className="lg:col-span-3">
             {displayRole === 'GUEST' ? (
-              <GuestView
-                user={user}
-                bookings={MOCK_GUEST_BOOKINGS}
-                reviews={MOCK_GUEST_REVIEWS}
-                wishlist={MOCK_WISHLIST}
-              />
+              <GuestView user={user} bookings={guestBookings} reviews={guestReviews} wishlist={wishlist} />
             ) : (
-              <HostView
-                user={user}
-                stats={MOCK_HOST_STATS}
-                listings={MOCK_HOST_LISTINGS}
-                earnings={MOCK_HOST_EARNINGS}
-                reviews={MOCK_HOST_REVIEWS}
-                onAddListing={() => navigate('/add-property')}
-              />
+              <HostView user={user} stats={hostStats} listings={hostListings} earnings={hostEarnings} reviews={hostReviews} onAddListing={() => navigate('/add-property')} />
             )}
           </div>
 
-          {/* Sidebar Settings */}
-          <ProfileSettings onSettingClick={handleSettingClick} isOpen={true} />
+          <ProfileSettings onSettingClick={handleSettingClick} isOpen />
         </div>
       </div>
 
-      {/* Edit Profile Modal */}
-      <AnimatePresence>
-        {isEditModalOpen && (
-          <EditProfileModal
-            user={user}
-            onSave={() => setIsEditModalOpen(false)}
-            onCancel={() => setIsEditModalOpen(false)}
-            onUserUpdate={onUserUpdate}
-          />
-        )}
-      </AnimatePresence>
-    </section>
-  )
-  return (
-    <section className="min-h-screen bg-white pt-24 pb-16 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Portfolio Header */}
-        <PortfolioHeader
-          user={user}
-          role={displayRole}
-          onEdit={handleEditProfile}
-          onBecomeHost={!isHost ? handleBecomeHost : null}
-          totalStaysCompleted={totalStaysCompleted}
-          trustScore={trustScore}
-          isSuperHost={isHost && MOCK_HOST_STATS.totalEarnings > 5000}
-          memberSince={user?.createdAt}
-          reviewCount={displayRole === 'GUEST' ? MOCK_GUEST_REVIEWS.length : MOCK_HOST_REVIEWS.length}
-        />
-
-        {/* Role Switcher */}
-        <div className="mb-12">
-          <RoleSwitcher
-            currentRole={displayRole}
-            isHost={isHost}
-            onRoleChange={handleRoleChange}
-            onBecomeHost={handleBecomeHost}
-          />
-        </div>
-
-        {/* Portfolio Grid Section */}
-        <div className="mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <h2 className="text-3xl font-bold text-primary-900 mb-2">
-              {displayRole === 'GUEST' ? 'My Bookings' : 'My Listings'}
-            </h2>
-            <p className="text-primary-600">
-              {displayRole === 'GUEST'
-                ? 'View all your past and upcoming bookings'
-                : 'Manage and showcase your properties'}
-            </p>
-          </motion.div>
-
-          <PortfolioGrid
-            items={displayRole === 'GUEST' ? MOCK_GUEST_BOOKINGS : MOCK_HOST_LISTINGS}
-            role={displayRole}
-            emptyMessage={displayRole === 'GUEST' ? 'No bookings yet' : 'No listings yet'}
-          />
-        </div>
-
-        {/* Additional Sections */}
-        <div className="mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <h2 className="text-3xl font-bold text-primary-900 mb-2">
-              More Information
-            </h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2">
-              {displayRole === 'GUEST' ? (
-                <GuestView
-                  user={user}
-                  bookings={MOCK_GUEST_BOOKINGS}
-                  reviews={MOCK_GUEST_REVIEWS}
-                  wishlist={MOCK_WISHLIST}
-                />
-              ) : (
-                <HostView
-                  user={user}
-                  stats={MOCK_HOST_STATS}
-                  listings={MOCK_HOST_LISTINGS}
-                  earnings={MOCK_HOST_EARNINGS}
-                  reviews={MOCK_HOST_REVIEWS}
-                  onAddListing={() => navigate('/add-property')}
-                />
-              )}
-            </div>
-
-            {/* Sidebar Settings */}
-            <ProfileSettings onSettingClick={handleSettingClick} isOpen={true} />
-          </div>
-        </div>
-      </div>
-
-      {/* Edit Profile Modal */}
       <AnimatePresence>
         {isEditModalOpen && (
           <EditProfileModal

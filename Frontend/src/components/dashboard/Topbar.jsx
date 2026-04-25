@@ -14,19 +14,14 @@ const ROLE_LABELS = {
   ADMIN:        'Administrateur',
 }
 
-const MOCK_NOTIFICATIONS = [
-  { id: 1, text: 'Nouvelle réservation pour Appartement Lac II', time: 'Il y a 5 min',  unread: true  },
-  { id: 2, text: 'Rim Khelil a laissé un avis 5★',              time: 'Il y a 1 h',    unread: true  },
-  { id: 3, text: 'Votre annonce a été approuvée',               time: 'Il y a 3 h',    unread: false },
-]
-
 export default function Topbar({ role = 'TENANT', pageTitle = 'Tableau de bord', onMenuToggle }) {
   const [notifOpen,   setNotifOpen]   = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [darkMode,    setDarkMode]    = useState(false)
+  const [notifications] = useState([])
 
   const ac = ROLE_COLORS[role] || ROLE_COLORS.TENANT
-  const unread = MOCK_NOTIFICATIONS.filter(n => n.unread).length
+  const unread = notifications.filter(n => n.unread).length
 
   return (
     <header className="h-16 bg-primary-100 border-b border-primary-200 flex items-center
@@ -99,7 +94,7 @@ export default function Topbar({ role = 'TENANT', pageTitle = 'Tableau de bord',
                   )}
                 </div>
                 <ul>
-                  {MOCK_NOTIFICATIONS.map(n => (
+                  {notifications.map(n => (
                     <li key={n.id}
                         className={`flex gap-3 px-4 py-3 border-b border-primary-200 last:border-none
                                     hover:bg-primary-50 cursor-pointer transition-colors
@@ -111,6 +106,9 @@ export default function Topbar({ role = 'TENANT', pageTitle = 'Tableau de bord',
                       </div>
                     </li>
                   ))}
+                  {notifications.length === 0 && (
+                    <li className="px-4 py-3 text-xs text-primary-500">Aucune notification</li>
+                  )}
                 </ul>
                 <div className="px-4 py-2.5 text-center">
                   <button className="text-xs font-semibold text-primary-600 hover:underline">

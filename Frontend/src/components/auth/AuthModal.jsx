@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import { DEMO_MODE, DEMO_CREDENTIALS } from '../../data/demo'
 
 import AuthLoader from './LoginLoader'
 
@@ -139,19 +138,6 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
   }
 
   const handleLogin = async () => {
-    if (DEMO_MODE) {
-      await new Promise((resolve) => setTimeout(resolve, 250))
-      const payload = {
-        token: DEMO_CREDENTIALS.token,
-        role: DEMO_CREDENTIALS.user.role,
-        user: DEMO_CREDENTIALS.user,
-      }
-      persistSession(payload)
-      onSuccess?.(normalizeUser(payload.user, payload.role))
-      onClose?.()
-      return
-    }
-
     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -172,11 +158,6 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
   }
 
   const handleRegister = async () => {
-    if (DEMO_MODE) {
-      setMode('login')
-      return
-    }
-
     const email = form.email.trim().toLowerCase()
     const fullName = `${form.firstName} ${form.lastName}`.trim()
 

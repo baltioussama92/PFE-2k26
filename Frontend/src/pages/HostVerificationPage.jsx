@@ -6,6 +6,9 @@ import {
   ChevronRight, CheckCircle2, XCircle, Eye, X
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { API_BASE_URL, getStoredAuthToken } from '../api/apiClient'
+import { ENDPOINTS } from '../api/endpoints'
+import { guestVerificationService } from '../services/guestVerificationService'
 
 // ============= REUSABLE COMPONENTS =============
 
@@ -419,6 +422,7 @@ export default function HostVerificationPageNew() {
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [otpRequestId, setOtpRequestId] = useState('')
 
   const steps = [
     'Infos',
@@ -544,21 +548,35 @@ export default function HostVerificationPageNew() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Log the complete form data
-      const submissionData = {
-        timestamp: new Date().toISOString(),
-        ...formData,
-        // Files would be sent as FormData in actual implementation
-        governmentID: formData.governmentID?.name,
-        selfie: formData.selfie?.name,
-        propertyProof: formData.propertyProof?.name,
-        propertyImages: formData.propertyImages.map(f => f.name)
+      const token = getStoredAuthToken()
+      if (!token) {
+        throw new Error('Session expired. Please sign in again.')
       }
 
-      console.log('✅ Host Verification Submitted:', submissionData)
+      const body = new FormData()
+      body.append('governmentID', formData.governmentID)
+      body.append('selfie', formData.selfie)
+      body.append('propertyProof', formData.propertyProof)
+      formData.propertyImages.forEach((image) => {
+        body.append('propertyImages', image)
+      })
+      body.append('fullName', formData.fullName)
+      body.append('acceptTerms', String(formData.acceptTerms))
+      body.append('confirmOwnership', String(formData.confirmOwnership))
+
+      const response = await fetch(`${API_BASE_URL}/api${ENDPOINTS.verifications.submitHost}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body,
+      })
+
+      if (!response.ok) {
+        const payload = await response.text()
+        throw new Error(payload || 'Submission failed')
+      }
+
       setShowSuccess(true)
 
       // Redirect after 3 seconds
@@ -567,7 +585,7 @@ export default function HostVerificationPageNew() {
       }, 3000)
     } catch (error) {
       console.error('❌ Submission error:', error)
-      alert('Submission failed. Please try again.')
+      alert(error?.message || 'Submission failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -610,7 +628,7 @@ export default function HostVerificationPageNew() {
               required
             />
 
-            {/* OTP Verification (Mock) */}
+            {/* OTP Verification */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
               <p className="text-sm text-blue-700 font-semibold mb-2">Vérification OTP</p>
               <p className="text-xs text-blue-600">Un code OTP a été envoyé à votre téléphone</p>
@@ -624,11 +642,25 @@ export default function HostVerificationPageNew() {
                   className="flex-1 px-3 py-2 rounded-lg border border-blue-300 text-center font-mono"
                 />
                 <button
-                  onClick={() => {
-                    if (formData.otpCode === '123456') {
+                  onClick={async () => {
+                    try {
+                      if (!otpRequestId) {
+                        const sendResponse = await guestVerificationService.sendPhoneOtp({
+                          phoneNumber: formData.phone,
+                        })
+                        setOtpRequestId(sendResponse.reqId)
+                        alert('OTP sent to your phone. Enter the received code to verify.')
+                        return
+                      }
+
+                      await guestVerificationService.verifyPhoneOtp({
+                        reqId: otpRequestId,
+                        code: formData.otpCode,
+                      })
+
                       setFormData({ ...formData, otpVerified: true, otpCode: '' })
-                    } else {
-                      alert('code de vérification invalide')
+                    } catch (error) {
+                      alert(error?.message || 'Code de vérification invalide')
                     }
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"

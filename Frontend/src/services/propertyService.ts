@@ -2,25 +2,9 @@ import { apiClient } from '../api/apiClient'
 import { ENDPOINTS } from '../api/endpoints'
 import { buildQueryString } from '../api/query'
 import type { PropertyQuery, PropertyRequest, PropertyResponse } from '../utils/contracts'
-import { DEMO_MODE } from '../data/demo'
-import { getMockProperties, getMockPropertyById, MOCK_PROPERTIES } from './mockData'
 
 export const propertyService = {
   async list(query: PropertyQuery = {}): Promise<PropertyResponse[]> {
-    // DEMO MODE: Return mock data
-    if (DEMO_MODE) {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      const filters = {
-        location: query.location,
-        minPrice: query.minPrice ? Number(query.minPrice) : undefined,
-        maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
-      }
-      
-      return getMockProperties(filters)
-    }
-
     const hasSearchFilters =
       query.location != null && query.location !== '' ||
       query.minPrice != null ||

@@ -3,8 +3,10 @@ import { Download, FileText } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Table, { type TableColumn } from '../components/Table'
 import { useAdminToast } from '../components/AdminLayout'
-import { adminApi, type AdminPayment } from '../services/adminApi'
+import type { AdminPayment } from '../services/adminApi'
 import { MetricCard, MiniBarChart, MiniLineChart, SectionTabs, StatusBadge, SurfaceCard } from '../components/ui'
+import { apiClient } from '../../api/apiClient'
+import { ENDPOINTS } from '../../api/endpoints'
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
@@ -13,6 +15,12 @@ type PaymentsPanel = 'finance' | 'analytics'
 const monthlyRevenue = [124, 132, 140, 151, 163, 158, 172, 180, 191, 205, 198, 216]
 const monthlyCommission = [22, 24, 26, 28, 31, 29, 33, 35, 37, 39, 38, 41]
 
+interface FinanceSummaryResponse {
+  grossRevenue?: number
+  estimatedPayouts?: number
+  platformFees?: number
+}
+
 export default function Payments() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -20,15 +28,34 @@ export default function Payments() {
 
   const [loading, setLoading] = useState(true)
   const [payments, setPayments] = useState<AdminPayment[]>([])
+  const [summary, setSummary] = useState<FinanceSummaryResponse>({})
 
   const panel = (params.get('panel') === 'analytics' ? 'analytics' : 'finance') as PaymentsPanel
 
   useEffect(() => {
     let active = true
 
-    adminApi.getPayments()
-      .then((data) => {
-        if (active) setPayments(data)
+    Promise.all([
+      apiClient.get<any[]>(ENDPOINTS.admin.financePaymentsHistory),
+      apiClient.get<FinanceSummaryResponse>(ENDPOINTS.admin.financeSummary),
+    ])
+      .then(([paymentsResponse, summaryResponse]) => {
+        if (!active) return
+        const mapped = (paymentsResponse.data || []).map((row, index) => ({
+          id: Number(String(row?.bookingId || row?.id || index + 1).replace(/\D/g, '')) || index + 1,
+          user: String(row?.guestId || row?.hostId || 'User'),
+          userId: Number(String(row?.guestId || row?.hostId || 0).replace(/\D/g, '')) || undefined,
+          amount: Number(row?.amount || row?.grossAmount || row?.refundAmount || 0),
+          status: String(row?.status || '').toLowerCase() === 'processed' || String(row?.status || '').toLowerCase() === 'ready'
+            ? 'paid'
+            : String(row?.status || '').toLowerCase() === 'pending'
+              ? 'pending'
+              : 'failed',
+          date: String(row?.createdAt || '').slice(0, 10),
+        } as AdminPayment))
+
+        setPayments(mapped)
+        setSummary(summaryResponse.data || {})
       })
       .catch(() => showToast('Failed to load payments.', 'error'))
       .finally(() => {
@@ -41,12 +68,48 @@ export default function Payments() {
   }, [showToast])
 
   const totals = useMemo(() => {
-    const revenue = payments.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0)
-    const pendingPayouts = payments.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0)
-    const refunds = payments.filter((p) => p.status === 'failed').reduce((sum, p) => sum + p.amount * 0.4, 0)
-    const commission = revenue * 0.12
+    const revenue = Number(summary.grossRevenue || payments.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0))
+    const pendingPayouts = Number(summary.estimatedPayouts || payments.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0))
+    const commission = Number(summary.platformFees || revenue * 0.12)
+    const refunds = payments.filter((p) => p.status === 'failed').reduce((sum, p) => sum + p.amount, 0)
     return { revenue, pendingPayouts, refunds, commission }
-  }, [payments])
+  }, [payments, summary])
+
+  const downloadInvoice = async (payment: AdminPayment) => {
+    try {
+      const response = await apiClient.get<ArrayBuffer>(ENDPOINTS.admin.financeInvoiceDownload(payment.id), {
+        responseType: 'arraybuffer',
+      })
+      const blob = new Blob([response.data], { type: 'text/plain' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `invoice-${payment.id}.txt`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      showToast('Invoice downloaded.')
+    } catch {
+      showToast('Failed to download invoice.', 'error')
+    }
+  }
+
+  const exportFinance = async (format: 'csv' | 'pdf') => {
+    try {
+      const response = await apiClient.get<ArrayBuffer>(`${ENDPOINTS.admin.financeExport}?format=${format}`, {
+        responseType: 'arraybuffer',
+      })
+      const blob = new Blob([response.data], { type: format === 'pdf' ? 'application/pdf' : 'text/plain' })
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `finance-export.${format}`
+      link.click()
+      window.URL.revokeObjectURL(url)
+      showToast(`Export ${format.toUpperCase()} generated.`)
+    } catch {
+      showToast(`Failed to export ${format.toUpperCase()}.`, 'error')
+    }
+  }
 
   const columns = useMemo<TableColumn<AdminPayment>[]>(() => [
     { key: 'id', header: 'Payment ID', render: (row) => `PAY-${row.id}` },
@@ -65,10 +128,10 @@ export default function Payments() {
     {
       key: 'invoice',
       header: 'Invoice',
-      render: () => (
+      render: (row) => (
         <button
           type="button"
-          onClick={() => showToast('Invoice download started (demo).')}
+          onClick={() => downloadInvoice(row)}
           className="inline-flex items-center gap-1 rounded-lg border border-[#D8C8B3] bg-[#F9F3EA] px-2 py-1 text-[11px] font-semibold text-[#4B3A2E] transition hover:bg-[#EFE2D5]"
         >
           <FileText size={12} />
@@ -111,7 +174,7 @@ export default function Payments() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => showToast('CSV export generated (demo).')}
+                  onClick={() => exportFinance('csv')}
                   className="inline-flex items-center gap-1 rounded-lg border border-[#D8C8B3] bg-[#F9F3EA] px-3 py-2 text-xs font-semibold text-[#4B3A2E] transition hover:bg-[#EFE2D5]"
                 >
                   <Download size={14} />
@@ -119,7 +182,7 @@ export default function Payments() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => showToast('PDF report generated (demo).')}
+                  onClick={() => exportFinance('pdf')}
                   className="inline-flex items-center gap-1 rounded-lg border border-[#D8C8B3] bg-[#F9F3EA] px-3 py-2 text-xs font-semibold text-[#4B3A2E] transition hover:bg-[#EFE2D5]"
                 >
                   <FileText size={14} />

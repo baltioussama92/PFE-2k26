@@ -915,56 +915,15 @@ export const adminApi = {
   },
 
   async getReports(): Promise<AdminReport[]> {
-    return withFallback(async () => {
-      const [pendingListings, usersResponse] = await Promise.all([
-        fetchPendingListings(),
-        apiClient.get<UserDto[]>(ENDPOINTS.admin.users),
-      ])
-
-      reportToListingMap.clear()
-      const reportToUserMap = new Map<number, number>()
-      const listingReports = pendingListings.map((listing, index) => {
-        const reportId = index + 1
-        reportToListingMap.set(reportId, toNumberId(listing.id))
-
-        return {
-          id: reportId,
-          reporter: 'System',
-          reason: 'Pending listing approval',
-          target: listing.title,
-          targetType: 'listing' as const,
-          resolved: false,
-        }
-      })
-
-      const userReports = usersResponse.data
-        .slice(0, 2)
-        .map((user, index) => {
-          const reportId = listingReports.length + index + 1
-          reportToUserMap.set(reportId, toNumberId(user.id))
-          return {
-            id: reportId,
-            reporter: 'Support',
-            reason: 'Abusive behavior report',
-            target: user.fullName || user.name || `User #${user.id}`,
-            targetType: 'user' as const,
-            resolved: false,
-          }
-        })
-
-      userReports.forEach((report) => {
-        const userId = reportToUserMap.get(report.id)
-        if (userId) reportToListingMap.set(report.id, -userId)
-      })
-
-      return [...listingReports, ...userReports]
-    }, async () => {
-      await sleep(220)
-      reportToListingMap.clear()
-      reportToListingMap.set(401, 202)
-      reportToListingMap.set(402, -103)
-      return [...mockReports]
-    })
+    const { data } = await apiClient.get<any[]>(ENDPOINTS.admin.reports)
+    return (data || []).map((item, index) => ({
+      id: toNumberId(item?.id) || index + 1,
+      reporter: String(item?.reporterLabel || item?.reporterId || 'System'),
+      reason: String(item?.reason || item?.category || 'Report'),
+      target: String(item?.targetLabel || item?.targetId || 'Unknown target'),
+      targetType: String(item?.targetType || '').toLowerCase() === 'user' ? 'user' : 'listing',
+      resolved: ['resolved', 'closed'].includes(String(item?.status || '').toLowerCase()),
+    }))
   },
 
   async getDashboardStats(): Promise<DashboardStats> {
@@ -1072,7 +1031,7 @@ export const adminApi = {
 
   async cancelBooking(bookingId: number): Promise<AdminBooking | null> {
     try {
-      const { data } = await apiClient.put<BookingResponse>(ENDPOINTS.bookings.updateStatus(bookingId), {
+      const { data } = await apiClient.patch<BookingResponse>(ENDPOINTS.bookings.updateStatus(bookingId), {
         status: 'CANCELLED',
       })
       return mapBooking(data)
@@ -1138,12 +1097,19 @@ export const adminApi = {
   },
 
   async getSettings(): Promise<AdminSettings> {
-    return readStoredSettings()
+    const { data } = await apiClient.get<AdminSettings>(ENDPOINTS.admin.settings)
+    return {
+      ...defaultSettings,
+      ...(data || {}),
+    }
   },
 
   async saveSettings(nextSettings: AdminSettings): Promise<AdminSettings> {
-    writeStoredSettings(nextSettings)
-    return { ...nextSettings }
+    const { data } = await apiClient.put<AdminSettings>(ENDPOINTS.admin.settings, nextSettings)
+    return {
+      ...defaultSettings,
+      ...(data || nextSettings),
+    }
   },
 
   async getHostDemands(): Promise<HostDemand[]> {
