@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { apiClient } from '../api/apiClient'
+import { ENDPOINTS } from '../api/endpoints'
 import {
   Settings, User, Bell, Shield, Globe, Moon, Sun,
   Eye, EyeOff, Check, Loader2, Trash2, LogOut,
@@ -98,17 +100,29 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
 
   const handleProfileSave = async () => {
     setSaving(true)
-    await new Promise(r => setTimeout(r, 600))
-    const updated = {
-      ...user,
-      name: form.name.trim() || user.name,
-      email: form.email.trim() || user.email,
+    try {
+      const response = await apiClient.put(ENDPOINTS.users.updateMe, {
+        fullName: form.name.trim() || user.name,
+        email: form.email.trim() || user.email,
+      })
+
+      const backendUser = response.data || {}
+      const updated = {
+        ...user,
+        ...backendUser,
+        name: backendUser.fullName || backendUser.name || form.name.trim() || user.name,
+        email: backendUser.email || form.email.trim() || user.email,
+      }
+
+      localStorage.setItem(USER_KEY, JSON.stringify(updated))
+      onUserUpdate?.(updated)
+      setSaved('profile')
+      setTimeout(() => setSaved(''), 2000)
+    } catch (error) {
+      console.error('Profile update failed:', error)
+    } finally {
+      setSaving(false)
     }
-    localStorage.setItem(USER_KEY, JSON.stringify(updated))
-    onUserUpdate?.(updated)
-    setSaving(false)
-    setSaved('profile')
-    setTimeout(() => setSaved(''), 2000)
   }
 
   const handlePasswordSave = async () => {
@@ -126,11 +140,20 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
       return
     }
     setSaving(true)
-    await new Promise(r => setTimeout(r, 600))
-    setSaving(false)
-    setPwdForm({ current: '', next: '', confirm: '' })
-    setSaved('security')
-    setTimeout(() => setSaved(''), 2000)
+    try {
+      await apiClient.patch(ENDPOINTS.users.updatePassword, {
+        currentPassword: pwdForm.current,
+        newPassword: pwdForm.next,
+      })
+      setPwdForm({ current: '', next: '', confirm: '' })
+      setSaved('security')
+      setTimeout(() => setSaved(''), 2000)
+    } catch (error) {
+      console.error('Password update failed:', error)
+      setPwdError(error?.message || 'Échec de la mise à jour du mot de passe.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

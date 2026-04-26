@@ -5,7 +5,7 @@ import Table, { type TableColumn } from '../components/Table'
 import { useAdminToast } from '../components/AdminLayout'
 import type { AdminPayment } from '../services/adminApi'
 import { MetricCard, MiniBarChart, MiniLineChart, SectionTabs, StatusBadge, SurfaceCard } from '../components/ui'
-import { apiClient } from '../../api/apiClient'
+import { API_BASE_URL, apiClient, getStoredAuthToken } from '../../api/apiClient'
 import { ENDPOINTS } from '../../api/endpoints'
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -29,17 +29,23 @@ export default function Payments() {
   const [loading, setLoading] = useState(true)
   const [payments, setPayments] = useState<AdminPayment[]>([])
   const [summary, setSummary] = useState<FinanceSummaryResponse>({})
+  const [payouts, setPayouts] = useState<Array<{ id: string; host: string; amount: number; dueAt: string }>>([])
+  const [refunds, setRefunds] = useState<Array<{ id: string; booking: string; amount: number; status: string }>>([])
 
   const panel = (params.get('panel') === 'analytics' ? 'analytics' : 'finance') as PaymentsPanel
 
   useEffect(() => {
     let active = true
 
-    Promise.all([
-      apiClient.get<any[]>(ENDPOINTS.admin.financePaymentsHistory),
-      apiClient.get<FinanceSummaryResponse>(ENDPOINTS.admin.financeSummary),
-    ])
-      .then(([paymentsResponse, summaryResponse]) => {
+    const loadPayments = async () => {
+      try {
+        const [paymentsResponse, summaryResponse, payoutsResponse, refundsResponse] = await Promise.all([
+          apiClient.get<any[]>(ENDPOINTS.admin.financePaymentsHistory),
+          apiClient.get<FinanceSummaryResponse>(ENDPOINTS.admin.financeSummary),
+          apiClient.get<any[]>(ENDPOINTS.admin.financePayouts),
+          apiClient.get<any[]>(ENDPOINTS.admin.financeRefunds),
+        ])
+
         if (!active) return
         const mapped = (paymentsResponse.data || []).map((row, index) => ({
           id: Number(String(row?.bookingId || row?.id || index + 1).replace(/\D/g, '')) || index + 1,
@@ -56,11 +62,26 @@ export default function Payments() {
 
         setPayments(mapped)
         setSummary(summaryResponse.data || {})
-      })
-      .catch(() => showToast('Failed to load payments.', 'error'))
-      .finally(() => {
+        setPayouts((payoutsResponse.data || []).map((row: any, index: number) => ({
+          id: String(row?.id || row?.payoutId || index + 1),
+          host: String(row?.hostName || row?.hostId || 'Host'),
+          amount: Number(row?.amount || row?.netAmount || row?.grossAmount || 0),
+          dueAt: String(row?.dueAt || row?.createdAt || row?.scheduledAt || '').slice(0, 10),
+        })))
+        setRefunds((refundsResponse.data || []).map((row: any, index: number) => ({
+          id: String(row?.id || row?.refundId || index + 1),
+          booking: String(row?.bookingId || row?.bookingRef || 'Booking'),
+          amount: Number(row?.amount || row?.refundAmount || 0),
+          status: String(row?.status || 'pending'),
+        })))
+      } catch {
+        showToast('Failed to load payments.', 'error')
+      } finally {
         if (active) setLoading(false)
-      })
+      }
+    }
+
+    void loadPayments()
 
     return () => {
       active = false
@@ -77,10 +98,14 @@ export default function Payments() {
 
   const downloadInvoice = async (payment: AdminPayment) => {
     try {
-      const response = await apiClient.get<ArrayBuffer>(ENDPOINTS.admin.financeInvoiceDownload(payment.id), {
-        responseType: 'arraybuffer',
+      const token = getStoredAuthToken()
+      const response = await fetch(`${API_BASE_URL}/api${ENDPOINTS.admin.financeInvoiceDownload(payment.id)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
-      const blob = new Blob([response.data], { type: 'text/plain' })
+      if (!response.ok) {
+        throw new Error('Failed to download invoice.')
+      }
+      const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -95,10 +120,14 @@ export default function Payments() {
 
   const exportFinance = async (format: 'csv' | 'pdf') => {
     try {
-      const response = await apiClient.get<ArrayBuffer>(`${ENDPOINTS.admin.financeExport}?format=${format}`, {
-        responseType: 'arraybuffer',
+      const token = getStoredAuthToken()
+      const response = await fetch(`${API_BASE_URL}/api${ENDPOINTS.admin.financeExport}?format=${format}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
-      const blob = new Blob([response.data], { type: format === 'pdf' ? 'application/pdf' : 'text/plain' })
+      if (!response.ok) {
+        throw new Error('Failed to export finance data.')
+      }
+      const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -203,17 +232,21 @@ export default function Payments() {
           <div className="grid gap-4 lg:grid-cols-2">
             <SurfaceCard title="Payout Tracking" subtitle="Upcoming host payouts">
               <ul className="space-y-2 text-sm text-[#4E3D30]">
-                <li className="rounded-lg border border-[#E5D6C4] bg-[#FCF7F0] p-2">Host #102 - {money.format(1240)} - due Apr 24</li>
-                <li className="rounded-lg border border-[#E5D6C4] bg-[#FCF7F0] p-2">Host #088 - {money.format(890)} - due Apr 25</li>
-                <li className="rounded-lg border border-[#E5D6C4] bg-[#FCF7F0] p-2">Host #054 - {money.format(670)} - due Apr 27</li>
+                  {payouts.length > 0 ? payouts.map((payout) => (
+                    <li key={payout.id} className="rounded-lg border border-[#E5D6C4] bg-[#FCF7F0] p-2">
+                      {payout.host} - {money.format(payout.amount)} - due {payout.dueAt || 'soon'}
+                    </li>
+                  )) : <li className="rounded-lg border border-[#E5D6C4] bg-[#FCF7F0] p-2">No payout records found.</li>}
               </ul>
             </SurfaceCard>
 
             <SurfaceCard title="Refund Tracking" subtitle="Open refund workflows">
               <ul className="space-y-2 text-sm text-[#4E3D30]">
-                <li className="rounded-lg border border-[#E9C3BD] bg-[#FDEFEF] p-2">Booking #7442 - {money.format(340)} - investigation</li>
-                <li className="rounded-lg border border-[#ECD4B2] bg-[#FFF7EA] p-2">Booking #7391 - {money.format(180)} - pending approval</li>
-                <li className="rounded-lg border border-[#BFD9C8] bg-[#EDF8F1] p-2">Booking #7289 - {money.format(250)} - refunded</li>
+                  {refunds.length > 0 ? refunds.map((refund) => (
+                    <li key={refund.id} className="rounded-lg border border-[#E9C3BD] bg-[#FDEFEF] p-2">
+                      {refund.booking} - {money.format(refund.amount)} - {refund.status}
+                    </li>
+                  )) : <li className="rounded-lg border border-[#E9C3BD] bg-[#FDEFEF] p-2">No refund records found.</li>}
               </ul>
             </SurfaceCard>
           </div>

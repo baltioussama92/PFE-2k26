@@ -5,14 +5,16 @@ import Table, { type TableColumn } from '../components/Table'
 import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type ActivityRow, type DashboardStats } from '../services/adminApi'
 import { MetricCard, MiniBarChart, MiniLineChart, SectionTabs, SurfaceCard } from '../components/ui'
+import { apiClient } from '../../api/apiClient'
+import { ENDPOINTS } from '../../api/endpoints'
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
-const revenueTrend = [34, 39, 44, 41, 48, 53, 57, 61, 67, 72, 69, 78]
-const bookingTrend = [18, 16, 20, 24, 22, 27, 31, 29, 36, 38, 34, 43]
-const growthTrend = [9, 12, 16, 19, 24, 31, 35, 38, 41, 46, 49, 55]
+const defaultRevenueTrend = [34, 39, 44, 41, 48, 53, 57, 61, 67, 72, 69, 78]
+const defaultBookingTrend = [18, 16, 20, 24, 22, 27, 31, 29, 36, 38, 34, 43]
+const defaultGrowthTrend = [9, 12, 16, 19, 24, 31, 35, 38, 41, 46, 49, 55]
 
-const cityRows = [
+const defaultCityRows = [
   { city: 'Marrakech', bookings: 842, growth: '+12%' },
   { city: 'Casablanca', bookings: 693, growth: '+9%' },
   { city: 'Rabat', bookings: 451, growth: '+7%' },
@@ -30,17 +32,70 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [activity, setActivity] = useState<ActivityRow[]>([])
+  const [revenueTrend, setRevenueTrend] = useState<number[]>(defaultRevenueTrend)
+  const [bookingTrend, setBookingTrend] = useState<number[]>(defaultBookingTrend)
+  const [growthTrend, setGrowthTrend] = useState<number[]>(defaultGrowthTrend)
+  const [cityRows, setCityRows] = useState(defaultCityRows)
+  const [supportTicketCount, setSupportTicketCount] = useState(0)
+  const [disputeCount, setDisputeCount] = useState(0)
+  const [pendingVerificationCount, setPendingVerificationCount] = useState(0)
 
   const panel = (params.get('panel') === 'analytics' ? 'analytics' : 'overview') as DashboardPanel
 
   useEffect(() => {
     let active = true
 
-    Promise.all([adminApi.getDashboardStats(), adminApi.getRecentActivity()])
-      .then(([nextStats, nextActivity]) => {
+    Promise.all([
+      adminApi.getDashboardStats(),
+      adminApi.getRecentActivity(),
+      apiClient.get<any[]>(ENDPOINTS.admin.analyticsRevenueTrend),
+      apiClient.get<any[]>(ENDPOINTS.admin.analyticsBookingTrend),
+      apiClient.get<any[]>(ENDPOINTS.admin.analyticsUserGrowth),
+      apiClient.get<any[]>(ENDPOINTS.admin.analyticsTopCities),
+      apiClient.get<any[]>(ENDPOINTS.admin.supportTickets),
+      apiClient.get<any[]>(ENDPOINTS.admin.reports),
+      adminApi.getHostDemands(),
+    ])
+      .then(([
+        nextStats,
+        nextActivity,
+        revenueTrendResponse,
+        bookingTrendResponse,
+        growthTrendResponse,
+        topCitiesResponse,
+        supportTicketsResponse,
+        reportsResponse,
+        hostDemands,
+      ]) => {
         if (!active) return
         setStats(nextStats)
         setActivity(nextActivity)
+
+        const revenueRows = revenueTrendResponse.data || []
+        const bookingRows = bookingTrendResponse.data || []
+        const growthRows = growthTrendResponse.data || []
+        const topCitiesRows = topCitiesResponse.data || []
+
+        if (revenueRows.length > 0) {
+          setRevenueTrend(revenueRows.map((row) => Number(row?.earnings || row?.revenue || row?.value || 0)))
+        }
+        if (bookingRows.length > 0) {
+          setBookingTrend(bookingRows.map((row) => Number(row?.bookingsCount || row?.count || row?.value || 0)))
+        }
+        if (growthRows.length > 0) {
+          setGrowthTrend(growthRows.map((row) => Number(row?.count || row?.users || row?.value || 0)))
+        }
+        if (topCitiesRows.length > 0) {
+          setCityRows(topCitiesRows.map((row) => ({
+            city: String(row?.city || row?.name || 'Unknown'),
+            bookings: Number(row?.bookings || row?.count || 0),
+            growth: `${String(row?.growth || row?.delta || 0).startsWith('+') ? '' : '+'}${String(row?.growth || row?.delta || 0)}%`,
+          })))
+        }
+
+        setSupportTicketCount((supportTicketsResponse.data || []).length)
+        setDisputeCount((reportsResponse.data || []).filter((report) => String(report?.targetType || '').toLowerCase() === 'user').length)
+        setPendingVerificationCount(hostDemands.filter((demand) => demand.status === 'pending').length)
       })
       .catch(() => showToast('Failed to load dashboard data.', 'error'))
       .finally(() => {
@@ -61,13 +116,13 @@ export default function Dashboard() {
       { label: 'Total Users', value: loading ? '-' : baseUsers.toLocaleString(), icon: <UserRound size={18} />, tone: 'info' as const, delta: '+5.2% this month' },
       { label: 'Total Hosts', value: loading ? '-' : totalHosts.toLocaleString(), icon: <TrendingUp size={18} />, tone: 'neutral' as const, delta: '+2.4% active hosts' },
       { label: 'Total Guests', value: loading ? '-' : totalGuests.toLocaleString(), icon: <UserRound size={18} />, tone: 'neutral' as const, delta: '+6.8% returning guests' },
-      { label: 'Pending Verifications', value: loading ? '-' : '27', icon: <Clock3 size={18} />, tone: 'warning' as const, delta: '8 high-priority cases' },
+      { label: 'Pending Verifications', value: loading ? '-' : pendingVerificationCount.toLocaleString(), icon: <Clock3 size={18} />, tone: 'warning' as const, delta: 'Live host demand count' },
       { label: 'Active Bookings', value: loading ? '-' : (stats?.totalBookings || 0).toLocaleString(), icon: <CheckCheck size={18} />, tone: 'success' as const, delta: '+14.1% vs last month' },
       { label: 'Total Revenue', value: loading ? '-' : currency.format(stats?.revenue || 0), icon: <CircleDollarSign size={18} />, tone: 'success' as const, delta: 'Commission rate 12%' },
-      { label: 'Support Tickets', value: loading ? '-' : '46', icon: <Headset size={18} />, tone: 'info' as const, delta: '11 unresolved > 48h' },
-      { label: 'Disputes', value: loading ? '-' : '12', icon: <ShieldAlert size={18} />, tone: 'danger' as const, delta: '3 escalated today' },
+      { label: 'Support Tickets', value: loading ? '-' : supportTicketCount.toLocaleString(), icon: <Headset size={18} />, tone: 'info' as const, delta: 'Live backend count' },
+      { label: 'Disputes', value: loading ? '-' : disputeCount.toLocaleString(), icon: <ShieldAlert size={18} />, tone: 'danger' as const, delta: 'User-targeted reports' },
     ]
-  }, [loading, stats])
+  }, [disputeCount, loading, pendingVerificationCount, stats, supportTicketCount])
 
   const activityColumns: TableColumn<ActivityRow>[] = [
     { key: 'action', header: 'Action', render: (row) => row.action },
@@ -122,7 +177,7 @@ export default function Dashboard() {
       {panel === 'overview' ? (
         <>
           <section className="grid gap-4 xl:grid-cols-3">
-            <SurfaceCard title="Revenue Trend" subtitle="Monthly gross revenue (kUSD)" className="xl:col-span-2">
+            <SurfaceCard title="Revenue Trend" subtitle="Monthly gross revenue" className="xl:col-span-2">
               <MiniLineChart points={revenueTrend} />
             </SurfaceCard>
 
@@ -158,7 +213,7 @@ export default function Dashboard() {
                   <AlertTriangle size={15} />
                   Priority Watch
                 </div>
-                <p className="mt-1">3 disputes and 11 support tickets need action in the next 24 hours.</p>
+                <p className="mt-1">{disputeCount} disputes and {supportTicketCount} support tickets need action in the next 24 hours.</p>
               </div>
             </SurfaceCard>
           </section>

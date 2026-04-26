@@ -356,7 +356,7 @@ function HostReviewsSection({ reviews = [] }) {
   )
 }
 
-// Availability Calendar (placeholder)
+// Availability overview
 function CalendarSection() {
   return (
     <motion.div
@@ -367,13 +367,18 @@ function CalendarSection() {
     >
       <div className="flex items-center gap-3 mb-6">
         <Calendar className="w-5 h-5 text-primary-600" />
-        <h2 className="text-xl font-bold text-slate-900">Availability Calendar</h2>
+        <h2 className="text-xl font-bold text-slate-900">Availability Overview</h2>
       </div>
 
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-12 text-center">
-        <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-        <p className="text-slate-600 font-semibold">Calendar view coming soon</p>
-        <p className="text-sm text-slate-500 mt-2">Manage your property availability here</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-900">Availability is managed in your listings</p>
+          <p className="mt-2 text-sm text-slate-600">Use the listings workspace to update pricing, visibility, and booking readiness for each property.</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-900">Quick status snapshot</p>
+          <p className="mt-2 text-sm text-slate-600">Calendar-specific blocking is not shown here yet, but your active listings and booking flow remain fully available.</p>
+        </div>
       </div>
     </motion.div>
   )

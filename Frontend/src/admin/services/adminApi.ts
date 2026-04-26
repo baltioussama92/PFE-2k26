@@ -888,7 +888,7 @@ export const adminApi = {
     }))
   },
 
-  async updateUserProfileFrontendOnly(user: AdminUser, payload: { name: string; email: string }): Promise<AdminUser> {
+  async updateUserProfile(user: AdminUser, payload: { name: string; email: string }): Promise<AdminUser> {
     const { data } = await apiClient.patch<UserDto>(ENDPOINTS.admin.updateUser(user.id), {
       fullName: payload.name,
       email: payload.email,
@@ -896,7 +896,7 @@ export const adminApi = {
     return mapUser(data)
   },
 
-  async changeUserPasswordFrontendOnly(userId: number | string, newPassword: string): Promise<boolean> {
+  async changeUserPassword(userId: number | string, newPassword: string): Promise<boolean> {
     const { data } = await apiClient.patch<AdminActionResponse>(ENDPOINTS.admin.updateUserPassword(userId), {
       newPassword,
       forceResetOnNextLogin: false,
@@ -904,7 +904,7 @@ export const adminApi = {
     return Boolean(data.success)
   },
 
-  async deleteUserFrontendOnly(userId: number | string): Promise<boolean> {
+  async deleteUser(userId: number | string): Promise<boolean> {
     const { data } = await apiClient.delete<AdminActionResponse>(ENDPOINTS.admin.deleteUser(userId))
     return Boolean(data.success)
   },

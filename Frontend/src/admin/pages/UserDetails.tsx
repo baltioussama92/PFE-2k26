@@ -151,10 +151,15 @@ export default function UserDetails() {
     }
 
     setSavingProfile(true)
-    const updated = await adminApi.updateUserProfileFrontendOnly(user, { name, email })
-    setSavingProfile(false)
-    setUser(updated)
-    showToast('Profile updated successfully.')
+    try {
+      const updated = await adminApi.updateUserProfile(user, { name, email })
+      setUser(updated)
+      showToast('Profile updated successfully.')
+    } catch {
+      showToast('Failed to update profile.', 'error')
+    } finally {
+      setSavingProfile(false)
+    }
   }
 
   const onChangePassword = async () => {
@@ -173,10 +178,15 @@ export default function UserDetails() {
     }
 
     setSavingPassword(true)
-    await adminApi.changeUserPasswordFrontendOnly(user.backendId || user.id, passwordForm.next)
-    setSavingPassword(false)
-    setPasswordForm({ next: '', confirm: '' })
-    showToast('Password changed successfully.')
+    try {
+      await adminApi.changeUserPassword(user.backendId || user.id, passwordForm.next)
+      setPasswordForm({ next: '', confirm: '' })
+      showToast('Password changed successfully.')
+    } catch {
+      showToast('Failed to change password.', 'error')
+    } finally {
+      setSavingPassword(false)
+    }
   }
 
   const onDeleteUser = async () => {
@@ -185,10 +195,15 @@ export default function UserDetails() {
     if (!confirmed) return
 
     setDeleting(true)
-    await adminApi.deleteUserFrontendOnly(user.backendId || user.id)
-    setDeleting(false)
-    showToast('Account deleted successfully.')
-    navigate('/admin/users', { state: { deletedUserId: user.id } })
+    try {
+      await adminApi.deleteUser(user.backendId || user.id)
+      showToast('Account deleted successfully.')
+      navigate('/admin/users', { state: { deletedUserId: user.id } })
+    } catch {
+      showToast('Failed to delete user.', 'error')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (loading) {
