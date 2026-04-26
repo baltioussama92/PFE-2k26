@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Camera, Check, X, Loader2 } from 'lucide-react'
 import PortfolioHeader from '../components/profile/PortfolioHeader'
@@ -127,8 +127,16 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
       })
 
       if (!response.ok) {
-        const payload = await response.text()
-        throw new Error(payload || 'Unable to save profile.')
+        let errorMessage = 'Unable to save profile.'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorMessage
+        } catch {
+          // Fall back to text if JSON parsing fails
+          const textError = await response.text()
+          errorMessage = textError || errorMessage
+        }
+        throw new Error(errorMessage)
       }
 
       const backendUser = await response.json()
@@ -144,6 +152,7 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
       setSaved(true)
       setTimeout(() => onSave?.(), 800)
     } catch (error) {
+      console.error('Profile update error:', error)
       setSaveError(error?.message || 'Could not save profile.')
     } finally {
       setSaving(false)
@@ -207,6 +216,7 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
 
 export default function ProfilePage({ user, onUserUpdate }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [displayRole, setDisplayRole] = useState(() => localStorage.getItem(DISPLAY_ROLE_KEY) || 'GUEST')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 

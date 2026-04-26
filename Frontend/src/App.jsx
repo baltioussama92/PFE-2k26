@@ -293,17 +293,18 @@ function AppRoutes() {
             <Route path="/"         element={<HomePage user={user} onAuthClick={handleAuthClick} />} />
             <Route path="/explorer" element={<ExplorerPage user={user} onAuthClick={handleAuthClick} />} />
             <Route path="/property/:id" element={<PropertyDetails user={user} onAuthClick={handleAuthClick} />} />
-            <Route path="/profile"  element={<ProfilePage user={user} onUserUpdate={setUser} />} />
-            <Route path="/host-verification" element={<HostVerificationPage user={user} onUserUpdate={setUser} />} />
-            <Route path="/guest-verification" element={<GuestVerificationPage user={user} onUserUpdate={setUser} />} />
-            <Route path="/favorites" element={<WishlistPage user={user} />} />
-            <Route path="/bookings"  element={<BookingsPage user={user} />} />
-            <Route path="/messages"  element={<MessagesPage user={user} />} />
-            <Route path="/settings"  element={<SettingsPage user={user} onUserUpdate={setUser} onLogout={handleLogout} />} />
-            <Route path="/add-property"    element={<AddPropertyPage user={user} />} />
-            <Route path="/my-properties"   element={<MyPropertiesPage user={user} />} />
-            <Route path="/host-bookings"   element={<HostBookingsPage user={user} />} />
-            <Route path="/admin-control"   element={<AdminControlPage user={user} />} />
+            <Route path="/profile"  element={user ? <ProfilePage user={user} onUserUpdate={setUser} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/account"  element={user ? <ProfilePage user={user} onUserUpdate={setUser} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/host-verification" element={user ? <HostVerificationPage user={user} onUserUpdate={setUser} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/guest-verification" element={user ? <GuestVerificationPage user={user} onUserUpdate={setUser} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/favorites" element={user ? <WishlistPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/bookings"  element={user ? <BookingsPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/messages"  element={user ? <MessagesPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/settings"  element={user ? <SettingsPage user={user} onUserUpdate={setUser} onLogout={handleLogout} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/add-property"    element={user ? <AddPropertyPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/my-properties"   element={user ? <MyPropertiesPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/host-bookings"   element={user ? <HostBookingsPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/admin-control"   element={user && (user.role === 'ADMIN') ? <AdminControlPage user={user} /> : <Navigate to="/" replace />} />
             <Route path="*"         element={<NotFound     />} />
           </Routes>
         </Layout>

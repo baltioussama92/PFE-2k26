@@ -98,8 +98,11 @@ export default function Navbar({ user = null, onAuthClick, onLogout }) {
 
   const currentLanguage = languageOptions.find((option) => option.code === language) || languageOptions[1]
 
-  const isActive = (to) =>
-    to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
+  const isActive = (to) => {
+    if (to === '/') return location.pathname === '/'
+    if (to === '/profile') return location.pathname === '/profile' || location.pathname === '/account'
+    return location.pathname.startsWith(to)
+  }
 
   const formatRelativeTime = (value) => {
     if (!value) return ''
