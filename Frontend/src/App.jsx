@@ -18,6 +18,11 @@ import AddPropertyPage    from './pages/AddPropertyPage'
 import MyPropertiesPage   from './pages/MyPropertiesPage'
 import HostBookingsPage   from './pages/HostBookingsPage'
 import AdminControlPage   from './pages/AdminControlPage'
+import ForgotPasswordPage from './pages/ForgotPassword'
+import ResetPasswordPage from './pages/ResetPassword'
+import BookingConfirmPage from './pages/BookingConfirm'
+import NotificationsPage from './pages/NotificationsPage'
+import ReportPage from './pages/ReportPage'
 import AdminLayout from './admin/components/AdminLayout'
 import AdminDashboardPage from './admin/pages/Dashboard'
 import AdminUsersPage from './admin/pages/Users'
@@ -305,6 +310,11 @@ function AppRoutes() {
             <Route path="/my-properties"   element={user ? <MyPropertiesPage user={user} /> : <Navigate to="/?auth=login" replace />} />
             <Route path="/host-bookings"   element={user ? <HostBookingsPage user={user} /> : <Navigate to="/?auth=login" replace />} />
             <Route path="/admin-control"   element={user && (user.role === 'ADMIN') ? <AdminControlPage user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/booking/:id/confirm" element={user ? <BookingConfirmPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/notifications" element={user ? <NotificationsPage user={user} /> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/report" element={<ReportPage />} />
             <Route path="*"         element={<NotFound     />} />
           </Routes>
         </Layout>

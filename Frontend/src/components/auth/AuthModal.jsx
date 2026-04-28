@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 
@@ -115,6 +116,7 @@ function LoginSplash() {
 }
 
 export default function AuthModal({ initialMode = 'login', onClose, onSuccess }) {
+  const navigate = useNavigate()
   const [mode, setMode] = useState(initialMode === 'register' ? 'register' : 'login')
   const [loading, setLoading] = useState(false)
   const [loginSplash, setLoginSplash] = useState(false)
@@ -395,6 +397,20 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
                   className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
                   required
                 />
+
+                {mode === 'login' && (
+                  <motion.button
+                    variants={fieldVariants}
+                    type="button"
+                    onClick={() => {
+                      onClose?.()
+                      navigate('/forgot-password')
+                    }}
+                    className="text-xs font-semibold text-primary-600 transition hover:text-primary-700 hover:underline"
+                  >
+                    Forgot password?
+                  </motion.button>
+                )}
 
                 {mode === 'register' && (
                   <motion.input
