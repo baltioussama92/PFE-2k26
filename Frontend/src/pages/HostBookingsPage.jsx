@@ -206,7 +206,7 @@ export default function HostBookingsPage({ user }) {
             { icon: Clock, label: 'En attente', value: pendingCount, color: 'text-amber-500' },
             { icon: CheckCircle2, label: 'Confirmées', value: confirmedCount, color: 'text-emerald-500' },
             { icon: Building2, label: 'Total', value: bookings.length, color: 'text-primary-500' },
-            { icon: CreditCard, label: 'Revenus', value: `${totalRevenue.toLocaleString('fr-TN')} TND`, color: 'text-primary-600' },
+            { icon: CreditCard, label: 'Revenus', value: `${totalRevenue.toLocaleString('fr-TN')} DT`, color: 'text-primary-600' },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="bg-white rounded-2xl p-4 shadow-sm border border-primary-100">
               <Icon className={`w-5 h-5 ${color} mb-1`} />
@@ -299,7 +299,7 @@ export default function HostBookingsPage({ user }) {
                       </div>
 
                       <div className="hidden md:block text-right shrink-0">
-                        <p className="text-sm font-bold text-primary-900">{b.totalPrice.toLocaleString('fr-TN')} TND</p>
+                        <p className="text-sm font-bold text-primary-900">{b.totalPrice.toLocaleString('fr-TN')} DT</p>
                         <p className="text-xs text-primary-500">{b.checkIn} → {b.checkOut}</p>
                       </div>
 
@@ -349,7 +349,7 @@ export default function HostBookingsPage({ user }) {
                                 <p className="text-primary-500 text-xs">Montant total</p>
                                 <p className="font-bold text-primary-900 flex items-center gap-1">
                                   <CreditCard className="w-3.5 h-3.5 text-primary-400" />
-                                  {b.totalPrice.toLocaleString('fr-TN')} TND
+                                  {b.totalPrice.toLocaleString('fr-TN')} DT
                                 </p>
                               </div>
                             </div>

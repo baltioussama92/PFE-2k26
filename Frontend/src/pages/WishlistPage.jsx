@@ -202,7 +202,7 @@ export default function WishlistPage({ user }) {
             >
               <p className="text-sm text-primary-600">
                 <span className="font-bold text-primary-800">{filteredItems.length}</span> propriété{filteredItems.length > 1 ? 's' : ''} • Valeur totale&nbsp;
-                <span className="font-bold text-primary-800">{totalValue.toLocaleString('fr-TN')} TND</span>/mois
+                <span className="font-bold text-primary-800">{totalValue.toLocaleString('fr-TN')} DT</span>/mois
               </p>
               <Link
                 to="/explorer"
@@ -255,8 +255,8 @@ function WishlistCard({ property: p, onRemove }) {
 
         {/* Price tag */}
         <div className="absolute bottom-3 right-3 bg-primary-100/90 backdrop-blur-sm rounded-xl px-3 py-1.5">
-          <p className="text-sm font-extrabold text-primary-900 leading-none">
-            {p.price.toLocaleString('fr-TN')} {p.currency || 'TND'}
+            <p className="text-sm font-extrabold text-primary-900 leading-none">
+            {p.price.toLocaleString('fr-TN')} {p.currency || 'DT'}
             {p.period && <span className="text-[10px] font-normal text-primary-500">/{p.period}</span>}
           </p>
         </div>

@@ -5,7 +5,7 @@ import { useAdminToast } from '../components/AdminLayout'
 import { adminApi, type AdminBooking } from '../services/adminApi'
 import { EmptyState, FilterSelect, MetricCard, SearchField, StatusBadge, SurfaceCard } from '../components/ui'
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+const money = (value: number) => `${value.toLocaleString('fr-TN')} DT`
 
 interface ExtendedBooking extends AdminBooking {
   paymentStatus: 'paid' | 'pending' | 'refunded'
@@ -74,7 +74,7 @@ export default function Bookings() {
     {
       key: 'amount',
       header: 'Total',
-      render: (row) => money.format(row.totalPrice || 220),
+      render: (row) => money(row.totalPrice || 220),
     },
     {
       key: 'bookingStatus',
@@ -221,7 +221,7 @@ export default function Bookings() {
             <p><span className="font-semibold">Payment:</span> {detailsTarget.paymentStatus}</p>
             <p><span className="font-semibold">Refund Request:</span> {detailsTarget.refundRequested ? 'Yes' : 'No'}</p>
             <p><span className="font-semibold">Cancellation:</span> {detailsTarget.cancellationState}</p>
-            <p><span className="font-semibold">Total:</span> {money.format(detailsTarget.totalPrice || 220)}</p>
+            <p><span className="font-semibold">Total:</span> {money(detailsTarget.totalPrice || 220)}</p>
           </div>
         ) : undefined}
       />

@@ -33,6 +33,10 @@ public class UserDto {
     Boolean isVerified;
     Boolean banned;
     String avatar;
+    String phone;
+    String bio;
+    String username;
+    String city;
     Boolean emailVerified;
     Boolean phoneVerified;
     String identityStatus;

@@ -70,7 +70,7 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
     email: user?.email || '',
     phone: '+216 ',
     language: 'Français',
-    currency: 'TND',
+    currency: 'DT',
   })
 
   // Notification settings
@@ -245,7 +245,7 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
                         </FormField>
                         <FormField icon={CreditCard} label="Devise">
                           <select name="currency" value={form.currency} onChange={handleChange} className={inputClass + ' cursor-pointer'}>
-                            <option>TND</option>
+                            <option>DT</option>
                             <option>EUR</option>
                             <option>USD</option>
                           </select>

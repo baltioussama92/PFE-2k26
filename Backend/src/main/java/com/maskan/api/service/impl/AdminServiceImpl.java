@@ -722,6 +722,7 @@ public class AdminServiceImpl implements AdminService {
             .description(property.getDescription())
             .location(property.getLocation())
             .pricePerNight(property.getPricePerNight())
+            .currency(property.getCurrency())
             .images(property.getImages())
             .hostId(property.getHostId())
             .createdAt(property.getCreatedAt())

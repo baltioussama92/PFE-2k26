@@ -48,6 +48,7 @@ export default function AddPropertyPage({ user }) {
     houseRules: '',
     type: 'Appartement',
     price: 1000,
+    currency: 'DT',
     bedrooms: 2,
     bathrooms: 1,
     area: 80,
@@ -133,6 +134,7 @@ export default function AddPropertyPage({ user }) {
         latitude: form.latitude == null ? undefined : Number(form.latitude),
         longitude: form.longitude == null ? undefined : Number(form.longitude),
         pricePerNight: Number(form.price),
+        currency: form.currency || 'DT',
         images: form.imagePreviews,
         type: form.type,
         bedrooms: Number(form.bedrooms),
@@ -188,6 +190,7 @@ export default function AddPropertyPage({ user }) {
                   houseRules: '',
                   type: 'Appartement',
                   price: 1000,
+                  currency: 'DT',
                   bedrooms: 2,
                   bathrooms: 1,
                   area: 80,
@@ -399,7 +402,7 @@ export default function AddPropertyPage({ user }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-primary-700 mb-1">Prix / mois (TND) *</label>
+                  <label className="block text-sm font-semibold text-primary-700 mb-1">Prix / mois *</label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
                     <input
@@ -410,6 +413,18 @@ export default function AddPropertyPage({ user }) {
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-primary-700 mb-1">Devise *</label>
+                  <select
+                    value={form.currency}
+                    onChange={e => set('currency', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-primary-200 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 outline-none transition text-primary-900 cursor-pointer"
+                  >
+                    <option value="DT">DT (Dinar Tunisien)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-primary-700 mb-1">Surface (m²) *</label>
@@ -566,7 +581,7 @@ export default function AddPropertyPage({ user }) {
                     <span>{form.area} m²</span>
                   </div>
                   <p className="text-primary-900 font-bold mt-2">
-                    {Number(form.price).toLocaleString('fr-TN')} TND<span className="text-primary-400 font-normal text-sm"> / mois</span>
+                    {Number(form.price).toLocaleString('fr-TN')} DT<span className="text-primary-400 font-normal text-sm"> / mois</span>
                   </p>
                 </div>
               </div>

@@ -40,6 +40,8 @@ public class Property {
     @NotNull
     private BigDecimal pricePerNight;
 
+    private String currency;
+
     @Builder.Default
     private List<String> images = List.of();
 

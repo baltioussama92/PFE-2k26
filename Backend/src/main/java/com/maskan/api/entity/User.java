@@ -67,6 +67,14 @@ public class User {
     @Builder.Default
     private String avatar = "";
 
+    private String phone;
+
+    private String bio;
+
+    private String username;
+
+    private String city;
+
     private String rejectionReason;
 
     @Builder.Default

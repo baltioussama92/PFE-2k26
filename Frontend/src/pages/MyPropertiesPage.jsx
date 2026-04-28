@@ -42,7 +42,7 @@ export default function MyPropertiesPage({ user }) {
           ...p,
           price: p.price ?? p.pricePerNight,
           image: p.image ?? (p.images?.length ? p.images[0] : null),
-          currency: p.currency || 'TND',
+          currency: p.currency || 'DT',
           period: p.period || 'nuit',
           bedrooms: p.bedrooms ?? p.rooms ?? p.roomCount ?? 0,
           bathrooms: p.bathrooms ?? p.bathroomCount ?? 0,
@@ -217,7 +217,7 @@ export default function MyPropertiesPage({ user }) {
             { icon: Home, label: 'Total', value: properties.length, color: 'text-primary-500' },
             { icon: Eye, label: 'Actives', value: activeCount, color: 'text-emerald-500' },
             { icon: EyeOff, label: 'Masquées', value: properties.length - activeCount, color: 'text-orange-500' },
-            { icon: TrendingUp, label: 'Revenus / mois', value: `${totalRevenue.toLocaleString('fr-TN')} TND`, color: 'text-primary-600' },
+            { icon: TrendingUp, label: 'Revenus / mois', value: `${totalRevenue.toLocaleString('fr-TN')} DT`, color: 'text-primary-600' },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="bg-white rounded-2xl p-4 shadow-sm border border-primary-100">
               <Icon className={`w-5 h-5 ${color} mb-1`} />
@@ -367,7 +367,7 @@ export default function MyPropertiesPage({ user }) {
 
                     <div className="flex items-center justify-between mt-3">
                       <p className="text-primary-900 font-bold">
-                        {p.price.toLocaleString('fr-TN')} TND
+                        {p.price.toLocaleString('fr-TN')} DT
                         <span className="text-primary-400 font-normal text-sm"> / {p.period || 'mois'}</span>
                       </p>
                       <div className="flex items-center gap-2">
@@ -528,7 +528,7 @@ export default function MyPropertiesPage({ user }) {
                 {/* Numbers grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-primary-700 mb-1">Prix / mois (TND)</label>
+                    <label className="block text-sm font-semibold text-primary-700 mb-1">Prix / mois (DT)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary-400" />
                       <input type="number" min={1} value={editForm.price ?? ''} onChange={e => ef('price', e.target.value)}

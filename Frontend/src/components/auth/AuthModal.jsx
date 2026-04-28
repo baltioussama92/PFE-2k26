@@ -20,6 +20,7 @@ const BIRTH_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1))
 const CURRENT_YEAR = new Date().getFullYear()
 const BIRTH_YEARS = Array.from({ length: 100 }, (_, index) => String(CURRENT_YEAR - index))
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const TUNISIAN_PHONE_REGEX = /^(\+216|0)?\s?[2-5]\d{7}$/
 
 const formVariants = {
   initial: { opacity: 0, y: 12 },
@@ -125,6 +126,7 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
     birthMonth: '',
@@ -162,9 +164,14 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
   const handleRegister = async () => {
     const email = form.email.trim().toLowerCase()
     const fullName = `${form.firstName} ${form.lastName}`.trim()
+    const phone = form.phone.trim()
 
     if (!EMAIL_REGEX.test(email)) {
       throw new Error('Please enter a valid email address')
+    }
+
+    if (!TUNISIAN_PHONE_REGEX.test(phone)) {
+      throw new Error('Please enter a valid Tunisian phone number (e.g., +216 20 123 456 or 20 123 456)')
     }
 
     if (form.password.length < 8) {
@@ -185,6 +192,7 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
       body: JSON.stringify({
         fullName,
         email,
+        phone,
         password: form.password,
         role: 'GUEST',
       }),
@@ -386,6 +394,19 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
                   className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
                   required
                 />
+
+                {mode === 'register' && (
+                  <motion.input
+                    variants={fieldVariants}
+                    type="tel"
+                    value={form.phone}
+                    onChange={updateField('phone')}
+                    placeholder="Tunisian phone (e.g., +216 20 123 456)"
+                    autoComplete="tel"
+                    className="w-full rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-sm text-primary-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-200"
+                    required
+                  />
+                )}
 
                 <motion.input
                   variants={fieldVariants}

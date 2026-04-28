@@ -77,7 +77,7 @@ export default function Listings() {
     {
       key: 'price',
       header: 'Price',
-      render: (row) => `$${row.pricePerNight || 95}/night`,
+      render: (row) => `${row.pricePerNight || 95} DT/night`,
     },
     {
       key: 'status',
@@ -195,7 +195,26 @@ export default function Listings() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((listing) => (
               <article key={listing.id} className="overflow-hidden rounded-2xl border border-[#E2D2BE] bg-white shadow-[0_10px_22px_rgba(58,45,40,0.08)]">
-                <div className="h-40 bg-gradient-to-br from-[#D1A777] via-[#C4935E] to-[#906A44]" />
+                <div className="relative h-40 bg-gradient-to-br from-[#D1A777] via-[#C4935E] to-[#906A44] overflow-hidden">
+                  {listing.images && listing.images.length > 0 && (
+                    <img
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewingListingId(listing.id)
+                      setViewingListingBackendId(listing.backendId)
+                      setShowDetailsModal(true)
+                    }}
+                    className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-200 bg-black/20 flex items-center justify-center"
+                  >
+                    <span className="text-white font-semibold text-sm">View Details</span>
+                  </button>
+                </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -207,7 +226,7 @@ export default function Listings() {
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-sm text-[#59483A]">
                     <p>Host: {listing.host}</p>
-                    <p>Price: ${listing.pricePerNight || 95}/night</p>
+                    <p>Price: {listing.pricePerNight || 95} DT/night</p>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">

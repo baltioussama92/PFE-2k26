@@ -322,7 +322,6 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
       setError('Veuillez sélectionner des dates valides.')
       return
     }
-
     if (hasDateRangeOverlap(checkIn, checkOut)) {
       setError('Ces dates ne sont plus disponibles. Veuillez sélectionner une autre période.')
       return
@@ -340,7 +339,6 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
       })
       setBooked(true)
     } catch (err) {
-      const status = err?.response?.status
       const message = err?.response?.data?.message || err?.message || 'Échec de la réservation.'
 
       setError(message)
@@ -365,7 +363,7 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
       {/* Price */}
       <div className="flex items-baseline gap-1.5 mb-6">
         <span className="text-2xl font-extrabold text-primary-900">
-          {property.price.toLocaleString('fr-TN')} {property.currency || 'TND'}
+          {property.price.toLocaleString('fr-TN')} {property.currency || 'DT'}
         </span>
         {property.period && (
           <span className="text-sm text-primary-500">/ {property.period}</span>
@@ -474,16 +472,16 @@ function BookingSidebar({ property, user, onAuthClick, onRequireVerification, no
           {nights > 0 && (
             <div className="border-t border-primary-200 pt-4 mb-5 space-y-2 text-sm">
               <div className="flex justify-between text-primary-700">
-                <span>{property.price.toLocaleString('fr-TN')} TND × {nights} nuit{nights > 1 ? 's' : ''}</span>
-                <span>{subtotal.toLocaleString('fr-TN')} TND</span>
+                 <span>{property.price.toLocaleString('fr-TN')} DT × {nights} nuit{nights > 1 ? 's' : ''}</span>
+                 <span>{subtotal.toLocaleString('fr-TN')} DT</span>
               </div>
               <div className="flex justify-between text-primary-500">
                 <span>Frais de service</span>
-                <span>{serviceFee.toLocaleString('fr-TN')} TND</span>
+                 <span>{serviceFee.toLocaleString('fr-TN')} DT</span>
               </div>
               <div className="flex justify-between font-bold text-primary-900 pt-2 border-t border-primary-200">
                 <span>Total</span>
-                <span>{total.toLocaleString('fr-TN')} TND</span>
+                 <span>{total.toLocaleString('fr-TN')} DT</span>
               </div>
             </div>
           )}
@@ -558,7 +556,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
           lat: data.latitude ?? data.lat,
           lng: data.longitude ?? data.lng,
           image: data.image ?? (data.images?.length ? data.images[0] : null),
-          currency: data.currency || 'TND',
+          currency: data.currency || 'DT',
           period: data.period || (data.pricePerNight != null ? 'nuit' : 'mois'),
         })
       })

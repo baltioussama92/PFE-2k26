@@ -8,7 +8,7 @@ import { MetricCard, MiniBarChart, MiniLineChart, SectionTabs, SurfaceCard } fro
 import { apiClient } from '../../api/apiClient'
 import { ENDPOINTS } from '../../api/endpoints'
 
-const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+const currency = (value: number) => `${value.toLocaleString('fr-TN')} DT`
 
 const defaultRevenueTrend = [34, 39, 44, 41, 48, 53, 57, 61, 67, 72, 69, 78]
 const defaultBookingTrend = [18, 16, 20, 24, 22, 27, 31, 29, 36, 38, 34, 43]
@@ -118,7 +118,7 @@ export default function Dashboard() {
       { label: 'Total Guests', value: loading ? '-' : totalGuests.toLocaleString(), icon: <UserRound size={18} />, tone: 'neutral' as const, delta: '+6.8% returning guests' },
       { label: 'Pending Verifications', value: loading ? '-' : pendingVerificationCount.toLocaleString(), icon: <Clock3 size={18} />, tone: 'warning' as const, delta: 'Live host demand count' },
       { label: 'Active Bookings', value: loading ? '-' : (stats?.totalBookings || 0).toLocaleString(), icon: <CheckCheck size={18} />, tone: 'success' as const, delta: '+14.1% vs last month' },
-      { label: 'Total Revenue', value: loading ? '-' : currency.format(stats?.revenue || 0), icon: <CircleDollarSign size={18} />, tone: 'success' as const, delta: 'Commission rate 12%' },
+      { label: 'Total Revenue', value: loading ? '-' : currency(stats?.revenue || 0), icon: <CircleDollarSign size={18} />, tone: 'success' as const, delta: 'Commission rate 12%' },
       { label: 'Support Tickets', value: loading ? '-' : supportTicketCount.toLocaleString(), icon: <Headset size={18} />, tone: 'info' as const, delta: 'Live backend count' },
       { label: 'Disputes', value: loading ? '-' : disputeCount.toLocaleString(), icon: <ShieldAlert size={18} />, tone: 'danger' as const, delta: 'User-targeted reports' },
     ]

@@ -259,7 +259,7 @@ export default function BookingsPage({ user }) {
               { label: 'Total', value: stats.total, icon: CalendarCheck, color: 'from-primary-400 to-primary-600' },
               { label: 'Confirmées', value: stats.confirmed, icon: CheckCircle2, color: 'from-emerald-400 to-emerald-500' },
               { label: 'En attente', value: stats.pending, icon: Hourglass, color: 'from-amber-400 to-amber-500' },
-              { label: 'Total dépensé', value: `${stats.totalSpent.toLocaleString('fr-TN')} TND`, icon: CreditCard, color: 'from-primary-500 to-primary-700' },
+              { label: 'Total dépensé', value: `${stats.totalSpent.toLocaleString('fr-TN')} DT`, icon: CreditCard, color: 'from-primary-500 to-primary-700' },
             ].map((s, i) => (
               <motion.div
                 key={s.label}
@@ -427,7 +427,7 @@ export default function BookingsPage({ user }) {
                             <DetailCell icon={Calendar} label="Arrivée" value={formatDate(b.checkIn)} />
                             <DetailCell icon={Calendar} label="Départ" value={formatDate(b.checkOut)} />
                             <DetailCell icon={Users} label="Voyageurs" value={`${b.guests} personne${b.guests > 1 ? 's' : ''}`} />
-                            <DetailCell icon={CreditCard} label="Total" value={`${b.totalPrice.toLocaleString('fr-TN')} TND`} />
+                            <DetailCell icon={CreditCard} label="Total" value={`${b.totalPrice.toLocaleString('fr-TN')} DT`} />
                           </div>
 
                           <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-primary-200">

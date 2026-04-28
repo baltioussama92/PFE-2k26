@@ -36,6 +36,18 @@ public class UserServiceImpl implements UserService {
         if (request.getAvatar() != null) {
             user.setAvatar(request.getAvatar());
         }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
+        if (request.getUsername() != null) {
+            user.setUsername(request.getUsername());
+        }
+        if (request.getCity() != null) {
+            user.setCity(request.getCity());
+        }
         User updated = userRepository.save(user);
         return toDto(updated);
     }
@@ -87,6 +99,10 @@ public class UserServiceImpl implements UserService {
                 .isVerified(user.getIsVerified())
                 .banned(user.getBanned())
                 .avatar(user.getAvatar())
+                .phone(user.getPhone())
+                .bio(user.getBio())
+                .username(user.getUsername())
+                .city(user.getCity())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .identityStatus(user.getIdentityStatus())
