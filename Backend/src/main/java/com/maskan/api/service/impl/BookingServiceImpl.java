@@ -8,6 +8,7 @@ import com.maskan.api.dto.UnavailableDateRangeResponse;
 import com.maskan.api.dto.VerifyCheckInRequest;
 import com.maskan.api.entity.Booking;
 import com.maskan.api.entity.BookingStatus;
+import com.maskan.api.entity.NotificationType;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.Role;
 import com.maskan.api.entity.User;
@@ -16,6 +17,7 @@ import com.maskan.api.repository.BookingRepository;
 import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.BookingService;
+import com.maskan.api.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     public BookingResponse createBooking(BookingRequest request, String email) {
@@ -72,6 +75,13 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         Booking saved = bookingRepository.save(booking);
+        String guestName = user.getName() == null || user.getName().isBlank() ? "Guest" : user.getName();
+        notificationService.createNotification(
+            property.getHostId(),
+            "New Booking Request",
+            "New Booking Request from " + guestName,
+            NotificationType.BOOKING
+        );
         return toResponse(saved, true);
     }
 

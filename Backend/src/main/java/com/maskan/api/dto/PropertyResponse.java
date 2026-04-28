@@ -23,7 +23,6 @@ public class PropertyResponse {
     Instant createdAt;
     Boolean available;
     String type;
-    String currency;
     String badge;
     Integer bedrooms;
     Integer bathrooms;

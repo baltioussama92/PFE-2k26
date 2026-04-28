@@ -20,13 +20,4 @@ public class UpdateUserProfileRequest {
 
     @Size(max = 400000, message = "Avatar payload is too large")
     String avatar;
-
-    String phone;
-
-    @Size(max = 500, message = "Bio must not exceed 500 characters")
-    String bio;
-
-    String username;
-
-    String city;
 }

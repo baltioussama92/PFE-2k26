@@ -34,6 +34,11 @@ export const ENDPOINTS = {
     conversations: '/messages/conversations',
     conversation: (userId: number | string) => `/messages/conversations/${userId}`,
   },
+  notifications: {
+    me: '/notifications/me',
+    markRead: (id: number | string) => `/notifications/${id}/read`,
+    markAllRead: '/notifications/read-all',
+  },
   users: {
     me: '/users/me',
     updateMe: '/users/me',
