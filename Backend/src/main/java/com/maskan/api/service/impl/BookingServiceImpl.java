@@ -67,6 +67,7 @@ public class BookingServiceImpl implements BookingService {
             .checkInDate(request.getCheckInDate())
             .checkOutDate(request.getCheckOutDate())
             .guests(request.getGuests() == null || request.getGuests() < 1 ? 1 : request.getGuests())
+            .totalPrice(computeTotalPrice(property, request.getCheckInDate(), request.getCheckOutDate(), request.getGuests()))
                 .status(BookingStatus.PENDING)
                 .build();
 
@@ -237,13 +238,12 @@ public class BookingServiceImpl implements BookingService {
 
     private BookingResponse toResponse(Booking booking, boolean includeSecretCode) {
         Property listing = propertyRepository.findById(booking.getListingId()).orElse(null);
-        BigDecimal totalPrice = BigDecimal.ZERO;
-        if (listing != null && listing.getPricePerNight() != null) {
-            long days = Math.max(1, ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate()));
-            int guests = booking.getGuests() == null || booking.getGuests() < 1 ? 1 : booking.getGuests();
-            totalPrice = listing.getPricePerNight()
-                .multiply(BigDecimal.valueOf(days))
-                .multiply(BigDecimal.valueOf(guests));
+        BigDecimal totalPrice = booking.getTotalPrice();
+        if (totalPrice == null && listing != null) {
+            totalPrice = computeTotalPrice(listing, booking.getCheckInDate(), booking.getCheckOutDate(), booking.getGuests());
+        }
+        if (totalPrice == null) {
+            totalPrice = BigDecimal.ZERO;
         }
         
         // Fetch guest info
@@ -267,6 +267,18 @@ public class BookingServiceImpl implements BookingService {
             .stripePaymentIntentId(booking.getStripePaymentIntentId())
             .checkInSecretCode(includeSecretCode ? booking.getCheckInSecretCode() : null)
                 .build();
+    }
+
+    private BigDecimal computeTotalPrice(Property listing, LocalDate checkInDate, LocalDate checkOutDate, Integer guests) {
+        if (listing == null || listing.getPricePerNight() == null || checkInDate == null || checkOutDate == null) {
+            return BigDecimal.ZERO;
+        }
+
+        long days = Math.max(1, ChronoUnit.DAYS.between(checkInDate, checkOutDate));
+        int guestCount = guests == null || guests < 1 ? 1 : guests;
+        return listing.getPricePerNight()
+                .multiply(BigDecimal.valueOf(days))
+                .multiply(BigDecimal.valueOf(guestCount));
     }
 
     private User getUserByEmail(String email) {

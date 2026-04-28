@@ -19,6 +19,8 @@ public class UserDto {
     @NotBlank
     String fullName;
 
+    String username;
+
     @Email
     @NotBlank
     String email;
@@ -33,6 +35,9 @@ public class UserDto {
     Boolean isVerified;
     Boolean banned;
     String avatar;
+    String phone;
+    String bio;
+    String city;
     Boolean emailVerified;
     Boolean phoneVerified;
     String identityStatus;

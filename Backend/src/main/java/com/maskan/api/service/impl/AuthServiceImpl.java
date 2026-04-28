@@ -2,6 +2,7 @@ package com.maskan.api.service.impl;
 
 import com.maskan.api.dto.AuthResponse;
 import com.maskan.api.dto.LoginRequest;
+import com.maskan.api.dto.RegisterRequest;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.entity.Role;
 import com.maskan.api.entity.User;
@@ -29,29 +30,30 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
 
     @Override
-        public AuthResponse register(UserDto request) {
+        public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email already in use");
         }
 
                 Role role = request.getRole() == null ? Role.GUEST : request.getRole();
                 if (role == Role.ADMIN) {
-                    throw new IllegalArgumentException("ADMIN role cannot be assigned during self-registration");
+                        throw new IllegalArgumentException("ADMIN role cannot be assigned during self-registration");
                 }
 
                 if (request.getPassword() == null || request.getPassword().isBlank()) {
-                    throw new IllegalArgumentException("Password is required");
+                        throw new IllegalArgumentException("Password is required");
                 }
 
                 boolean verifiedByDefault = role == Role.GUEST;
 
         User user = User.builder()
-                        .name(request.getFullName())
+                                .name(request.getName())
+                                .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                        .role(role)
-                        .isVerified(verifiedByDefault)
-                        .createdAt(Instant.now())
+                                .role(role)
+                                .isVerified(verifiedByDefault)
+                                .createdAt(Instant.now())
                 .build();
 
         User saved = userRepository.save(user);
@@ -103,12 +105,16 @@ public class AuthServiceImpl implements AuthService {
         return UserDto.builder()
                 .id(user.getId())
                                 .fullName(user.getName())
+                                .username(user.getUsername())
                 .email(user.getEmail())
                 .role(user.getRole())
                                 .createdAt(user.getCreatedAt())
                                 .isVerified(user.getIsVerified())
                                 .banned(user.getBanned())
                 .avatar(user.getAvatar())
+                                .phone(user.getPhone())
+                                .bio(user.getBio())
+                                .city(user.getCity())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .identityStatus(user.getIdentityStatus())

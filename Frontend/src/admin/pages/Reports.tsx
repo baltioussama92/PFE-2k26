@@ -242,15 +242,16 @@ export default function Reports() {
 
     setActionLoading(true)
     try {
+      const reportId = target.backendId || target.id
       if (action === 'close') {
-        await apiClient.patch(ENDPOINTS.admin.updateReportStatus(target.id), {
+        await apiClient.patch(ENDPOINTS.admin.updateReportStatus(reportId), {
           status: 'closed',
           internalNote: internalNotes || undefined,
         })
         setReports((prev) => prev.map((report) => report.id === target.id ? { ...report, resolved: true } : report))
         showToast('Case closed successfully.')
       } else {
-        await apiClient.post(ENDPOINTS.admin.reportActions(target.id), {
+        await apiClient.post(ENDPOINTS.admin.reportActions(reportId), {
           action: action === 'refund' ? 'refund' : action,
           note: adminDecision || internalNotes || undefined,
         })

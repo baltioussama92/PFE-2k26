@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -44,6 +45,8 @@ public class Booking {
     
     @Builder.Default
     private Instant createdAt = Instant.now();
+
+    private BigDecimal totalPrice;
 
     private String stripePaymentIntentId;
 

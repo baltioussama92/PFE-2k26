@@ -61,6 +61,7 @@ export type BookingStatus = 'confirmed' | 'pending' | 'cancelled'
 
 export interface AdminBooking {
   id: number
+  backendId?: string
   guest: string
   guestId?: number
   property: string
@@ -77,6 +78,7 @@ export type PaymentStatus = 'paid' | 'pending' | 'failed'
 
 export interface AdminPayment {
   id: number
+  backendId?: string
   user: string
   userId?: number
   amount: number
@@ -118,6 +120,7 @@ export interface AdminUserPermissions {
 
 export interface AdminReport {
   id: number
+  backendId?: string
   reporter: string
   reason: string
   target: string
@@ -267,149 +270,12 @@ interface AdminActionResponse {
   deletedAt?: string
 }
 
-const SETTINGS_STORAGE_KEY = 'adminSettings'
-const reportToListingMap = new Map<number, number>()
-
 const defaultSettings: AdminSettings = {
   commissionPercentage: 12,
   enableSmartPricing: true,
   enableNewHostOnboarding: true,
   emailNotifications: true,
   inAppNotifications: true,
-}
-
-const mockUsers: AdminUser[] = [
-  { id: 101, name: 'Alice Martin', email: 'alice@maskan.com', role: 'host', status: 'active' },
-  { id: 102, name: 'Yassine Amrani', email: 'yassine@maskan.com', role: 'guest', status: 'active' },
-  { id: 103, name: 'Sara Benali', email: 'sara@maskan.com', role: 'guest', status: 'banned' },
-  { id: 104, name: 'Karim El Fassi', email: 'karim@maskan.com', role: 'host', status: 'active' },
-]
-
-const mockListings: AdminListing[] = [
-  { id: 201, title: 'Riad Atlas', host: 'Alice Martin', hostId: 101, location: 'Marrakech', status: 'approved' },
-  { id: 202, title: 'Marina Flat', host: 'Karim El Fassi', hostId: 104, location: 'Casablanca', status: 'pending' },
-  { id: 203, title: 'Ocean View Studio', host: 'Alice Martin', hostId: 101, location: 'Agadir', status: 'pending' },
-]
-
-const mockBookings: AdminBooking[] = [
-  {
-    id: 301,
-    guest: 'Yassine Amrani',
-    guestId: 102,
-    property: 'Riad Atlas',
-    listingId: 201,
-    host: 'Alice Martin',
-    hostId: 101,
-    dates: '2026-04-04 to 2026-04-07',
-    status: 'confirmed',
-    totalPrice: 450,
-    createdAt: '2026-03-30T10:00:00Z',
-  },
-  {
-    id: 302,
-    guest: 'Sara Benali',
-    guestId: 103,
-    property: 'Marina Flat',
-    listingId: 202,
-    host: 'Karim El Fassi',
-    hostId: 104,
-    dates: '2026-04-10 to 2026-04-12',
-    status: 'pending',
-    totalPrice: 300,
-    createdAt: '2026-03-31T09:15:00Z',
-  },
-]
-
-const mockReports: AdminReport[] = [
-  {
-    id: 401,
-    reporter: 'System',
-    reason: 'Pending listing approval',
-    target: 'Marina Flat',
-    targetType: 'listing',
-    resolved: false,
-  },
-  {
-    id: 402,
-    reporter: 'Support',
-    reason: 'Abusive behavior report',
-    target: 'Sara Benali',
-    targetType: 'user',
-    resolved: false,
-  },
-]
-
-const mockHostDemands: HostDemand[] = [
-  {
-    id: 501,
-    userId: '102',
-    userName: 'Yassine Amrani',
-    userEmail: 'yassine@maskan.com',
-    userPhone: '+212 612 345 678',
-    status: 'pending',
-    submittedDate: '2026-03-28T14:30:00Z',
-    documents: ['https://via.placeholder.com/300x200?text=Tax+Return', 'https://via.placeholder.com/300x200?text=Bank+Statement'],
-    idDocument: 'https://via.placeholder.com/300x400?text=National+ID',
-    idVerificationStatus: 'verified',
-    housePictures: [
-      'https://via.placeholder.com/400x300?text=Living+Room',
-      'https://via.placeholder.com/400x300?text=Bedroom',
-      'https://via.placeholder.com/400x300?text=Kitchen',
-    ],
-    proposedPrice: 85,
-    proposedLocation: 'Marrakech, Morocco',
-    bio: 'Experienced property manager with 5 years in hospitality industry',
-  },
-  {
-    id: 502,
-    userId: '103',
-    userName: 'Sara Benali',
-    userEmail: 'sara@maskan.com',
-    userPhone: '+212 698 765 432',
-    status: 'pending',
-    submittedDate: '2026-03-29T09:15:00Z',
-    documents: [],
-    idDocument: 'https://via.placeholder.com/300x400?text=ID+Card',
-    idVerificationStatus: 'pending',
-    housePictures: [
-      'https://via.placeholder.com/400x300?text=Exterior',
-    ],
-    proposedPrice: 65,
-    proposedLocation: 'Casablanca, Morocco',
-    bio: 'New host with beautiful apartment near the beach',
-  },
-  {
-    id: 503,
-    userId: '104',
-    userName: 'Karim El Fassi',
-    userEmail: 'karim@maskan.com',
-    userPhone: '+212 654 321 098',
-    status: 'approved',
-    submittedDate: '2026-03-15T11:20:00Z',
-    documents: ['https://via.placeholder.com/300x200?text=License', 'https://via.placeholder.com/300x200?text=Insurance'],
-    idDocument: 'https://via.placeholder.com/300x400?text=Approved+ID',
-    idVerificationStatus: 'verified',
-    housePictures: [
-      'https://via.placeholder.com/400x300?text=Modern+Villa',
-      'https://via.placeholder.com/400x300?text=Pool',
-      'https://via.placeholder.com/400x300?text=Terrace',
-    ],
-    proposedPrice: 125,
-    proposedLocation: 'Agadir, Morocco',
-    bio: 'Luxury property manager with premium listings',
-  },
-]
-
-const sleep = (ms: number) => new Promise((resolve) => {
-  window.setTimeout(resolve, ms)
-})
-
-async function withFallback<T>(live: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
-  try {
-    return await live()
-  } catch {
-    return fallback()
-  }
 }
 
 const toNumberId = (value: unknown): number => {
@@ -546,6 +412,7 @@ const mapBooking = (
 
   return {
     id: toNumberId(booking.id),
+    backendId: booking.id ? String(booking.id) : undefined,
     guest: booking.guestId ? `Guest #${booking.guestId}` : 'Unknown guest',
     guestId: toNumberId(booking.guestId),
     property: booking.listingTitle || `Listing #${booking.listingId}`,
@@ -561,6 +428,7 @@ const mapBooking = (
 
 const mapAdminBooking = (booking: AdminUserBookingResponse): AdminBooking => ({
   id: toNumberId(booking.id),
+  backendId: booking.id ? String(booking.id) : undefined,
   guest: booking.guestId ? `Guest #${booking.guestId}` : 'Unknown guest',
   guestId: toNumberId(booking.guestId),
   property: booking.listingTitle || `Listing #${booking.listingId}`,
@@ -580,15 +448,10 @@ const mapPaymentStatus = (status: string | undefined): PaymentStatus => {
   return 'failed'
 }
 
-const mapMockBookingPaymentStatus = (status: BookingStatus): PaymentStatus => {
-  if (status === 'confirmed') return 'paid'
-  if (status === 'pending') return 'pending'
-  return 'failed'
-}
-
 const toPayments = (bookings: BookingResponse[]): AdminPayment[] => (
   bookings.map((booking) => ({
     id: toNumberId(booking.id),
+    backendId: booking.id ? String(booking.id) : undefined,
     user: booking.guestId ? `User #${booking.guestId}` : 'Unknown user',
     userId: toNumberId(booking.guestId),
     amount: Number(booking.totalPrice || 0),
@@ -596,25 +459,6 @@ const toPayments = (bookings: BookingResponse[]): AdminPayment[] => (
     date: booking.createdAt ? String(booking.createdAt).slice(0, 10) : String(booking.checkInDate || ''),
   }))
 )
-
-const readStoredSettings = (): AdminSettings => {
-  const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
-  if (!raw) return { ...defaultSettings }
-
-  try {
-    const parsed = JSON.parse(raw)
-    return {
-      ...defaultSettings,
-      ...parsed,
-    }
-  } catch {
-    return { ...defaultSettings }
-  }
-}
-
-const writeStoredSettings = (settings: AdminSettings): void => {
-  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
-}
 
 async function fetchAdminBookings(): Promise<BookingResponse[]> {
   const { data } = await apiClient.get<BookingResponse[]>(ENDPOINTS.admin.bookings)
@@ -655,14 +499,9 @@ async function uploadPropertyImages(files: File[]): Promise<string[]> {
 
 export const adminApi = {
   async getUsers(): Promise<AdminUser[]> {
-    return withFallback(async () => {
-      const { data } = await apiClient.get<UserDto[]>(ENDPOINTS.admin.users)
-      const mapped = data.map(mapUser)
-      return ensureUniqueIds(mapped)
-    }, async () => {
-      await sleep(200)
-      return [...mockUsers]
-    })
+    const { data } = await apiClient.get<UserDto[]>(ENDPOINTS.admin.users)
+    const mapped = data.map(mapUser)
+    return ensureUniqueIds(mapped)
   },
 
   async getGuestVerificationRequests(): Promise<AdminUser[]> {
@@ -695,51 +534,34 @@ export const adminApi = {
   },
 
   async getListings(): Promise<AdminListing[]> {
-    return withFallback(async () => {
-      const [allListingsResponse, pendingListings] = await Promise.all([
-        apiClient.get<PropertyResponse[]>(ENDPOINTS.properties.list),
-        fetchPendingListings(),
-      ])
+    const [allListingsResponse, pendingListings] = await Promise.all([
+      apiClient.get<PropertyResponse[]>(ENDPOINTS.properties.list),
+      fetchPendingListings(),
+    ])
 
-      const pendingIds = new Set(pendingListings.map((entry) => toNumberId(entry.id)))
-      const merged = [...allListingsResponse.data, ...pendingListings]
-      const uniqById = new Map<number, PropertyResponse>()
+    const pendingIds = new Set(pendingListings.map((entry) => toNumberId(entry.id)))
+    const merged = [...allListingsResponse.data, ...pendingListings]
+    const uniqById = new Map<number, PropertyResponse>()
 
-      merged.forEach((entry) => {
-        uniqById.set(toNumberId(entry.id), entry)
-      })
-
-      const mapped = Array.from(uniqById.values()).map((listing) => {
-        const id = toNumberId(listing.id)
-        const hasPendingApproval = Boolean((listing as PropertyResponse & { pendingApproval?: boolean }).pendingApproval)
-        return mapListing(listing, pendingIds.has(id) || hasPendingApproval)
-      })
-      return ensureUniqueIds(mapped)
-    }, async () => {
-      await sleep(220)
-      return [...mockListings]
+    merged.forEach((entry) => {
+      uniqById.set(toNumberId(entry.id), entry)
     })
+
+    const mapped = Array.from(uniqById.values()).map((listing) => {
+      const id = toNumberId(listing.id)
+      const hasPendingApproval = Boolean((listing as PropertyResponse & { pendingApproval?: boolean }).pendingApproval)
+      return mapListing(listing, pendingIds.has(id) || hasPendingApproval)
+    })
+    return ensureUniqueIds(mapped)
   },
 
   async getListingDetails(listingId: number, backendId?: string): Promise<ListingDetails | null> {
-    try {
-      // Use backendId if available (for real backend calls), otherwise use listingId (for mock)
-      const idToFetch = backendId || listingId
-      const { data } = await apiClient.get<PropertyResponse>(ENDPOINTS.properties.byId(idToFetch))
-      const listing = mapListing(data, false)
-      return {
-        ...listing,
-        reviews: Number(data.reviewCount || 0),
-      }
-    } catch {
-      const mockListing = mockListings.find((item) => item.id === listingId)
-      if (mockListing) {
-        return {
-          ...mockListing,
-          reviews: 5,
-        }
-      }
-      return null
+    const idToFetch = backendId || listingId
+    const { data } = await apiClient.get<PropertyResponse>(ENDPOINTS.properties.byId(idToFetch))
+    const listing = mapListing(data, false)
+    return {
+      ...listing,
+      reviews: Number(data.reviewCount || 0),
     }
   },
 
@@ -781,26 +603,21 @@ export const adminApi = {
   },
 
   async getBookings(): Promise<AdminBooking[]> {
-    return withFallback(async () => {
-      const [data, listings] = await Promise.all([
-        fetchAdminBookings(),
-        this.getListings(),
-      ])
+    const [data, listings] = await Promise.all([
+      fetchAdminBookings(),
+      this.getListings(),
+    ])
 
-      const hostsByListingId = new Map<number, { host: string; hostId?: number }>()
-      listings.forEach((listing) => {
-        hostsByListingId.set(listing.id, {
-          host: listing.host,
-          hostId: listing.hostId,
-        })
+    const hostsByListingId = new Map<number, { host: string; hostId?: number }>()
+    listings.forEach((listing) => {
+      hostsByListingId.set(listing.id, {
+        host: listing.host,
+        hostId: listing.hostId,
       })
-
-      const mapped = data.map((booking) => mapBooking(booking, hostsByListingId))
-      return ensureUniqueIds(mapped)
-    }, async () => {
-      await sleep(220)
-      return [...mockBookings]
     })
+
+    const mapped = data.map((booking) => mapBooking(booking, hostsByListingId))
+    return ensureUniqueIds(mapped)
   },
 
   async getUserBookings(userId: number | string): Promise<AdminBooking[]> {
@@ -811,22 +628,9 @@ export const adminApi = {
   },
 
   async getPayments(): Promise<AdminPayment[]> {
-    return withFallback(async () => {
-      const data = await fetchAdminBookings()
-      const mapped = toPayments(data)
-      return ensureUniqueIds(mapped)
-    }, async () => {
-      await sleep(220)
-      const mapped = mockBookings.map((booking) => ({
-        id: booking.id,
-        user: booking.guest,
-        userId: booking.guestId,
-        amount: booking.totalPrice || 0,
-        status: mapMockBookingPaymentStatus(booking.status),
-        date: String(booking.createdAt || '').slice(0, 10),
-      }))
-      return ensureUniqueIds(mapped)
-    })
+    const data = await fetchAdminBookings()
+    const mapped = toPayments(data)
+    return ensureUniqueIds(mapped)
   },
 
   async getUserPayments(userId: number | string): Promise<AdminPayment[]> {
@@ -918,6 +722,7 @@ export const adminApi = {
     const { data } = await apiClient.get<any[]>(ENDPOINTS.admin.reports)
     return (data || []).map((item, index) => ({
       id: toNumberId(item?.id) || index + 1,
+      backendId: item?.id ? String(item.id) : undefined,
       reporter: String(item?.reporterLabel || item?.reporterId || 'System'),
       reason: String(item?.reason || item?.category || 'Report'),
       target: String(item?.targetLabel || item?.targetId || 'Unknown target'),
@@ -983,117 +788,28 @@ export const adminApi = {
   },
 
   async toggleUserBan(userId: number | string): Promise<AdminUser | null> {
-    try {
-      const { data } = await apiClient.put<UserDto>(ENDPOINTS.admin.blockUser(userId))
-      return mapUser(data)
-    } catch {
-      const current = mockUsers.find((user) => user.id === Number(userId))
-      if (!current) return null
-      const updated: AdminUser = {
-        ...current,
-        status: current.status === 'active' ? 'banned' : 'active',
-      }
-      const index = mockUsers.findIndex((user) => user.id === Number(userId))
-      mockUsers[index] = updated
-      return updated
-    }
+    const { data } = await apiClient.put<UserDto>(ENDPOINTS.admin.blockUser(userId))
+    return mapUser(data)
   },
 
   async approveListing(listingId: number | string): Promise<AdminListing | null> {
-    try {
-      const { data } = await apiClient.put<PropertyResponse>(ENDPOINTS.admin.verifyProperty(listingId))
-      return mapListing(data, false)
-    } catch {
-      const listing = mockListings.find((item) => item.id === Number(listingId))
-      if (!listing) return null
-      listing.status = 'approved'
-      return { ...listing }
-    }
+    const { data } = await apiClient.put<PropertyResponse>(ENDPOINTS.admin.verifyProperty(listingId))
+    return mapListing(data, false)
   },
 
   async rejectListing(listingId: number): Promise<void> {
-    try {
-      await apiClient.delete<void>(ENDPOINTS.properties.byId(listingId))
-    } catch {
-      const index = mockListings.findIndex((item) => item.id === listingId)
-      if (index >= 0) mockListings.splice(index, 1)
-    }
+    await apiClient.delete<void>(ENDPOINTS.properties.byId(listingId))
   },
 
   async deleteListing(listingId: number): Promise<void> {
-    try {
-      await apiClient.delete<void>(ENDPOINTS.properties.byId(listingId))
-    } catch {
-      const index = mockListings.findIndex((item) => item.id === listingId)
-      if (index >= 0) mockListings.splice(index, 1)
-    }
+    await apiClient.delete<void>(ENDPOINTS.properties.byId(listingId))
   },
 
-  async cancelBooking(bookingId: number): Promise<AdminBooking | null> {
-    try {
-      const { data } = await apiClient.patch<BookingResponse>(ENDPOINTS.bookings.updateStatus(bookingId), {
-        status: 'CANCELLED',
-      })
-      return mapBooking(data)
-    } catch {
-      const booking = mockBookings.find((item) => item.id === bookingId)
-      if (!booking) return null
-      booking.status = 'cancelled'
-      return { ...booking }
-    }
-  },
-
-  async resolveReport(reportId: number): Promise<AdminReport | null> {
-    const mappedTargetId = reportToListingMap.get(reportId)
-    if (!mappedTargetId) return null
-
-    if (mappedTargetId > 0) {
-      try {
-        const { data } = await apiClient.put<PropertyResponse>(ENDPOINTS.admin.verifyProperty(mappedTargetId))
-        return {
-          id: reportId,
-          reporter: 'System',
-          reason: 'Pending listing approval',
-          target: data.title,
-          targetType: 'listing',
-          resolved: true,
-        }
-      } catch {
-        const report = mockReports.find((item) => item.id === reportId)
-        if (!report) return null
-        report.resolved = true
-        return { ...report }
-      }
-    }
-
-    const report = mockReports.find((item) => item.id === reportId)
-    if (!report) {
-      return {
-        id: reportId,
-        reporter: 'Support',
-        reason: 'Abusive behavior report',
-        target: `User #${Math.abs(mappedTargetId)}`,
-        targetType: 'user',
-        resolved: true,
-      }
-    }
-
-    report.resolved = true
-    return { ...report }
-  },
-
-  async banUserFromReport(reportId: number): Promise<void> {
-    const mappedTargetId = reportToListingMap.get(reportId)
-    if (!mappedTargetId || mappedTargetId > 0) return
-
-    const userId = Math.abs(mappedTargetId)
-
-    try {
-      await apiClient.put<UserDto>(ENDPOINTS.admin.blockUser(userId))
-    } catch {
-      const user = mockUsers.find((item) => item.id === userId)
-      if (user) user.status = 'banned'
-    }
+  async cancelBooking(bookingId: number | string): Promise<AdminBooking | null> {
+    const { data } = await apiClient.patch<BookingResponse>(ENDPOINTS.bookings.updateStatus(bookingId), {
+      status: 'CANCELLED',
+    })
+    return mapBooking(data)
   },
 
   async getSettings(): Promise<AdminSettings> {
@@ -1113,47 +829,22 @@ export const adminApi = {
   },
 
   async getHostDemands(): Promise<HostDemand[]> {
-    return withFallback(async () => {
-      const { data } = await apiClient.get<HostDemandApiResponse[]>(ENDPOINTS.admin.hostDemands)
-      return data.map(mapHostDemand)
-    }, async () => {
-      await sleep(300)
-      return [...mockHostDemands]
-    })
+    const { data } = await apiClient.get<HostDemandApiResponse[]>(ENDPOINTS.admin.hostDemands)
+    return data.map(mapHostDemand)
   },
 
   async getHostDemandById(demandId: number | string): Promise<HostDemand | null> {
-    return withFallback(async () => {
-      const { data } = await apiClient.get<HostDemandApiResponse>(ENDPOINTS.admin.hostDemandById(demandId))
-      return mapHostDemand(data)
-    }, async () => {
-      const demands = await this.getHostDemands()
-      return demands.find((demand) => demand.id === demandId || demand.backendId === String(demandId)) || null
-    })
+    const { data } = await apiClient.get<HostDemandApiResponse>(ENDPOINTS.admin.hostDemandById(demandId))
+    return mapHostDemand(data)
   },
 
   async approveHostDemand(demandId: number | string): Promise<HostDemand | null> {
-    try {
-      const { data } = await apiClient.put<HostDemandApiResponse>(ENDPOINTS.admin.approveHostDemand(demandId))
-      return mapHostDemand(data)
-    } catch {
-      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
-      if (!demand) return null
-      demand.status = 'approved'
-      return { ...demand }
-    }
+    const { data } = await apiClient.put<HostDemandApiResponse>(ENDPOINTS.admin.approveHostDemand(demandId))
+    return mapHostDemand(data)
   },
 
   async rejectHostDemand(demandId: number | string, reason?: string): Promise<void> {
-    try {
-      await apiClient.put(ENDPOINTS.admin.rejectHostDemand(demandId), { reason })
-    } catch {
-      const demand = mockHostDemands.find((d) => d.id === demandId || d.backendId === String(demandId))
-      if (demand) {
-        demand.status = 'rejected'
-        demand.notes = reason || 'No reason provided'
-      }
-    }
+    await apiClient.put(ENDPOINTS.admin.rejectHostDemand(demandId), { reason })
   },
 }
 

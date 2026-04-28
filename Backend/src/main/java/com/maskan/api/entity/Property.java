@@ -53,6 +53,8 @@ public class Property {
     private Boolean available = Boolean.TRUE;
 
     private String type;
+    private String currency;
+    private String badge;
     private Integer bedrooms;
     private Integer bathrooms;
     private Integer area;

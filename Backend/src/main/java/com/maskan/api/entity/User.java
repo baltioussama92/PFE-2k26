@@ -29,6 +29,14 @@ public class User {
     @NotBlank
     private String name;
 
+    private String username;
+
+    private String phone;
+
+    private String bio;
+
+    private String city;
+
     @Email
     @NotBlank
     @Indexed(unique = true)

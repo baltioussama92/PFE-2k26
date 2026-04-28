@@ -99,7 +99,8 @@ export default function Payments() {
   const downloadInvoice = async (payment: AdminPayment) => {
     try {
       const token = getStoredAuthToken()
-      const response = await fetch(`${API_BASE_URL}/api${ENDPOINTS.admin.financeInvoiceDownload(payment.id)}`, {
+      const invoiceId = payment.backendId || payment.id
+      const response = await fetch(`${API_BASE_URL}/api${ENDPOINTS.admin.financeInvoiceDownload(invoiceId)}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
       if (!response.ok) {
@@ -109,7 +110,7 @@ export default function Payments() {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `invoice-${payment.id}.txt`
+      link.download = `invoice-${invoiceId}.txt`
       link.click()
       window.URL.revokeObjectURL(url)
       showToast('Invoice downloaded.')

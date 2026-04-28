@@ -33,6 +33,18 @@ public class UserServiceImpl implements UserService {
     public UserDto updateMe(String email, UpdateUserProfileRequest request) {
         User user = findByEmail(email);
         user.setName(request.getFullName());
+        if (request.getUsername() != null) {
+            user.setUsername(request.getUsername());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio());
+        }
+        if (request.getCity() != null) {
+            user.setCity(request.getCity());
+        }
         if (request.getAvatar() != null) {
             user.setAvatar(request.getAvatar());
         }
@@ -81,12 +93,16 @@ public class UserServiceImpl implements UserService {
         return UserDto.builder()
                 .id(user.getId())
                 .fullName(user.getName())
+                .username(user.getUsername())
                 .email(user.getEmail())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .isVerified(user.getIsVerified())
                 .banned(user.getBanned())
                 .avatar(user.getAvatar())
+                .phone(user.getPhone())
+                .bio(user.getBio())
+                .city(user.getCity())
                 .emailVerified(user.getEmailVerified())
                 .phoneVerified(user.getPhoneVerified())
                 .identityStatus(user.getIdentityStatus())

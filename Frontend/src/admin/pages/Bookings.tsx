@@ -125,7 +125,7 @@ export default function Bookings() {
 
     setActionLoading(true)
     try {
-      const updated = await adminApi.cancelBooking(target.id)
+      const updated = await adminApi.cancelBooking(target.backendId || target.id)
       if (!updated) {
         showToast('Failed to cancel booking.', 'error')
         return

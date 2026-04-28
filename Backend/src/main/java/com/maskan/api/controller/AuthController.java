@@ -2,6 +2,7 @@ package com.maskan.api.controller;
 
 import com.maskan.api.dto.AuthResponse;
 import com.maskan.api.dto.LoginRequest;
+import com.maskan.api.dto.RegisterRequest;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,7 +27,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody UserDto request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 

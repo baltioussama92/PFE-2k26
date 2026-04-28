@@ -12,6 +12,8 @@ public class RegisterRequest {
     @NotBlank
     String name;
 
+    String username;
+
     @Email
     @NotBlank
     String email;

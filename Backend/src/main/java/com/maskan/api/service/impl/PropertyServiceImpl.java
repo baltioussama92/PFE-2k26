@@ -47,6 +47,8 @@ public class PropertyServiceImpl implements PropertyService {
             .images(request.getImages() == null ? List.of() : request.getImages())
             .available(request.getAvailable() == null ? Boolean.TRUE : request.getAvailable())
             .type(request.getType())
+            .currency(request.getCurrency() == null || request.getCurrency().isBlank() ? "USD" : request.getCurrency())
+            .badge(request.getBadge())
             .bedrooms(request.getBedrooms())
             .bathrooms(request.getBathrooms())
             .area(request.getArea())
@@ -77,6 +79,10 @@ public class PropertyServiceImpl implements PropertyService {
             property.setAvailable(request.getAvailable());
         }
         property.setType(request.getType());
+        if (request.getCurrency() != null) {
+            property.setCurrency(request.getCurrency());
+        }
+        property.setBadge(request.getBadge());
         property.setBedrooms(request.getBedrooms());
         property.setBathrooms(request.getBathrooms());
         property.setArea(request.getArea());
@@ -215,6 +221,8 @@ public class PropertyServiceImpl implements PropertyService {
             .createdAt(property.getCreatedAt())
             .available(property.getAvailable())
             .type(property.getType())
+            .currency(property.getCurrency())
+            .badge(property.getBadge())
             .bedrooms(property.getBedrooms())
             .bathrooms(property.getBathrooms())
             .area(property.getArea())

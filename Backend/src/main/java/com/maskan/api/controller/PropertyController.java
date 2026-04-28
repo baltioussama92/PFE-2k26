@@ -47,6 +47,12 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.findMine(authenticatedUser.getUsername()));
     }
 
+    @GetMapping("/mine")
+    @PreAuthorize("hasAnyRole('HOST','PROPRIETOR','ADMIN')")
+    public ResponseEntity<List<PropertyResponse>> getMyPropertiesAlias(@AuthenticationPrincipal UserDetails authenticatedUser) {
+        return ResponseEntity.ok(propertyService.findMine(authenticatedUser.getUsername()));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<List<PropertyResponse>> searchProperties(
             @RequestParam(required = false) String location,
