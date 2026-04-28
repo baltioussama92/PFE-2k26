@@ -50,7 +50,7 @@ export default function Settings() {
   const [settings, setSettings] = useState<AdminSettings>(defaultSettings)
 
   const [platformLanguage, setPlatformLanguage] = useState('en')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState('DT')
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [logoUrl, setLogoUrl] = useState('https://placehold.co/300x120?text=MASKAN+Logo')
 
@@ -223,6 +223,7 @@ export default function Settings() {
                   value={currency}
                   onChange={setCurrency}
                   options={[
+                    { label: 'DT', value: 'DT' },
                     { label: 'USD', value: 'USD' },
                     { label: 'MAD', value: 'MAD' },
                     { label: 'EUR', value: 'EUR' },

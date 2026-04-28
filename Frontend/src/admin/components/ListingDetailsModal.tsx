@@ -331,7 +331,7 @@ export default function ListingDetailsModal({
                 {/* Price & Details Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">Price per Night ($)</label>
+                    <label className="text-sm font-medium text-gray-700">Prix par nuit (DT)</label>
                     {isEditing ? (
                       <input
                         type="number"
@@ -340,7 +340,7 @@ export default function ListingDetailsModal({
                         className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#CBAD8D] focus:outline-none"
                       />
                     ) : (
-                      <p className="mt-1 text-lg font-semibold">${listing.pricePerNight}</p>
+                          <p className="mt-1 text-lg font-semibold">{listing.pricePerNight?.toLocaleString('fr-TN')} DT</p>
                     )}
                   </div>
                   <div>

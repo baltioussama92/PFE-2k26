@@ -51,7 +51,7 @@ export default function Hero({ onSearch }) {
     { label: 'Propriétés listées', value: '0' },
     { label: 'Villes couvertes', value: '0' },
     { label: 'Disponibles', value: '0' },
-    { label: 'Prix moyen', value: '0 TND' },
+    { label: 'Prix moyen', value: '0 DT' },
   ])
 
   React.useEffect(() => {
@@ -72,7 +72,7 @@ export default function Hero({ onSearch }) {
           { label: 'Propriétés listées', value: String(data.length) },
           { label: 'Villes couvertes', value: String(cityCount) },
           { label: 'Disponibles', value: String(availableCount) },
-          { label: 'Prix moyen', value: `${avgPrice.toLocaleString('fr-TN')} TND` },
+          { label: 'Prix moyen', value: `${avgPrice.toLocaleString('fr-TN')} DT` },
         ])
 
         // Get popular cities (top 5 by property count)

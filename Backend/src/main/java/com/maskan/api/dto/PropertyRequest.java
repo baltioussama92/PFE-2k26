@@ -24,6 +24,8 @@ public class PropertyRequest {
     @NotNull
     BigDecimal pricePerNight;
 
+    String currency;
+
     List<String> images;
 
     Boolean available;

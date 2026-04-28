@@ -80,7 +80,7 @@ export default function PropertyCard({
         {/* Price tag */}
         <div className="absolute bottom-3 right-3 bg-primary-100/90 backdrop-blur-sm rounded-xl px-3 py-1.5">
           <p className="text-sm font-extrabold text-primary-900 leading-none">
-            {(p.price ?? 0).toLocaleString('fr-TN')} {p.currency || 'TND'}
+            {(p.price ?? 0).toLocaleString('fr-TN')} {p.currency || 'DT'}
             {p.period && (
               <span className="text-[10px] font-normal text-primary-500">/{p.period}</span>
             )}

@@ -69,7 +69,9 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
     name: user?.name || user?.fullName || '',
     username: user?.username || '',
     email: user?.email || '',
+    phone: user?.phone || '',
     bio: user?.bio || '',
+    city: user?.city || '',
     avatar: user?.avatar || '',
   })
 
@@ -109,7 +111,9 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
       fullName: form.name.trim() || user.fullName,
       username: form.username.trim(),
       email: form.email.trim() || user.email,
+      phone: form.phone.trim(),
       bio: form.bio.trim(),
+      city: form.city.trim(),
       avatar: form.avatar,
     }
 
@@ -122,6 +126,10 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
         },
         body: JSON.stringify({
           fullName: updatedUser.name,
+          username: updatedUser.username,
+          phone: updatedUser.phone,
+          bio: updatedUser.bio,
+          city: updatedUser.city,
           avatar: updatedUser.avatar || '',
         }),
       })
@@ -191,6 +199,9 @@ function EditProfileModal({ user, onSave, onCancel, onUserUpdate }) {
           <div className="space-y-4">
             <input type="text" name="name" value={form.name} onChange={handleChange} placeholder="Your full name" className="w-full px-4 py-2 rounded-lg border border-slate-200" />
             <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="your@email.com" className="w-full px-4 py-2 rounded-lg border border-slate-200" />
+            <input type="text" name="username" value={form.username} onChange={handleChange} placeholder="Username" className="w-full px-4 py-2 rounded-lg border border-slate-200" />
+            <input type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="Phone number" className="w-full px-4 py-2 rounded-lg border border-slate-200" />
+            <input type="text" name="city" value={form.city} onChange={handleChange} placeholder="City" className="w-full px-4 py-2 rounded-lg border border-slate-200" />
             <textarea name="bio" value={form.bio} onChange={handleChange} rows={3} placeholder="Tell us about yourself..." className="w-full px-4 py-2 rounded-lg border border-slate-200 resize-none" />
           </div>
 

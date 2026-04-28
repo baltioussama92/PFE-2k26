@@ -33,7 +33,7 @@ const normalizeProperty = (p) => ({
   ...p,
   price: p.price ?? p.pricePerNight,
   image: p.image ?? (p.images?.length ? p.images[0] : null),
-  currency: p.currency || 'TND',
+  currency: p.currency || 'DT',
   period: p.period || (p.pricePerNight != null ? 'nuit' : 'mois'),
 })
 

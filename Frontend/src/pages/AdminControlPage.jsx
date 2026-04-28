@@ -142,7 +142,7 @@ export default function AdminControlPage({ user }) {
                     <div key={listing.id} className="rounded-xl border border-primary-100 bg-primary-50/60 p-4 flex items-center justify-between gap-3">
                       <div>
                         <p className="font-semibold text-primary-900">{listing.title}</p>
-                        <p className="text-xs text-primary-600">{listing.location} · {listing.pricePerNight} TND</p>
+                        <p className="text-xs text-primary-600">{listing.location} · {listing.pricePerNight} DT</p>
                         <p className="text-[11px] text-amber-700 mt-1">Status: PENDING (invisible au public)</p>
                       </div>
                       <button
