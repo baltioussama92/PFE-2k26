@@ -34,6 +34,11 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public Notification sendInternalNotification(String userId, String title, String message, NotificationType type) {
+        return createNotification(userId, title, message, type);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<Notification> getMyNotifications(String email) {
         User user = getUserByEmail(email);

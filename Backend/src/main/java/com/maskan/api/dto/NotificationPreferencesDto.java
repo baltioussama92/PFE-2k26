@@ -9,6 +9,5 @@ public class NotificationPreferencesDto {
     Boolean bookings;
     Boolean messages;
     Boolean marketing;
-    Boolean sms;
     Boolean news;
 }

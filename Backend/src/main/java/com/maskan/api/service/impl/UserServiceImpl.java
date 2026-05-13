@@ -7,10 +7,12 @@ import com.maskan.api.dto.NotificationPreferencesDto;
 import com.maskan.api.dto.PrivacyPreferencesDto;
 import com.maskan.api.dto.UpdateUserPreferencesRequest;
 import com.maskan.api.dto.UserPreferencesDto;
+import com.maskan.api.entity.NotificationType;
 import com.maskan.api.entity.User;
 import com.maskan.api.entity.UserPreferences;
 import com.maskan.api.exception.NotFoundException;
 import com.maskan.api.repository.UserRepository;
+import com.maskan.api.service.NotificationService;
 import com.maskan.api.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -83,6 +86,12 @@ public class UserServiceImpl implements UserService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        notificationService.sendInternalNotification(
+            user.getId(),
+            "Security Alert",
+            "Your password was changed. If this was not you, contact support immediately.",
+            NotificationType.SYSTEM
+        );
     }
 
     @Override
@@ -115,9 +124,6 @@ public class UserServiceImpl implements UserService {
             }
             if (incoming.getMarketing() != null) {
                 target.setMarketing(incoming.getMarketing());
-            }
-            if (incoming.getSms() != null) {
-                target.setSms(incoming.getSms());
             }
             if (incoming.getNews() != null) {
                 target.setNews(incoming.getNews());
@@ -219,7 +225,6 @@ public class UserServiceImpl implements UserService {
                         .bookings(preferences.getNotifications().getBookings())
                         .messages(preferences.getNotifications().getMessages())
                         .marketing(preferences.getNotifications().getMarketing())
-                        .sms(preferences.getNotifications().getSms())
                         .news(preferences.getNotifications().getNews())
                         .build())
                 .privacy(PrivacyPreferencesDto.builder()

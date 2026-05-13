@@ -20,6 +20,7 @@ import com.maskan.api.dto.UserDto;
 import com.maskan.api.entity.Booking;
 import com.maskan.api.entity.BookingStatus;
 import com.maskan.api.entity.Message;
+import com.maskan.api.entity.NotificationType;
 import com.maskan.api.entity.Property;
 import com.maskan.api.entity.Role;
 import com.maskan.api.entity.User;
@@ -29,6 +30,7 @@ import com.maskan.api.exception.NotFoundException;
 import com.maskan.api.repository.MessageRepository;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.AdminService;
+import com.maskan.api.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -62,6 +64,7 @@ public class AdminServiceImpl implements AdminService {
     private final PropertyRepository propertyRepository;
     private final MessageRepository messageRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -459,6 +462,12 @@ public class AdminServiceImpl implements AdminService {
         User user = getUserById(userId);
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+        notificationService.sendInternalNotification(
+            user.getId(),
+            "Security Alert",
+            "Your password was reset by an administrator. If this was not expected, contact support.",
+            NotificationType.SYSTEM
+        );
         return AdminActionResponse.builder()
                 .success(true)
                 .securityEventId(UUID.randomUUID().toString())
@@ -510,6 +519,12 @@ public class AdminServiceImpl implements AdminService {
         user.setRejectionReason(null);
 
         User updated = userRepository.save(user);
+        notificationService.sendInternalNotification(
+            updated.getId(),
+            "Verification Approved",
+            "Your identity verification has been approved.",
+            NotificationType.KYC
+        );
         return toDto(updated);
     }
 
@@ -523,6 +538,12 @@ public class AdminServiceImpl implements AdminService {
         user.setRejectionReason((reason == null || reason.isBlank()) ? "Verification rejected by admin" : reason.trim());
 
         User updated = userRepository.save(user);
+        notificationService.sendInternalNotification(
+            updated.getId(),
+            "Verification Rejected",
+            "Your identity verification was rejected. " + user.getRejectionReason(),
+            NotificationType.KYC
+        );
         return toDto(updated);
     }
 
@@ -563,6 +584,12 @@ public class AdminServiceImpl implements AdminService {
         user.setRejectionReason(null);
 
         User updated = userRepository.save(user);
+        notificationService.sendInternalNotification(
+            updated.getId(),
+            "Host Verification Approved",
+            "Your host verification has been approved. You can now list properties.",
+            NotificationType.KYC
+        );
         return toHostDemandResponse(updated);
     }
 
@@ -578,6 +605,12 @@ public class AdminServiceImpl implements AdminService {
         user.setRejectionReason((reason == null || reason.isBlank()) ? "Host demand rejected by admin" : reason.trim());
 
         User updated = userRepository.save(user);
+        notificationService.sendInternalNotification(
+            updated.getId(),
+            "Host Verification Rejected",
+            "Your host verification was rejected. " + user.getRejectionReason(),
+            NotificationType.KYC
+        );
         return toHostDemandResponse(updated);
     }
 

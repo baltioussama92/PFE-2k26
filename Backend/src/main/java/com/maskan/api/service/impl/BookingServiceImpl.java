@@ -79,7 +79,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
         String guestName = user.getName() == null || user.getName().isBlank() ? "Guest" : user.getName();
-        notificationService.createNotification(
+        notificationService.sendInternalNotification(
             property.getHostId(),
             "New Booking Request",
             "New Booking Request from " + guestName,
@@ -130,6 +130,31 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(nextStatus);
         Booking saved = bookingRepository.save(booking);
+
+        if (request.getStatus() == BookingStatus.CONFIRMED || request.getStatus() == BookingStatus.REJECTED) {
+            String listingTitle = null;
+            Property listing = propertyRepository.findById(booking.getListingId()).orElse(null);
+            if (listing != null && listing.getTitle() != null && !listing.getTitle().isBlank()) {
+            listingTitle = listing.getTitle();
+            }
+
+            String title = request.getStatus() == BookingStatus.CONFIRMED
+                ? "Booking Accepted"
+                : "Booking Rejected";
+            String message = request.getStatus() == BookingStatus.CONFIRMED
+                ? "Your booking request was accepted"
+                : "Your booking request was rejected";
+            if (listingTitle != null) {
+            message = message + " for " + listingTitle;
+            }
+
+            notificationService.sendInternalNotification(
+                booking.getGuestId(),
+                title,
+                message,
+                NotificationType.BOOKING
+            );
+        }
         return toResponse(saved, true);
     }
 

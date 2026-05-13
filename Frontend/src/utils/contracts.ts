@@ -70,7 +70,6 @@ export interface NotificationPreferences {
   bookings: boolean
   messages: boolean
   marketing: boolean
-  sms: boolean
   news: boolean
 }
 

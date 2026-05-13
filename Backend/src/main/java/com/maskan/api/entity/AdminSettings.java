@@ -53,8 +53,5 @@ public class AdminSettings {
     private Map<String, Object> emailConfig = Map.of();
 
     @Builder.Default
-    private Map<String, Object> smsConfig = Map.of();
-
-    @Builder.Default
     private Instant updatedAt = Instant.now();
 }

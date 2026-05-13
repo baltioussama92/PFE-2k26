@@ -269,9 +269,9 @@ export default function Settings() {
                 <p>Sender: no-reply@maskan.com</p>
               </div>
               <div className="rounded-2xl border border-[#E2D4C2] bg-[#FBF6EF] p-4 text-sm text-[#4C3B2F]">
-                <p className="font-semibold">SMS Settings</p>
-                <p className="mt-1">Provider: Twilio</p>
-                <p>From: +212 5 44 00 00 00</p>
+                <p className="font-semibold">In-app Notifications</p>
+                <p className="mt-1">Channel: Internal bell + dropdown</p>
+                <p>Delivery: Stored in MongoDB</p>
               </div>
             </div>
 

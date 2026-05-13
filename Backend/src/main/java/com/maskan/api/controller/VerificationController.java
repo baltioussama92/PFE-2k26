@@ -8,7 +8,6 @@ import com.maskan.api.dto.VerificationSummaryResponse;
 import com.maskan.api.dto.VerifyOtpRequest;
 import com.maskan.api.entity.User;
 import com.maskan.api.repository.UserRepository;
-import com.maskan.api.service.MoceanSmsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,7 +32,6 @@ import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -44,7 +42,6 @@ public class VerificationController {
     private static final Path VERIFICATION_UPLOAD_ROOT = Paths.get("uploads", "verifications");
 
     private final UserRepository userRepository;
-    private final MoceanSmsService moceanSmsService;
 
     @GetMapping("/status")
     public ResponseEntity<VerificationSummaryResponse> getStatus(@AuthenticationPrincipal UserDetails userDetails) {
@@ -76,8 +73,7 @@ public class VerificationController {
             @Valid @RequestBody PhoneOtpSendRequest request
     ) {
         getCurrentUser(userDetails);
-        String reqId = moceanSmsService.sendOtp(request.getPhoneNumber());
-        return ResponseEntity.ok(new PhoneOtpSendResponse(reqId));
+        throw new IllegalStateException("Phone OTP verification is currently disabled.");
     }
 
     @PostMapping("/phone/verify-otp")
@@ -85,23 +81,8 @@ public class VerificationController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody PhoneOtpVerifyRequest request
     ) {
-        User user = getCurrentUser(userDetails);
-        boolean isValid = moceanSmsService.checkOtp(request.getReqId(), request.getCode());
-        if (!isValid) {
-            throw new IllegalArgumentException("Incorrect OTP code");
-        }
-        user.setPhoneVerified(true);
-        applyDerivedVerificationLevel(user);
-        User saved = userRepository.save(user);
-        return ResponseEntity.ok(toSummary(saved));
-    }
-
-    @GetMapping("/phone/debug-last")
-    public ResponseEntity<Map<String, Object>> getLastPhoneOtpDebug(
-            @AuthenticationPrincipal UserDetails userDetails
-    ) {
         getCurrentUser(userDetails);
-        return ResponseEntity.ok(moceanSmsService.getLastDebugSnapshot());
+        throw new IllegalStateException("Phone OTP verification is currently disabled.");
     }
 
     @PostMapping("/identity")

@@ -41,9 +41,6 @@ public class UserPreferences {
         private Boolean marketing = Boolean.FALSE;
 
         @Builder.Default
-        private Boolean sms = Boolean.FALSE;
-
-        @Builder.Default
         private Boolean news = Boolean.TRUE;
     }
 

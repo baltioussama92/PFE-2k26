@@ -37,17 +37,22 @@ function Toggle({ checked, onChange, label, description }) {
     >
       <div className="min-w-0">
         <p className="text-sm font-semibold text-primary-900">{label}</p>
-        {description && <p className="text-xs text-primary-500 mt-0.5">{description}</p>}
+        {description && (
+          <p className="text-xs text-primary-500 mt-1">{description}</p>
+        )}
       </div>
-      <div className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${
-        checked ? 'bg-primary-500' : 'bg-primary-200'
-      }`}>
-        <motion.div
+      <span
+        className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${
+          checked ? 'bg-primary-500' : 'bg-primary-200'
+        }`}
+        aria-hidden="true"
+      >
+        <motion.span
           animate={{ x: checked ? 20 : 2 }}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm"
         />
-      </div>
+      </span>
     </button>
   )
 }
@@ -97,7 +102,6 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
     bookings:  true,
     messages:  true,
     marketing: false,
-    sms:       false,
     news:      true,
   })
 
@@ -163,7 +167,6 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
             bookings: Boolean(data.notifications.bookings),
             messages: Boolean(data.notifications.messages),
             marketing: Boolean(data.notifications.marketing),
-            sms: Boolean(data.notifications.sms),
             news: Boolean(data.notifications.news),
           })
         }
@@ -552,12 +555,6 @@ export default function SettingsPage({ user, onUserUpdate, onLogout }) {
                           description="Offres spéciales et recommandations"
                           checked={notifs.marketing}
                           onChange={() => setNotifs(p => ({ ...p, marketing: !p.marketing }))}
-                        />
-                        <Toggle
-                          label="Alertes SMS"
-                          description="Notifications urgentes par SMS"
-                          checked={notifs.sms}
-                          onChange={() => setNotifs(p => ({ ...p, sms: !p.sms }))}
                         />
                         <Toggle
                           label="Nouveautés produit"

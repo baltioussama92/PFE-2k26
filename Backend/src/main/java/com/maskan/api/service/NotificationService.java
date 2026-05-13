@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface NotificationService {
     Notification createNotification(String recipientId, String title, String message, NotificationType type);
+    Notification sendInternalNotification(String userId, String title, String message, NotificationType type);
     List<Notification> getMyNotifications(String email);
     Notification markAsRead(String notificationId, String email);
     int markAllAsRead(String email);

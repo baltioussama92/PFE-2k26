@@ -693,9 +693,6 @@ public class AdminWorkspaceServiceImpl implements AdminWorkspaceService {
         if (payload.containsKey("emailConfig")) {
             settings.setEmailConfig(toMap(payload.get("emailConfig")));
         }
-        if (payload.containsKey("smsConfig")) {
-            settings.setSmsConfig(toMap(payload.get("smsConfig")));
-        }
 
         settings.setUpdatedAt(Instant.now());
         return toSettingsMap(adminSettingsRepository.save(settings));
@@ -933,7 +930,6 @@ public class AdminWorkspaceServiceImpl implements AdminWorkspaceService {
         row.put("maintenanceMode", settings.getMaintenanceMode());
         row.put("branding", settings.getBranding() == null ? Map.of() : settings.getBranding());
         row.put("emailConfig", settings.getEmailConfig() == null ? Map.of() : settings.getEmailConfig());
-        row.put("smsConfig", settings.getSmsConfig() == null ? Map.of() : settings.getSmsConfig());
         row.put("updatedAt", settings.getUpdatedAt());
         return row;
     }

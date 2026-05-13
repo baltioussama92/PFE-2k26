@@ -1,7 +1,7 @@
 import { apiClient } from '../api/apiClient'
 import { ENDPOINTS } from '../api/endpoints'
 
-export type NotificationType = 'BOOKING' | 'SYSTEM' | 'ALERT'
+export type NotificationType = 'BOOKING' | 'SYSTEM' | 'KYC' | 'PAYMENT'
 
 export interface NotificationItem {
   id: string

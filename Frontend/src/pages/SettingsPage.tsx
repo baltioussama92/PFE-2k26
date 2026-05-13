@@ -26,7 +26,6 @@ interface AccountForm {
 interface NotificationForm {
   bookingUpdates: boolean
   marketingEmails: boolean
-  smsAlerts: boolean
   productNews: boolean
 }
 
@@ -41,7 +40,6 @@ const defaultAccount: AccountForm = {
 const defaultNotifications: NotificationForm = {
   bookingUpdates: true,
   marketingEmails: false,
-  smsAlerts: false,
   productNews: true,
 }
 
@@ -261,18 +259,6 @@ const SettingsPage: React.FC = () => {
                     type="checkbox"
                     checked={notifications.marketingEmails}
                     onChange={() => updateNotificationField('marketingEmails')}
-                  />
-                </label>
-
-                <label className="toggle-item">
-                  <div>
-                    <strong>SMS alerts</strong>
-                    <p>Receive urgent updates by text message.</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={notifications.smsAlerts}
-                    onChange={() => updateNotificationField('smsAlerts')}
                   />
                 </label>
 

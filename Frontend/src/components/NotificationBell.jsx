@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, CalendarCheck, CheckCircle, CreditCard, RefreshCw, Shield } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { notificationService } from '../services/notificationService'
 
@@ -67,7 +67,7 @@ export default function NotificationBell({ user }) {
     refreshNotifications().catch(() => {})
     const timer = window.setInterval(() => {
       refreshNotifications().catch(() => {})
-    }, 12000)
+    }, 30000)
 
     return () => window.clearInterval(timer)
   }, [user?.id])
@@ -89,7 +89,7 @@ export default function NotificationBell({ user }) {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.94 }}
         onClick={() => setOpen((value) => !value)}
-        className="relative p-2 rounded-xl text-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-colors duration-150"
+        className="relative p-2 rounded-xl text-primary-500 hover:text-primary-600 hover:bg-primary-50 transition-colors duration-150 dark:text-slate-200 dark:hover:bg-slate-800"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
@@ -107,25 +107,34 @@ export default function NotificationBell({ user }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
-            className="absolute right-0 top-full mt-2 w-96 rounded-2xl border border-primary-200/60 bg-white/80 backdrop-blur-2xl shadow-glass-lg overflow-hidden"
+            className="absolute right-0 top-full mt-2 w-96 rounded-2xl border border-primary-200/60 bg-white/80 backdrop-blur-2xl shadow-glass-lg overflow-hidden dark:border-slate-700 dark:bg-slate-800"
           >
-            <div className="px-4 py-3 border-b border-primary-200/60 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-primary-200/60 flex items-center justify-between dark:border-slate-700">
               <div>
-                <p className="text-sm font-semibold text-primary-900">Notifications</p>
-                <p className="text-[11px] text-primary-500">{loading ? 'Mise a jour...' : `${notifications.length} total`}</p>
+                <p className="text-sm font-semibold text-primary-900 dark:text-slate-100">Notifications</p>
+                <p className="text-[11px] text-primary-500 dark:text-slate-400">{loading ? 'Mise a jour...' : `${notifications.length} total`}</p>
               </div>
-              {unreadCount > 0 && (
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={markAllAsRead}
-                  className="text-[11px] font-semibold text-primary-600 hover:text-primary-700"
+                  onClick={refreshNotifications}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary-600 hover:text-primary-700 dark:text-slate-200"
                 >
-                  Tout marquer lu
+                  <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                  Rafraichir
                 </button>
-              )}
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-[11px] font-semibold text-primary-600 hover:text-primary-700 dark:text-slate-200"
+                  >
+                    Tout marquer lu
+                  </button>
+                )}
+              </div>
             </div>
 
             {notifications.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-primary-500 text-center">
+              <div className="px-4 py-6 text-sm text-primary-500 text-center dark:text-slate-400">
                 Aucune notification pour le moment.
               </div>
             ) : (
@@ -135,18 +144,38 @@ export default function NotificationBell({ user }) {
                     key={item.id}
                     type="button"
                     onClick={() => markAsRead(item.id)}
-                    className={`w-full text-left px-4 py-3 border-b border-primary-100/70 transition-colors ${
+                    className={`w-full text-left px-4 py-3 border-b border-primary-100/70 transition-colors dark:border-slate-700 ${
                       item.isRead
-                        ? 'hover:bg-primary-50/70'
-                        : 'bg-[#A65B32]/10 hover:bg-[#A65B32]/20'
+                        ? 'hover:bg-primary-50/70 dark:hover:bg-slate-700/60'
+                        : 'bg-[#A65B32]/10 hover:bg-[#A65B32]/20 dark:bg-slate-700/40 dark:hover:bg-slate-700'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${item.isRead ? 'bg-primary-200' : 'bg-[#A65B32]'}`} />
+                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${item.isRead ? 'bg-primary-200 dark:bg-slate-600' : 'bg-[#A65B32]'}`} />
+                      <div className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl ${
+                        item.type === 'BOOKING'
+                          ? 'bg-primary-100 text-primary-600 dark:bg-slate-700 dark:text-slate-200'
+                          : item.type === 'KYC'
+                          ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-200'
+                          : item.type === 'PAYMENT'
+                          ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-200'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200'
+                      }`}
+                      >
+                        {item.type === 'BOOKING' ? (
+                          <CalendarCheck className="w-4 h-4" />
+                        ) : item.type === 'KYC' ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : item.type === 'PAYMENT' ? (
+                          <CreditCard className="w-4 h-4" />
+                        ) : (
+                          <Shield className="w-4 h-4" />
+                        )}
+                      </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-primary-900 truncate">{item.title}</p>
-                        <p className="text-xs text-primary-700 truncate">{item.message}</p>
-                        <p className="text-[11px] text-primary-500 mt-1">{formatRelativeTime(item.createdAt)}</p>
+                        <p className="text-sm font-semibold text-primary-900 truncate dark:text-slate-100">{item.title}</p>
+                        <p className="text-xs text-primary-700 truncate dark:text-slate-300">{item.message}</p>
+                        <p className="text-[11px] text-primary-500 mt-1 dark:text-slate-400">{formatRelativeTime(item.createdAt)}</p>
                       </div>
                     </div>
                   </button>
