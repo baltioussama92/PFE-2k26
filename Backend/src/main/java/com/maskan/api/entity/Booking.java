@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
@@ -19,25 +22,34 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Document(collection = "bookings")
+@CompoundIndexes({
+    @CompoundIndex(name = "booking_listing_status_dates", def = "{ 'listingId': 1, 'status': 1, 'checkInDate': 1, 'checkOutDate': 1 }"),
+    @CompoundIndex(name = "booking_guest_status_checkout", def = "{ 'guestId': 1, 'status': 1, 'checkOutDate': 1 }")
+})
 public class Booking {
 
     @Id
     private String id;
 
     @NotNull
+    @Indexed
     private String listingId;
 
     @NotNull
+    @Indexed
     private String guestId;
 
     @NotNull
+    @Indexed
     private LocalDate checkInDate;
 
     @NotNull
+    @Indexed
     private LocalDate checkOutDate;
 
     @NotNull
     @Builder.Default
+    @Indexed
     private BookingStatus status = BookingStatus.PENDING;
 
     @Builder.Default

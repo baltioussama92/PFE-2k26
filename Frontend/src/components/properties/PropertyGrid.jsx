@@ -44,18 +44,47 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
   const [apiData, setApiData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [favoriteIds, setFavoriteIds] = useState(() => new Set())
-  const [displayCount, setDisplayCount] = useState(12) // Show 12 properties initially
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const itemsPerPage = 12
 
   useEffect(() => {
     let active = true
-    propertyService.list()
-      .then(data => {
+
+    const loadPage = async (nextPage, replace = false) => {
+      if (!active) return
+      if (replace) {
+        setLoading(true)
+      } else {
+        setLoadingMore(true)
+      }
+
+      try {
+        const data = await propertyService.list({ page: nextPage, size: itemsPerPage })
         if (!active) return
-        setApiData((data.content || []).map(normalizeProperty))
-      })
-      .catch(() => {})
-      .finally(() => { if (active) setLoading(false) })
+        const nextItems = (data.content || []).map(normalizeProperty)
+        setApiData((prev) => {
+          if (replace || !Array.isArray(prev)) {
+            return nextItems
+          }
+          return [...prev, ...nextItems]
+        })
+        setPage(nextPage)
+        const total = Number(data.totalElements || 0)
+        const loaded = (nextPage + 1) * itemsPerPage
+        setHasMore(loaded < total)
+      } catch {
+        // Keep existing data on failure.
+      } finally {
+        if (!active) return
+        setLoading(false)
+        setLoadingMore(false)
+      }
+    }
+
+    loadPage(0, true)
+
     return () => { active = false }
   }, [])
 
@@ -107,6 +136,7 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
     ? searchResult.map(normalizeProperty)
     : null
 
+  const usingApiSource = !normalizedSearchResult
   const source   = normalizedSearchResult ?? apiData ?? []
   const propertyTypes = ['Tous', ...new Set(source.map((p) => p.type).filter(Boolean))]
   const filtered = filterProperties(source, type)
@@ -236,7 +266,7 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
               : 'grid-cols-1 max-w-2xl'
           }`}
         >
-          {sorted.slice(0, displayCount).map((property, i) => {
+          {sorted.map((property, i) => {
             const revealDelay = i === 0 ? 0.1 : i === 1 ? 0.2 : i === 2 ? 0.3 : 0.35
 
             return (
@@ -254,15 +284,28 @@ export default function PropertyGrid({ title = 'Propriétés en vedette', search
       )}
 
       {/* -- Load More --------------------------------------- */}
-      {!loading && sorted.length > displayCount && (
+      {usingApiSource && !loading && hasMore && (
         <div className="flex justify-center mt-12">
           <motion.button
             whileHover={{ scale: 1.04, boxShadow: '0 8px 24px rgba(164,131,116,0.25)' }}
             whileTap={{ scale: 0.97 }}
-            onClick={() => setDisplayCount(prev => prev + itemsPerPage)}
+            onClick={() => {
+              if (loadingMore) return
+              setLoadingMore(true)
+              propertyService.list({ page: page + 1, size: itemsPerPage })
+                .then((data) => {
+                  const nextItems = (data.content || []).map(normalizeProperty)
+                  setApiData((prev) => Array.isArray(prev) ? [...prev, ...nextItems] : nextItems)
+                  const total = Number(data.totalElements || 0)
+                  const loaded = (page + 2) * itemsPerPage
+                  setHasMore(loaded < total)
+                  setPage(page + 1)
+                })
+                .finally(() => setLoadingMore(false))
+            }}
             className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-100 px-5 py-3 text-sm font-semibold text-primary-700 shadow-sm transition hover:border-primary-300 hover:bg-primary-50"
           >
-            Voir plus de propriétés
+            {loadingMore ? 'Chargement...' : 'Voir plus de propriétés'}
           </motion.button>
         </div>
       )}

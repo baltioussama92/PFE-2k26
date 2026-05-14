@@ -12,6 +12,8 @@ import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.PropertyService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +40,7 @@ public class PropertyServiceImpl implements PropertyService {
     private final MongoTemplate mongoTemplate;
 
     @Override
+    @CacheEvict(value = {"propertyPages", "propertyById"}, allEntries = true)
     public PropertyResponse create(PropertyRequest request, String email) {
         User owner = getUserByEmail(email);
         Property property = Property.builder()
@@ -66,6 +69,7 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
+    @CacheEvict(value = {"propertyPages", "propertyById"}, allEntries = true)
     public PropertyResponse update(String id, PropertyRequest request, String email) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
@@ -100,6 +104,7 @@ public class PropertyServiceImpl implements PropertyService {
     }
 
     @Override
+    @CacheEvict(value = {"propertyPages", "propertyById"}, allEntries = true)
     public void delete(String id, String email) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Property not found"));
@@ -110,6 +115,7 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "propertyPages", key = "#pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
     public Page<PropertyResponse> findAll(Pageable pageable) {
         return propertyRepository.findAll(pageable)
                 .map(this::toResponse);
@@ -125,6 +131,7 @@ public class PropertyServiceImpl implements PropertyService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "propertyById", key = "#id")
     public PropertyResponse findById(String id) {
         return propertyRepository.findById(id)
                 .map(this::toResponse)

@@ -22,6 +22,7 @@ import com.maskan.api.service.BookingService;
 import com.maskan.api.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,9 @@ import java.util.List;
 import java.util.Comparator;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
@@ -245,8 +249,8 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> getMyBookings(String email, Pageable pageable) {
         User user = getUserByEmail(email);
-        return bookingRepository.findByGuestId(user.getId(), pageable)
-                .map(booking -> toResponse(booking, true));
+        Page<Booking> page = bookingRepository.findByGuestId(user.getId(), pageable);
+        return toPagedResponses(page, true);
     }
 
     @Override
@@ -255,8 +259,8 @@ public class BookingServiceImpl implements BookingService {
         User owner = getUserByEmail(email);
 
         if (owner.getRole() == Role.ADMIN) {
-            return bookingRepository.findAll(pageable)
-                    .map(booking -> toResponse(booking, false));
+            Page<Booking> page = bookingRepository.findAll(pageable);
+            return toPagedResponses(page, false);
         }
 
         if (owner.getRole() != Role.HOST) {
@@ -271,15 +275,15 @@ public class BookingServiceImpl implements BookingService {
             return Page.empty(pageable);
         }
 
-        return bookingRepository.findByListingIdIn(ownerPropertyIds, pageable)
-            .map(booking -> toResponse(booking, false));
+        Page<Booking> page = bookingRepository.findByListingIdIn(ownerPropertyIds, pageable);
+        return toPagedResponses(page, false);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getAllBookings(Pageable pageable) {
-        return bookingRepository.findAll(pageable)
-                .map(booking -> toResponse(booking, false));
+        Page<Booking> page = bookingRepository.findAll(pageable);
+        return toPagedResponses(page, false);
     }
 
     @Override
@@ -343,6 +347,103 @@ public class BookingServiceImpl implements BookingService {
             .stripePaymentIntentId(booking.getStripePaymentIntentId())
             .checkInSecretCode(includeSecretCode ? booking.getCheckInSecretCode() : null)
             .paymentMethod(booking.getPaymentMethod())
+                .build();
+    }
+
+    private Page<BookingResponse> toPagedResponses(Page<Booking> page, boolean includeSecretCode) {
+        if (page == null || page.isEmpty()) {
+            return Page.empty(page == null ? Pageable.unpaged() : page.getPageable());
+        }
+
+        List<Booking> bookings = page.getContent();
+        Map<String, Property> listingsById = fetchListingsById(bookings);
+        Map<String, User> guestsById = fetchUsersById(bookings);
+
+        List<BookingResponse> responses = bookings.stream()
+                .map(booking -> toResponse(booking, listingsById.get(booking.getListingId()), guestsById.get(booking.getGuestId()), includeSecretCode))
+                .toList();
+
+        return new PageImpl<>(responses, page.getPageable(), page.getTotalElements());
+    }
+
+    private Map<String, Property> fetchListingsById(List<Booking> bookings) {
+        if (bookings == null || bookings.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<String> listingIds = bookings.stream()
+                .map(Booking::getListingId)
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .toList();
+
+        if (listingIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Property> results = new HashMap<>();
+        propertyRepository.findAllById(listingIds).forEach(property -> results.put(property.getId(), property));
+        return results;
+    }
+
+    private Map<String, User> fetchUsersById(List<Booking> bookings) {
+        if (bookings == null || bookings.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<String> guestIds = bookings.stream()
+                .map(Booking::getGuestId)
+                .filter(id -> id != null && !id.isBlank())
+                .distinct()
+                .toList();
+
+        if (guestIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, User> results = new HashMap<>();
+        userRepository.findAllById(guestIds).forEach(user -> results.put(user.getId(), user));
+        return results;
+    }
+
+    private BookingResponse toResponse(Booking booking,
+                                       Property listing,
+                                       User guest,
+                                       boolean includeSecretCode) {
+        BigDecimal totalPrice = booking.getTotalPrice();
+        if (totalPrice == null && listing != null) {
+            totalPrice = computeTotalPrice(listing, booking.getCheckInDate(), booking.getCheckOutDate(), booking.getGuests());
+        }
+        if (totalPrice == null) {
+            totalPrice = BigDecimal.ZERO;
+        }
+
+        BookingPropertyInfo propertyInfo = listing == null ? null : BookingPropertyInfo.builder()
+                .title(listing.getTitle())
+                .location(listing.getLocation())
+                .image(listing.getImages() != null && !listing.getImages().isEmpty() ? listing.getImages().get(0) : null)
+                .build();
+
+        return BookingResponse.builder()
+                .id(booking.getId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .status(booking.getStatus())
+                .listingId(booking.getListingId())
+                .guestId(booking.getGuestId())
+                .guests(booking.getGuests())
+                .guestCount(booking.getGuests())
+                .totalPrice(totalPrice)
+                .createdAt(booking.getCreatedAt())
+                .listingTitle(listing != null ? listing.getTitle() : null)
+                .listingLocation(listing != null ? listing.getLocation() : null)
+                .listingImage(listing != null && listing.getImages() != null && !listing.getImages().isEmpty() ? listing.getImages().get(0) : null)
+                .property(propertyInfo)
+                .guestEmail(guest != null ? guest.getEmail() : null)
+                .guestName(guest != null ? guest.getName() : null)
+                .stripePaymentIntentId(booking.getStripePaymentIntentId())
+                .checkInSecretCode(includeSecretCode ? booking.getCheckInSecretCode() : null)
+                .paymentMethod(booking.getPaymentMethod())
                 .build();
     }
 

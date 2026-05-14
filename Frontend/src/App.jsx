@@ -8,7 +8,7 @@ import HomePage       from './pages/HomePage'
 import DashboardPage  from './pages/DashboardPage'
 import AuthModal      from './components/auth/AuthModal'
 import PropertyGrid   from './components/properties/PropertyGrid'
-import PropertyDetails from './pages/PropertyDetails'
+const PropertyDetails = React.lazy(() => import('./pages/PropertyDetails'))
 import ProfilePage    from './pages/ProfilePage'
 import WishlistPage       from './pages/WishlistPage'
 import BookingsPage       from './pages/BookingsPage'
@@ -315,7 +315,7 @@ function AppRoutes() {
           <Routes>
             <Route path="/"         element={<HomePage user={user} onAuthClick={handleAuthClick} />} />
             <Route path="/explorer" element={<ExplorerPage user={user} onAuthClick={handleAuthClick} />} />
-            <Route path="/property/:id" element={<PropertyDetails user={user} onAuthClick={handleAuthClick} />} />
+            <Route path="/property/:id" element={<Suspense fallback={<LoadingFallback />}><PropertyDetails user={user} onAuthClick={handleAuthClick} /></Suspense>} />
             <Route path="/profile"  element={user ? <ProfilePage user={user} onUserUpdate={setUser} onLogout={handleLogout} /> : <Navigate to="/?auth=login" replace />} />
             <Route path="/account"  element={user ? <ProfilePage user={user} onUserUpdate={setUser} onLogout={handleLogout} /> : <Navigate to="/?auth=login" replace />} />
             <Route path="/host-verification" element={user ? <Suspense fallback={<LoadingFallback />}><HostVerificationPage user={user} onUserUpdate={setUser} /></Suspense> : <Navigate to="/?auth=login" replace />} />

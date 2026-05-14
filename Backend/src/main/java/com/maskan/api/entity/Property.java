@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
@@ -32,12 +33,14 @@ public class Property {
     private String description;
 
     @NotBlank
+    @Indexed
     private String location;
 
     private Double latitude;
     private Double longitude;
 
     @NotNull
+    @Indexed
     private BigDecimal pricePerNight;
 
     private String currency;
@@ -46,16 +49,20 @@ public class Property {
     private List<String> images = List.of();
 
     @NotBlank
+    @Indexed
     private String hostId;
 
     @Builder.Default
     private Instant createdAt = Instant.now();
 
     @Builder.Default
+    @Indexed
     private Boolean available = Boolean.TRUE;
 
+    @Indexed
     private String type;
     private String badge;
+    @Indexed
     private Integer bedrooms;
     private Integer bathrooms;
     private Integer area;
@@ -68,6 +75,7 @@ public class Property {
     private Integer reviewCount;
 
     @Builder.Default
+    @Indexed
     private Boolean pendingApproval = Boolean.FALSE;
 
     public BigDecimal getPrice() {

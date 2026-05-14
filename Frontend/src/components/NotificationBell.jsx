@@ -15,7 +15,7 @@ const formatRelativeTime = (value) => {
   return `il y a ${diffDays} j`
 }
 
-export default function NotificationBell({ user }) {
+function NotificationBell({ user }) {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(false)
@@ -188,3 +188,5 @@ export default function NotificationBell({ user }) {
     </div>
   )
 }
+
+export default React.memo(NotificationBell)

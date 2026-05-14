@@ -9,7 +9,20 @@ const BADGE_STYLES = {
   amber:   'bg-amber-500/90   text-primary-50',
 }
 
-export default function PropertyCard({
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+
+const resolveImageSrc = (src) => {
+  if (!src) return src
+  if (src.includes('/uploads/')) {
+    const fileName = src.split('/uploads/').pop()?.split('?')[0]
+    if (!fileName) return src
+    const base = API_BASE_URL || ''
+    return `${base}/api/uploads/images/resize?file=${encodeURIComponent(fileName)}&w=640&h=480`
+  }
+  return src
+}
+
+function PropertyCard({
   property,
   id,
   title,
@@ -27,6 +40,7 @@ export default function PropertyCard({
   // Support both object-style and individual props
   const p = property ?? { id, title, location, price, rating, image, type }
   const isLiked = likedProp ?? liked
+  const imageSrc = resolveImageSrc(p.image)
 
   const handleClick = () => {
     if (p.id) navigate(`/property/${p.id}`)
@@ -42,8 +56,10 @@ export default function PropertyCard({
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
-          src={p.image}
+          src={imageSrc}
           alt={p.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover transition-transform duration-500
                      group-hover:scale-105"
         />
@@ -139,3 +155,5 @@ export default function PropertyCard({
     </motion.div>
   )
 }
+
+export default React.memo(PropertyCard)
