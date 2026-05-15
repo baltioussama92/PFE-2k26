@@ -109,7 +109,12 @@ public class EmailVerificationController {
             throw new IllegalArgumentException("Code expiré");
         }
 
-        if (!request.getOtp().equals(token.getOtpCode())) {
+        // Debug logs: show stored vs received OTP for demo troubleshooting
+        System.out.println("[EmailVerification] verifying for email=" + email);
+        System.out.println("[EmailVerification] stored OTP=" + token.getOtpCode());
+        System.out.println("[EmailVerification] received OTP=" + request.getOtp());
+
+        if (request.getOtp() == null || !request.getOtp().equals(token.getOtpCode())) {
             throw new IllegalArgumentException("Code incorrect");
         }
 

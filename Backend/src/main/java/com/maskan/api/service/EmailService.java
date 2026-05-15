@@ -1,7 +1,10 @@
 package com.maskan.api.service;
 
+import com.maskan.api.exception.EmailDeliveryException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -12,46 +15,50 @@ import org.springframework.util.StringUtils;
 import java.security.SecureRandom;
 
 @Service
+@Slf4j
 public class EmailService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final JavaMailSender javaMailSender;
+  @Autowired
+  private JavaMailSender mailSender;
 
     @Value("${spring.mail.username}")
     private String senderEmail;
-
-    public EmailService(JavaMailSender javaMailSender) {
-        this.javaMailSender = javaMailSender;
-    }
 
     public String generateOtpCode() {
         int code = 100000 + RANDOM.nextInt(900000);
         return String.valueOf(code);
     }
 
-    public void sendOtpHtmlEmail(String recipientEmail, String otpCode) {
+    public void sendOtpEmail(String recipientEmail, String otpCode) {
       String normalizedSenderEmail = normalizeEmailValue(senderEmail);
       if (!StringUtils.hasText(normalizedSenderEmail) || !normalizedSenderEmail.contains("@")) {
         throw new IllegalArgumentException("Configuration email invalide (spring.mail.username)");
       }
 
         try {
-            MimeMessage message = javaMailSender.createMimeMessage();
+        MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setTo(recipientEmail);
         helper.setFrom(normalizedSenderEmail);
             helper.setSubject("Votre code de vérification Maskan");
             helper.setText(buildOtpHtml(otpCode), true);
-            javaMailSender.send(message);
+        mailSender.send(message);
         } catch (MessagingException | MailException exception) {
+        log.error("SMTP delivery failed for recipient {}", recipientEmail, exception);
         String message = exception.getMessage();
-        throw new IllegalArgumentException(
+        throw new EmailDeliveryException(
             StringUtils.hasText(message)
-                ? "Impossible d’envoyer le code par email: " + message
-                : "Impossible d’envoyer le code par email"
+                ? "Impossible d’envoyer le code OTP par email: " + message
+                : "Impossible d’envoyer le code OTP par email",
+            exception
         );
         }
+    }
+
+    public void sendOtpHtmlEmail(String recipientEmail, String otpCode) {
+      sendOtpEmail(recipientEmail, otpCode);
     }
 
           private String normalizeEmailValue(String rawEmail) {

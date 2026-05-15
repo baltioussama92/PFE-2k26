@@ -10,12 +10,26 @@ const BADGE_STYLES = {
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+const FALLBACK_IMAGE = '/images/cta-house-placeholder.svg'
+
+const hasImageExtension = (value) => /\.(png|jpe?g|webp|gif|avif|svg)(\?.*)?$/i.test(value)
+
+const isProbablyImageUrl = (value) => {
+  if (!value || typeof value !== 'string') return false
+  if (value.startsWith('data:image/')) return true
+  if (value.includes('/api/listings/')) return false
+  if (value.includes('/uploads/')) return true
+  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')) {
+    return hasImageExtension(value)
+  }
+  return false
+}
 
 const resolveImageSrc = (src) => {
-  if (!src) return src
+  if (!isProbablyImageUrl(src)) return FALLBACK_IMAGE
   if (src.includes('/uploads/')) {
     const fileName = src.split('/uploads/').pop()?.split('?')[0]
-    if (!fileName) return src
+    if (!fileName) return FALLBACK_IMAGE
     const base = API_BASE_URL || ''
     return `${base}/api/uploads/images/resize?file=${encodeURIComponent(fileName)}&w=640&h=480`
   }
@@ -35,12 +49,13 @@ function PropertyCard({
   onToggleLike,
 }) {
   const [liked, setLiked] = useState(false)
+  const [imageHasError, setImageHasError] = useState(false)
   const navigate = useNavigate()
 
   // Support both object-style and individual props
   const p = property ?? { id, title, location, price, rating, image, type }
   const isLiked = likedProp ?? liked
-  const imageSrc = resolveImageSrc(p.image)
+  const imageSrc = imageHasError ? FALLBACK_IMAGE : resolveImageSrc(p.image)
 
   const handleClick = () => {
     if (p.id) navigate(`/property/${p.id}`)
@@ -60,6 +75,7 @@ function PropertyCard({
           alt={p.title}
           loading="lazy"
           decoding="async"
+          onError={() => setImageHasError(true)}
           className="w-full h-full object-cover transition-transform duration-500
                      group-hover:scale-105"
         />

@@ -20,7 +20,12 @@ const BIRTH_DAYS = Array.from({ length: 31 }, (_, index) => String(index + 1))
 const CURRENT_YEAR = new Date().getFullYear()
 const BIRTH_YEARS = Array.from({ length: 100 }, (_, index) => String(CURRENT_YEAR - index))
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const TUNISIAN_PHONE_REGEX = /^(\+216|0)?\s?[2-5]\d{7}$/
+const TUNISIAN_PHONE_REGEX = /^(?:\+216)?[2-5]\d{7}$/
+
+const normalizeTunisianPhone = (value) => {
+  const stripped = value.replace(/\s+/g, '')
+  return stripped.startsWith('+216') ? stripped : `+216${stripped}`
+}
 
 const formVariants = {
   initial: { opacity: 0, y: 12 },
@@ -164,14 +169,14 @@ export default function AuthModal({ initialMode = 'login', onClose, onSuccess })
   const handleRegister = async () => {
     const email = form.email.trim().toLowerCase()
     const fullName = `${form.firstName} ${form.lastName}`.trim()
-    const phone = form.phone.trim()
+    const phone = normalizeTunisianPhone(form.phone.trim())
 
     if (!EMAIL_REGEX.test(email)) {
       throw new Error('Please enter a valid email address')
     }
 
     if (!TUNISIAN_PHONE_REGEX.test(phone)) {
-      throw new Error('Please enter a valid Tunisian phone number (e.g., +216 20 123 456 or 20 123 456)')
+      throw new Error('Please enter a valid Tunisian phone number (e.g., +216 20 123 456, +21620123456, 20 123 456, or 20123456)')
     }
 
     if (form.password.length < 8) {

@@ -4,11 +4,15 @@ import com.maskan.api.dto.AuthResponse;
 import com.maskan.api.dto.LoginRequest;
 import com.maskan.api.dto.RegisterRequest;
 import com.maskan.api.dto.UserDto;
+import com.maskan.api.entity.EmailVerificationToken;
+import com.maskan.api.repository.EmailVerificationTokenRepository;
 import com.maskan.api.service.AuthService;
+import com.maskan.api.service.EmailService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -18,17 +22,42 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
+
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002"})
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final long OTP_EXPIRY_MINUTES = 15;
+
     private final AuthService authService;
+    private final EmailService emailService;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+        AuthResponse response = authService.register(request);
+        String targetEmail = normalizeEmail(response.getUser() == null ? null : response.getUser().getEmail());
+
+        if (StringUtils.hasText(targetEmail)) {
+            emailVerificationTokenRepository.deleteByEmail(targetEmail);
+
+            String otpCode = emailService.generateOtpCode();
+            Instant expiryDate = Instant.now().plusSeconds(OTP_EXPIRY_MINUTES * 60);
+
+            EmailVerificationToken token = EmailVerificationToken.builder()
+                    .email(targetEmail)
+                    .otpCode(otpCode)
+                    .expiryDate(expiryDate)
+                    .build();
+
+            emailVerificationTokenRepository.save(token);
+            emailService.sendOtpEmail(targetEmail, otpCode);
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
@@ -39,6 +68,10 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(authService.getCurrentUser(userDetails.getUsername()));
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
     }
 }
 

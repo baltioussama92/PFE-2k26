@@ -158,7 +158,10 @@ export const guestVerificationService = {
   },
 
   async verifyEmailOtp(payload: VerifyOtpPayload): Promise<GuestVerificationSummary> {
-    const data = await postJson<ApiSummaryResponse>(ENDPOINTS.verifications.verifyEmailOtp, payload)
+    // Ensure OTP is sent as a string (avoid numeric coercion issues)
+    const body = { otp: String(payload.otp) }
+    console.log('Sending verifyEmailOtp payload:', body)
+    const data = await postJson<ApiSummaryResponse>(ENDPOINTS.verifications.verifyEmailOtp, body)
     return normalizeSummary(data)
   },
 
