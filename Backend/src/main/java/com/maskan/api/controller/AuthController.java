@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import com.maskan.api.exception.EmailDeliveryException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -54,7 +55,15 @@ public class AuthController {
                     .build();
 
             emailVerificationTokenRepository.save(token);
-            emailService.sendOtpEmail(targetEmail, otpCode);
+            try {
+                emailService.sendOtpEmail(targetEmail, otpCode);
+            } catch (EmailDeliveryException exception) {
+                // If email delivery fails during registration, do not fail the whole request.
+                // Clean up the token and log the failure so the user can request OTP later.
+                emailVerificationTokenRepository.deleteByEmail(targetEmail);
+                System.out.println("[AuthController] OTP email delivery failed for " + targetEmail + ": " + exception.getMessage());
+                exception.printStackTrace();
+            }
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

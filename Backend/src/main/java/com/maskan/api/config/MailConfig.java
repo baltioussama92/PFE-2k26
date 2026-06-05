@@ -3,11 +3,21 @@ package com.maskan.api.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.util.StringUtils;
 
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Properties;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 
 @Configuration
 public class MailConfig {
@@ -28,6 +38,14 @@ public class MailConfig {
             @Value("${spring.mail.properties.mail.smtp.writetimeout:5000}") String writeTimeout
     ) {
         JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        // Try resolving the host first — if DNS/Network prevents resolving the SMTP host,
+        // return a no-op/logging mail sender to avoid crashing flows that attempt to send emails.
+        try {
+            InetAddress.getByName(fallback(host, "smtp.gmail.com"));
+        } catch (UnknownHostException e) {
+            System.out.println("[MailConfig] SMTP host lookup failed for '" + host + "', using LoggingMailSender fallback: " + e.getMessage());
+            return new LoggingMailSender();
+        }
         sender.setHost(sanitizeText(fallback(host, "smtp.gmail.com")));
         sender.setPort(parsePort(port));
         sender.setUsername(sanitizeText(safeTrim(username)));
@@ -45,6 +63,74 @@ public class MailConfig {
         properties.put("mail.smtp.writetimeout", normalizeIntegerProperty(writeTimeout, 5000));
 
         return sender;
+    }
+
+    /**
+     * A lightweight JavaMailSender implementation used in development when SMTP is unreachable.
+     * It creates MimeMessage instances but logs sends instead of opening network connections.
+     */
+    private static class LoggingMailSender implements JavaMailSender {
+        private final Session session;
+
+        LoggingMailSender() {
+            this.session = Session.getInstance(new Properties());
+        }
+
+        @Override
+        public MimeMessage createMimeMessage() {
+            return new MimeMessage(session);
+        }
+
+        @Override
+        public MimeMessage createMimeMessage(InputStream contentStream) throws MailException {
+            try {
+                return new MimeMessage(session, contentStream);
+            } catch (MessagingException e) {
+                throw new MailException("Failed to create MimeMessage from stream: " + e.getMessage(), e) {};
+            }
+        }
+
+        @Override
+        public void send(MimeMessage mimeMessage) throws MailException {
+            try {
+                String to = mimeMessage.getAllRecipients() == null ? "<none>" : mimeMessage.getAllRecipients()[0].toString();
+                String subject = mimeMessage.getSubject();
+                System.out.println("[LoggingMailSender] send() called — to=" + to + " subject=" + subject);
+            } catch (Exception e) {
+                System.out.println("[LoggingMailSender] send() called — failed to read message metadata: " + e.getMessage());
+            }
+        }
+
+        @Override
+        public void send(MimeMessage... mimeMessages) throws MailException {
+            for (MimeMessage m : mimeMessages) send(m);
+        }
+
+        @Override
+        public void send(MimeMessagePreparator mimeMessagePreparator) throws MailException {
+            MimeMessage message = createMimeMessage();
+            try {
+                mimeMessagePreparator.prepare(message);
+            } catch (Exception e) {
+                throw new MailException("Failed to prepare message: " + e.getMessage(), e) {};
+            }
+            send(message);
+        }
+
+        @Override
+        public void send(MimeMessagePreparator... mimeMessagePreparators) throws MailException {
+            for (MimeMessagePreparator p : mimeMessagePreparators) send(p);
+        }
+
+        @Override
+        public void send(SimpleMailMessage simpleMessage) throws MailException {
+            System.out.println("[LoggingMailSender] send(SimpleMailMessage) to=" + String.join(",", simpleMessage.getTo()) + " subject=" + simpleMessage.getSubject());
+        }
+
+        @Override
+        public void send(SimpleMailMessage... simpleMessages) throws MailException {
+            for (SimpleMailMessage m : simpleMessages) send(m);
+        }
     }
 
     private int parsePort(String rawPort) {
