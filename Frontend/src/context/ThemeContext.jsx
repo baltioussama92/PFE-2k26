@@ -14,11 +14,6 @@ const getInitialTheme = () => {
   } catch {
     // Ignore storage errors and use fallback theme.
   }
-
-  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
-    return 'dark'
-  }
-
   return 'light'
 }
 
