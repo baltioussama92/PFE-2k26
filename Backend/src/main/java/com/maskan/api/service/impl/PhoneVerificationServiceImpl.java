@@ -4,30 +4,30 @@ import com.maskan.api.dto.PhoneOtpSendResponse;
 import com.maskan.api.dto.VerificationSummaryResponse;
 import com.maskan.api.entity.User;
 import com.maskan.api.repository.UserRepository;
+import com.maskan.api.service.MoceanSmsService;
 import com.maskan.api.service.PhoneVerificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class PhoneVerificationServiceImpl implements PhoneVerificationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PhoneVerificationServiceImpl.class);
-    private static final SecureRandom RANDOM = new SecureRandom();
     private static final long OTP_EXPIRY_MINUTES = 15;
 
     private final UserRepository userRepository;
+    private final MoceanSmsService moceanSmsService;
     private final Map<String, PhoneOtpEntry> otpStore = new ConcurrentHashMap<>();
 
-    public PhoneVerificationServiceImpl(UserRepository userRepository) {
+    public PhoneVerificationServiceImpl(UserRepository userRepository, MoceanSmsService moceanSmsService) {
         this.userRepository = userRepository;
+        this.moceanSmsService = moceanSmsService;
     }
 
     @Override
@@ -40,12 +40,16 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
             throw new IllegalArgumentException("Phone number is required");
         }
 
-        String reqId = UUID.randomUUID().toString();
-        String code = generateOtpCode();
+        String reqId = java.util.UUID.randomUUID().toString();
+        String code = String.format("%04d", java.util.concurrent.ThreadLocalRandom.current().nextInt(10000));
+        
+        String text = "Votre code OTP Maskan est : " + code;
+        moceanSmsService.sendSms(normalizedPhone, text);
+        
         Instant expiresAt = Instant.now().plusSeconds(OTP_EXPIRY_MINUTES * 60);
 
         otpStore.put(reqId, new PhoneOtpEntry(user.getId(), normalizedPhone, code, expiresAt));
-        LOGGER.info("Phone OTP generated for userId={} phone={}", user.getId(), maskPhone(normalizedPhone));
+        LOGGER.info("Phone OTP sent via Mocean SMS for userId={} phone={}", user.getId(), maskPhone(normalizedPhone));
         return new PhoneOtpSendResponse(reqId, "OTP sent successfully");
     }
 
@@ -60,7 +64,7 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
 
         PhoneOtpEntry entry = otpStore.get(reqId);
         if (entry == null || !entry.userId().equals(user.getId())) {
-            throw new IllegalArgumentException("OTP expired");
+            throw new IllegalArgumentException("OTP request not found or expired");
         }
 
         if (entry.expiresAt().isBefore(Instant.now())) {
@@ -68,8 +72,8 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
             throw new IllegalArgumentException("OTP expired");
         }
 
-        if (!StringUtils.hasText(code) || !code.equals(entry.code())) {
-            throw new IllegalArgumentException("OTP invalid");
+        if (!entry.code().equals(code)) {
+            throw new IllegalArgumentException("Incorrect OTP code");
         }
 
         user.setPhone(entry.phone());
@@ -80,11 +84,6 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
         otpStore.remove(reqId);
 
         return toSummary(saved);
-    }
-
-    private String generateOtpCode() {
-        int code = 100000 + RANDOM.nextInt(900000);
-        return String.valueOf(code);
     }
 
     private String normalizePhone(String phoneNumber) {

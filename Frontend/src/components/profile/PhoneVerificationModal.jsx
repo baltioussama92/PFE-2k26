@@ -17,6 +17,7 @@ export default function PhoneVerificationModal({
   const [reqId, setReqId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     if (!isOpen) return
@@ -24,6 +25,7 @@ export default function PhoneVerificationModal({
     setOtpCode('')
     setReqId('')
     setError('')
+    setSuccess('')
     setPhoneNumber(initialPhoneNumber || '')
   }, [isOpen, initialPhoneNumber])
 
@@ -36,11 +38,13 @@ export default function PhoneVerificationModal({
     try {
       if (!canSend) {
         setError('Numéro invalide. Utilisez le format +216XXXXXXXX.')
+        setSuccess('')
         return
       }
 
       setIsLoading(true)
       setError('')
+      setSuccess('')
 
       const response = await guestVerificationService.sendPhoneOtp({
         phoneNumber: phoneNumber.trim(),
@@ -52,8 +56,10 @@ export default function PhoneVerificationModal({
 
       setReqId(response.reqId)
       setStep(2)
+      setSuccess('Le code OTP a été envoyé avec succès.')
     } catch (err) {
       setError(err.message || 'Impossible d’envoyer le code OTP.')
+      setSuccess('')
     } finally {
       setIsLoading(false)
     }
@@ -63,17 +69,20 @@ export default function PhoneVerificationModal({
     try {
       if (!canVerify) {
         setError('Le code OTP doit contenir exactement 4 chiffres.')
+        setSuccess('')
         return
       }
 
       if (!reqId) {
         setError('Session OTP expirée. Veuillez renvoyer un code.')
+        setSuccess('')
         setStep(1)
         return
       }
 
       setIsLoading(true)
       setError('')
+      setSuccess('')
 
       const summary = await guestVerificationService.verifyPhoneOtp({
         reqId,
@@ -84,6 +93,7 @@ export default function PhoneVerificationModal({
       onClose?.()
     } catch (err) {
       setError(err.message || 'Code OTP incorrect.')
+      setSuccess('')
     } finally {
       setIsLoading(false)
     }
@@ -153,6 +163,11 @@ export default function PhoneVerificationModal({
           </div>
         )}
 
+        {success && (
+          <p className="mt-3 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs font-semibold text-green-700">
+            {success}
+          </p>
+        )}
         {error && (
           <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
             {error}
