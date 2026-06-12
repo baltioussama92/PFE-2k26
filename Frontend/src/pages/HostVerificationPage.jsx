@@ -25,27 +25,24 @@ function Stepper({ steps, currentStep }) {
               className={`flex flex-col items-center gap-2 flex-1 ${index > 0 ? 'relative' : ''}`}
             >
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${
-                  index < currentStep
-                    ? 'bg-amber-600 text-white'
-                    : index === currentStep
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all ${index < currentStep
+                  ? 'bg-amber-600 text-white'
+                  : index === currentStep
                     ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white ring-2 ring-amber-300'
                     : 'bg-gray-200 text-gray-600'
-                }`}
+                  }`}
               >
                 {index < currentStep ? <Check className="w-5 h-5" /> : index + 1}
               </div>
-              <span className={`text-xs font-medium text-center hidden sm:block ${
-                index <= currentStep ? 'text-gray-900' : 'text-gray-500'
-              }`}>
+              <span className={`text-xs font-medium text-center hidden sm:block ${index <= currentStep ? 'text-gray-900' : 'text-gray-500'
+                }`}>
                 {step}
               </span>
             </motion.div>
             {index < steps.length - 1 && (
               <div
-                className={`h-1 flex-1 mx-2 rounded-full transition-all ${
-                  index < currentStep ? 'bg-amber-600' : 'bg-gray-300'
-                }`}
+                className={`h-1 flex-1 mx-2 rounded-full transition-all ${index < currentStep ? 'bg-amber-600' : 'bg-gray-300'
+                  }`}
                 style={{ marginBottom: '24px' }}
               />
             )}
@@ -84,11 +81,10 @@ function InputField({ label, type = 'text', placeholder, value, onChange, error,
         readOnly={readOnly}
         pattern={pattern}
         maxLength={maxLength}
-        className={`w-full px-4 py-3 rounded-xl border-2 transition-all focus:outline-none ${
-          error
-            ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-            : 'border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
-        } ${readOnly ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
+        className={`w-full px-4 py-3 rounded-xl border-2 transition-all focus:outline-none ${error
+          ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+          : 'border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
+          } ${readOnly ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
       />
       {error && (
         <motion.p
@@ -118,11 +114,10 @@ function SelectField({ label, options, value, onChange, error, required = false 
       <select
         value={value}
         onChange={onChange}
-        className={`w-full px-4 py-3 rounded-xl border-2 transition-all focus:outline-none ${
-          error
-            ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
-            : 'border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
-        }`}
+        className={`w-full px-4 py-3 rounded-xl border-2 transition-all focus:outline-none ${error
+          ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-200'
+          : 'border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-100'
+          }`}
       >
         <option value="">Sélectionnez une option</option>
         {options.map((opt) => (
@@ -185,13 +180,12 @@ function FileUpload({ label, icon: Icon, description, file, onFileChange, accept
           scale: isDragging ? 1.02 : 1,
           backgroundColor: isDragging ? 'rgb(254, 243, 235)' : 'transparent'
         }}
-        className={`relative rounded-2xl border-2 border-dashed transition-all cursor-pointer p-8 text-center ${
-          error
-            ? 'border-red-300 bg-red-50'
-            : isDragging
+        className={`relative rounded-2xl border-2 border-dashed transition-all cursor-pointer p-8 text-center ${error
+          ? 'border-red-300 bg-red-50'
+          : isDragging
             ? 'border-amber-500'
             : 'border-gray-300 hover:border-amber-400'
-        }`}
+          }`}
       >
         <input
           id={fileInputId}
@@ -283,13 +277,12 @@ function ImageUpload({ label, files, onFilesChange, error, minImages = 3 }) {
           scale: isDragging ? 1.02 : 1,
           backgroundColor: isDragging ? 'rgb(254, 243, 235)' : 'transparent'
         }}
-        className={`relative rounded-2xl border-2 border-dashed transition-all cursor-pointer p-8 text-center ${
-          error
-            ? 'border-red-300 bg-red-50'
-            : isDragging
+        className={`relative rounded-2xl border-2 border-dashed transition-all cursor-pointer p-8 text-center ${error
+          ? 'border-red-300 bg-red-50'
+          : isDragging
             ? 'border-amber-500'
             : 'border-gray-300 hover:border-amber-400'
-        }`}
+          }`}
       >
         <input
           id={fileInputId}
@@ -370,11 +363,10 @@ function CheckBox({ label, checked, onChange, error }) {
           type="checkbox"
           checked={checked}
           onChange={onChange}
-          className={`w-5 h-5 mt-1 rounded-lg cursor-pointer transition-all ${
-            error
-              ? 'accent-red-600 border-red-300'
-              : 'accent-amber-600 border-gray-300'
-          }`}
+          className={`w-5 h-5 mt-1 rounded-lg cursor-pointer transition-all ${error
+            ? 'accent-red-600 border-red-300'
+            : 'accent-amber-600 border-gray-300'
+            }`}
         />
         <label className="text-sm text-gray-700 cursor-pointer flex-1">{label}</label>
       </div>
@@ -437,7 +429,7 @@ export default function HostVerificationPageNew() {
   const [formData, setFormData] = useState({
     // Step 1: Basic Info
     fullName: '',
-    email: 'user@example.com',
+    email: '',
     phone: '',
     otpVerified: false,
     otpCode: '',
@@ -473,10 +465,12 @@ export default function HostVerificationPageNew() {
 
     switch (step) {
       case 0: // Basic Info
-        if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required'
-        if (!formData.phone.trim()) newErrors.phone = 'Phone number is required'
-        if (!/^\d{10,}$/.test(formData.phone.replace(/\D/g, ''))) {
-          newErrors.phone = 'Phone number must be valid'
+        if (!formData.fullName.trim()) newErrors.fullName = 'Le nom complet est requis'
+        if (!formData.email.trim()) newErrors.email = 'L\'email est requis'
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Format d\'email invalide'
+        if (!formData.phone.trim()) newErrors.phone = 'Le numéro de téléphone est requis'
+        if (!/^\+?\d{10,}$/.test(formData.phone.replace(/\s/g, ''))) {
+          newErrors.phone = 'Le numéro de téléphone doit être valide'
         }
         break
 
@@ -561,6 +555,7 @@ export default function HostVerificationPageNew() {
         body.append('propertyImages', image)
       })
       body.append('fullName', formData.fullName)
+      body.append('email', formData.email)
       body.append('acceptTerms', String(formData.acceptTerms))
       body.append('confirmOwnership', String(formData.confirmOwnership))
 
@@ -585,7 +580,7 @@ export default function HostVerificationPageNew() {
       }, 3000)
     } catch (error) {
       console.error('❌ Submission error:', error)
-      alert(error?.message || 'Submission failed. Please try again.')
+      notify(error?.message || 'Échec de la soumission. Veuillez réessayer.', 'error')
     } finally {
       setLoading(false)
     }
@@ -614,14 +609,16 @@ export default function HostVerificationPageNew() {
             <InputField
               label="Email"
               type="email"
+              placeholder="votre@email.com"
               value={formData.email}
-              readOnly
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              error={errors.email}
               required
             />
 
             <InputField
               label="Numéro de Téléphone"
-              placeholder="+33 6 12 34 56 78"
+              placeholder="+216 12 34 56 78"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               error={errors.phone}
@@ -635,23 +632,23 @@ export default function HostVerificationPageNew() {
               <div className="flex gap-2 mt-3">
                 <input
                   type="text"
-                  placeholder="000000"
-                  maxLength={6}
+                  placeholder="0000"
+                  maxLength={4}
                   value={formData.otpCode}
-                  onChange={(e) => setFormData({ ...formData, otpCode: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, otpCode: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                   className="flex-1 px-3 py-2 rounded-lg border border-blue-300 text-center font-mono"
                 />
                 <button
                   onClick={async () => {
                     try {
-                      if (!otpRequestId) {
-                        const sendResponse = await guestVerificationService.sendPhoneOtp({
-                          phoneNumber: formData.phone,
-                        })
-                        setOtpRequestId(sendResponse.reqId)
-                        alert('OTP sent to your phone. Enter the received code to verify.')
-                        return
-                      }
+                        if (!otpRequestId) {
+                          const sendResponse = await guestVerificationService.sendPhoneOtp({
+                            phoneNumber: formData.phone,
+                          })
+                          setOtpRequestId(sendResponse.reqId)
+                          notify('Un code OTP a été envoyé à votre téléphone. Entrez le code reçu pour vérifier.', 'info')
+                          return
+                        }
 
                       await guestVerificationService.verifyPhoneOtp({
                         reqId: otpRequestId,
@@ -660,7 +657,7 @@ export default function HostVerificationPageNew() {
 
                       setFormData({ ...formData, otpVerified: true, otpCode: '' })
                     } catch (error) {
-                      alert(error?.message || 'Code de vérification invalide')
+                      notify(error?.message || 'Code de vérification invalide', 'error')
                     }
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"

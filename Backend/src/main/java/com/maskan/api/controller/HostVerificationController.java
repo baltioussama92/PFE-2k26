@@ -48,6 +48,7 @@ public class HostVerificationController {
             @RequestParam("propertyProof") MultipartFile propertyProof,
             @RequestParam(value = "propertyImages", required = false) List<MultipartFile> propertyImages,
             @RequestParam(value = "fullName", required = false) String fullName,
+            @RequestParam(value = "email", required = false) String email,
             @RequestParam(value = "acceptTerms", required = false, defaultValue = "false") boolean acceptTerms,
             @RequestParam(value = "confirmOwnership", required = false, defaultValue = "false") boolean confirmOwnership
     ) {
@@ -77,6 +78,9 @@ public class HostVerificationController {
 
         if (StringUtils.hasText(fullName)) {
             user.setName(fullName.trim());
+        }
+        if (StringUtils.hasText(email)) {
+            user.setEmail(email.trim());
         }
 
         user.setGovernmentIdFiles(List.of(governmentIdPath));
