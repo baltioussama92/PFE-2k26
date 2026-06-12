@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Calendar, Users, Search, ChevronDown, Plus, Minus } from 'lucide-react'
 import { propertyService } from '../../services/propertyService'
@@ -16,7 +16,12 @@ const inputClass = 'w-full rounded-xl border border-primary-200 bg-primary-100 p
 
 // ── Pill Divider ─────────────────────────────────────────────
 function Divider() {
-  return <div className="hidden md:block w-px h-8 bg-primary-200/70 shrink-0" />
+  return (
+    <>
+      <div className="hidden md:block w-px h-8 bg-primary-200/70 shrink-0" />
+      <div className="md:hidden h-px w-[calc(100%-2rem)] mx-auto bg-primary-200/70 shrink-0" />
+    </>
+  )
 }
 
 // ── Single Search Field ──────────────────────────────────────
@@ -25,7 +30,7 @@ function SearchField({ label, value, placeholder, icon: Icon, onClick, active, c
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-start px-5 ${active ? 'py-4' : 'py-3'} rounded-full transition-all duration-200 w-full
+      className={`flex flex-col items-start px-3 md:px-5 ${active ? 'py-4' : 'py-3'} rounded-2xl md:rounded-full transition-all duration-200 w-full
                   md:w-auto group ${active ? 'bg-primary-100 shadow-lg' : 'hover:bg-primary-50/60'}
                   ${className}`}
     >
@@ -33,7 +38,7 @@ function SearchField({ label, value, placeholder, icon: Icon, onClick, active, c
                        transition-colors duration-150 flex items-center gap-1">
         <Icon className="w-3 h-3" /> {label}
       </span>
-      <span className={`text-sm font-medium mt-0.5 whitespace-nowrap ${value ? 'text-primary-800' : 'text-primary-400'}`}>
+      <span className={`text-sm font-medium mt-0.5 whitespace-nowrap truncate w-full text-left ${value ? 'text-primary-800' : 'text-primary-400'}`}>
         {value || placeholder}
       </span>
     </button>
@@ -240,11 +245,11 @@ export default function SearchBar({ onSearch, className = '' }) {
       ref={barRef}
       onSubmit={handleSubmit}
       className={`relative z-[110] flex flex-col md:flex-row items-stretch md:items-center
-          rounded-3xl md:rounded-full border border-primary-200/50 bg-primary-50/75 shadow-glass-lg backdrop-blur-xl p-1.5 gap-1 w-full
+          rounded-[2rem] md:rounded-full border border-primary-200/50 bg-primary-50/90 md:bg-primary-50/75 shadow-glass-lg backdrop-blur-xl p-2 md:p-1.5 w-full
           transition-all duration-200 ease-out ${expanded ? 'max-w-5xl md:scale-105' : 'max-w-3xl'} ${className}`}
     >
       {/* Location */}
-      <div className="relative flex-1">
+      <div className="relative w-full md:flex-1">
         <SearchField
           label="Destination"
           icon={MapPin}
@@ -268,51 +273,55 @@ export default function SearchBar({ onSearch, className = '' }) {
 
       <Divider />
 
-      {/* Check-in */}
-      <div className="relative w-full md:w-auto">
-        <SearchField
-          label="Arrivée"
-          icon={Calendar}
-          value={fmtDate(checkIn)}
-          placeholder="Ajouter date"
-          onClick={() => toggle('checkin')}
-          active={openPanel === 'checkin'}
-        />
-        <AnimatePresence>
-          {openPanel === 'checkin' && (
-            <DateDropdown
-              label="Date d'arrivée"
-              value={checkIn}
-              onChange={(v) => { setCheckIn(v); if (checkOut && v >= checkOut) setCheckOut('') }}
-              onClose={() => setOpenPanel(null)}
-            />
-          )}
-        </AnimatePresence>
-      </div>
+      {/* Dates Row (Side-by-side on mobile) */}
+      <div className="flex flex-row items-center w-full md:w-auto">
+        {/* Check-in */}
+        <div className="relative flex-1 md:w-auto">
+          <SearchField
+            label="Arrivée"
+            icon={Calendar}
+            value={fmtDate(checkIn)}
+            placeholder="Ajouter"
+            onClick={() => toggle('checkin')}
+            active={openPanel === 'checkin'}
+          />
+          <AnimatePresence>
+            {openPanel === 'checkin' && (
+              <DateDropdown
+                label="Date d'arrivée"
+                value={checkIn}
+                onChange={(v) => { setCheckIn(v); if (checkOut && v >= checkOut) setCheckOut('') }}
+                onClose={() => setOpenPanel(null)}
+              />
+            )}
+          </AnimatePresence>
+        </div>
 
-      <Divider />
+        {/* Vertical divider visible on both mobile and desktop inside the dates row */}
+        <div className="w-px h-8 bg-primary-200/70 shrink-0" />
 
-      {/* Check-out */}
-      <div className="relative w-full md:w-auto">
-        <SearchField
-          label="Départ"
-          icon={Calendar}
-          value={fmtDate(checkOut)}
-          placeholder="Ajouter date"
-          onClick={() => toggle('checkout')}
-          active={openPanel === 'checkout'}
-        />
-        <AnimatePresence>
-          {openPanel === 'checkout' && (
-            <DateDropdown
-              label="Date de départ"
-              value={checkOut}
-              onChange={setCheckOut}
-              onClose={() => setOpenPanel(null)}
-              min={checkIn || undefined}
-            />
-          )}
-        </AnimatePresence>
+        {/* Check-out */}
+        <div className="relative flex-1 md:w-auto">
+          <SearchField
+            label="Départ"
+            icon={Calendar}
+            value={fmtDate(checkOut)}
+            placeholder="Ajouter"
+            onClick={() => toggle('checkout')}
+            active={openPanel === 'checkout'}
+          />
+          <AnimatePresence>
+            {openPanel === 'checkout' && (
+              <DateDropdown
+                label="Date de départ"
+                value={checkOut}
+                onChange={setCheckOut}
+                onClose={() => setOpenPanel(null)}
+                min={checkIn || undefined}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       <Divider />
@@ -340,15 +349,15 @@ export default function SearchBar({ onSearch, className = '' }) {
 
       {/* Search CTA */}
       <motion.button
-        whileHover={{ scale: 1.06, boxShadow: '0 10px 30px rgba(164,131,116,0.4)' }}
+        whileHover={{ scale: 1.03, boxShadow: '0 10px 30px rgba(164,131,116,0.4)' }}
         whileTap={{ scale: 0.96 }}
         type="submit"
-        className="ml-0 md:ml-1 w-full md:w-auto justify-center flex items-center gap-2 px-6 py-3.5 rounded-full font-bold text-sm text-primary-50
+        className="mt-2 md:mt-0 ml-0 md:ml-1 w-full md:w-auto justify-center flex items-center gap-2 px-6 py-4 md:py-3.5 rounded-2xl md:rounded-full font-bold text-sm text-primary-50
                    bg-gradient-to-r from-primary-500 to-primary-600
                    shadow-lg transition-all duration-200 shrink-0"
       >
-        <Search className="w-4 h-4" />
-        <span>Rechercher</span>
+        <Search className="w-4 h-4 md:w-5 md:h-5" />
+        <span className="text-base md:text-sm">Rechercher</span>
       </motion.button>
     </form>
   )
