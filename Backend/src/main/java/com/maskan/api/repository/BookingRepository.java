@@ -41,6 +41,7 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
 	boolean existsByGuestIdAndListingIdAndStatus(String guestId, String listingId, BookingStatus status);
 	@Query("{ 'guestId': ?0, 'listingId': ?1, 'status': ?2 }")
 	boolean existsByGuestIdAndPropertyIdAndStatus(String guestId, String propertyId, BookingStatus status);
+	List<Booking> findByGuestIdAndListingIdAndStatusIn(String guestId, String listingId, Collection<BookingStatus> statuses);
 	boolean existsByListingIdAndStatus(String listingId, BookingStatus status);
 }
 

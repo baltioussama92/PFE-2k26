@@ -40,21 +40,22 @@ public class ReviewServiceImpl implements ReviewService {
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        if (reviewRepository.existsByPropertyIdAndAuthorId(property.getId(), user.getId())) {
-            throw new IllegalArgumentException("You already reviewed this property");
+        String reservationId = getEligibleReservationId(user.getId(), property.getId());
+        if (reservationId == null) {
+            throw new ForbiddenException("Only verified guests who completed a stay or paid can review this property");
         }
 
-        boolean canReview = canUserReviewProperty(user.getId(), property.getId());
-        if (!canReview) {
-            throw new ForbiddenException("Only verified guests who completed a stay can review this property");
+        if (reviewRepository.existsByReservationId(reservationId)) {
+            throw new IllegalArgumentException("You already reviewed this reservation");
         }
 
         Review review = Review.builder()
                 .propertyId(property.getId())
-                .authorId(user.getId())
+                .userId(user.getId())
+                .reservationId(reservationId)
                 .authorName(resolveAuthorName(user))
                 .rating(dto.getRating())
-                .comment(dto.getComment())
+                .description(dto.getDescription())
                 .build();
 
         Review saved = reviewRepository.save(review);
@@ -72,12 +73,13 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean canUserReviewProperty(String userId, String propertyId) {
-        return bookingRepository.existsByGuestIdAndPropertyIdAndStatus(
+    public String getEligibleReservationId(String userId, String propertyId) {
+        List<com.maskan.api.entity.Booking> eligibleBookings = bookingRepository.findByGuestIdAndListingIdAndStatusIn(
                 userId,
                 propertyId,
-                BookingStatus.COMPLETED
+                List.of(BookingStatus.COMPLETED, BookingStatus.PAID_AWAITING_CHECKIN)
         );
+        return eligibleBookings.isEmpty() ? null : eligibleBookings.get(0).getId();
     }
 
     private void recalculatePropertyAverageRating(String propertyId) {
@@ -106,10 +108,11 @@ public class ReviewServiceImpl implements ReviewService {
         return ReviewResponse.builder()
                 .id(review.getId())
                 .propertyId(review.getPropertyId())
-                .authorId(review.getAuthorId())
+                .userId(review.getUserId())
+                .reservationId(review.getReservationId())
                 .authorName(review.getAuthorName())
                 .rating(review.getRating())
-                .comment(review.getComment())
+                .description(review.getDescription())
                 .createdAt(review.getCreatedAt())
                 .build();
     }

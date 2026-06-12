@@ -13,8 +13,8 @@ export const reviewService = {
     return data
   },
 
-  async canReview(propertyId: number | string): Promise<boolean> {
-    const { data } = await apiClient.get<boolean>(ENDPOINTS.reviews.canReview(propertyId))
-    return Boolean(data)
+  async canReview(propertyId: number | string): Promise<{ eligible: boolean; reservationId?: string }> {
+    const { data } = await apiClient.get<{ eligible: boolean; reservationId?: string }>(ENDPOINTS.reviews.canReview(propertyId))
+    return data
   },
 }

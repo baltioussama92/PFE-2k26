@@ -668,7 +668,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
     reviewService.canReview(property.id)
       .then((value) => {
         if (!active) return
-        setCanReview(Boolean(value))
+        setCanReview(value?.eligible === true)
       })
       .catch(() => {
         if (!active) return
@@ -704,7 +704,7 @@ export default function PropertyDetails({ user, onAuthClick }) {
       await reviewService.create({
         propertyId: String(property.id),
         rating,
-        comment: comment?.trim() || undefined,
+        description: comment?.trim() || undefined,
       })
 
       const updatedReviews = await reviewService.listByProperty(property.id)
@@ -1048,8 +1048,8 @@ export default function PropertyDetails({ user, onAuthClick }) {
                             {review.createdAt ? new Date(review.createdAt).toLocaleDateString('fr-FR') : ''}
                           </span>
                         </div>
-                        {review.comment && (
-                          <p className="mt-3 text-sm leading-relaxed text-primary-700">{review.comment}</p>
+                        {review.description && (
+                          <p className="mt-3 text-sm leading-relaxed text-primary-700">{review.description}</p>
                         )}
                       </div>
                     ))

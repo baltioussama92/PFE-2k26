@@ -18,7 +18,7 @@ public class ReviewRequest {
     Integer rating;
 
     @Size(max = 1000)
-    String comment;
+    String description;
 
     public String getListingId() {
         return propertyId;

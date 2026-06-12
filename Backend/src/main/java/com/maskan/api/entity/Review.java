@@ -34,7 +34,11 @@ public class Review {
 
     @NotNull
     @Indexed
-    private String authorId;
+    private String userId;
+
+    @NotNull
+    @Indexed
+    private String reservationId;
 
     @NotNull
     private String authorName;
@@ -45,7 +49,7 @@ public class Review {
     private int rating;
 
     @Size(max = 1000)
-    private String comment;
+    private String description;
 
     @Builder.Default
     private Instant createdAt = Instant.now();

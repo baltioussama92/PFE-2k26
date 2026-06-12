@@ -9,6 +9,6 @@ import java.util.List;
 public interface ReviewService {
     Review createReview(ReviewDto dto, String currentUserId);
     List<ReviewResponse> getReviewsByProperty(String propertyId);
-    boolean canUserReviewProperty(String userId, String propertyId);
+    String getEligibleReservationId(String userId, String propertyId);
 }
 

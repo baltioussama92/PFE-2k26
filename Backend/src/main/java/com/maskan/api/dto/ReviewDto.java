@@ -18,5 +18,5 @@ public class ReviewDto {
     Integer rating;
 
     @Size(max = 1000)
-    String comment;
+    String description;
 }

@@ -277,16 +277,17 @@ export interface UnavailableDateRange {
 export interface ReviewRequest {
   propertyId: string
   rating: number
-  comment?: string
+  description?: string
 }
 
 export interface ReviewResponse {
   id: string
   propertyId: string
-  authorId?: string
+  userId?: string
+  reservationId?: string
   authorName?: string
   rating: number
-  comment: string
+  description: string
   createdAt: string
 }
 

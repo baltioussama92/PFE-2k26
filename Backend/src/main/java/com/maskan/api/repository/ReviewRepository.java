@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface ReviewRepository extends MongoRepository<Review, String> {
 	List<Review> findByPropertyId(String propertyId);
-	boolean existsByPropertyIdAndAuthorId(String propertyId, String authorId);
+	boolean existsByReservationId(String reservationId);
 }
 

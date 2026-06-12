@@ -10,10 +10,11 @@ import java.time.Instant;
 public class ReviewResponse {
     String id;
     String propertyId;
-    String authorId;
+    String userId;
+    String reservationId;
     String authorName;
     int rating;
-    String comment;
+    String description;
     Instant createdAt;
 }
 

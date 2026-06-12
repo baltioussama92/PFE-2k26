@@ -45,10 +45,11 @@ public class ReviewController {
         return ResponseEntity.ok(ReviewResponse.builder()
                 .id(created.getId())
                 .propertyId(created.getPropertyId())
-                .authorId(created.getAuthorId())
+                .userId(created.getUserId())
+                .reservationId(created.getReservationId())
                 .authorName(created.getAuthorName())
                 .rating(created.getRating())
-                .comment(created.getComment())
+                .description(created.getDescription())
                 .createdAt(created.getCreatedAt())
                 .build());
     }
@@ -59,24 +60,31 @@ public class ReviewController {
     }
 
     @GetMapping("/api/reviews/eligibility/{propertyId}")
-    public ResponseEntity<Boolean> canReview(@PathVariable String propertyId,
+    public ResponseEntity<java.util.Map<String, Object>> canReview(@PathVariable String propertyId,
                                              Authentication authentication) {
         boolean isAuthenticated = authentication != null
                 && authentication.isAuthenticated()
                 && !(authentication instanceof AnonymousAuthenticationToken);
 
         if (!isAuthenticated) {
-            return ResponseEntity.ok(false);
+            return ResponseEntity.ok(java.util.Map.of("eligible", false));
         }
 
         User user = userRepository.findByEmail(authentication.getName()).orElse(null);
         if (user == null) {
-            return ResponseEntity.ok(false);
+            return ResponseEntity.ok(java.util.Map.of("eligible", false));
         }
 
-        boolean canReview = reviewService.canUserReviewProperty(user.getId(), propertyId);
+        String reservationId = reviewService.getEligibleReservationId(user.getId(), propertyId);
+        boolean canReview = reservationId != null;
 
-        return ResponseEntity.ok(canReview);
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("eligible", canReview);
+        if (canReview) {
+            response.put("reservationId", reservationId);
+        }
+
+        return ResponseEntity.ok(response);
     }
 }
 
