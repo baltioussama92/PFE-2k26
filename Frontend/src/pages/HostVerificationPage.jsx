@@ -446,6 +446,7 @@ export default function HostVerificationPageNew() {
     propertyTitle: '',
     propertyAddress: '',
     propertyType: '',
+    proposedPricePerNight: '',
     propertyImages: [],
 
     // Step 5: Payment
@@ -488,6 +489,9 @@ export default function HostVerificationPageNew() {
         if (!formData.propertyTitle.trim()) newErrors.propertyTitle = 'Property title is required'
         if (!formData.propertyAddress.trim()) newErrors.propertyAddress = 'Address is required'
         if (!formData.propertyType) newErrors.propertyType = 'Property type is required'
+        if (!formData.proposedPricePerNight || Number(formData.proposedPricePerNight) <= 0) {
+          newErrors.proposedPricePerNight = 'Valid price per night is required'
+        }
         if (formData.propertyImages.length < 3) {
           newErrors.propertyImages = `You must upload at least 3 images (${formData.propertyImages.length}/3)`
         }
@@ -548,18 +552,17 @@ export default function HostVerificationPageNew() {
       }
 
       const body = new FormData()
-      body.append('governmentID', formData.governmentID)
-      body.append('selfie', formData.selfie)
-      body.append('propertyProof', formData.propertyProof)
-      formData.propertyImages.forEach((image) => {
-        body.append('propertyImages', image)
-      })
       body.append('fullName', formData.fullName)
       body.append('email', formData.email)
-      body.append('acceptTerms', String(formData.acceptTerms))
-      body.append('confirmOwnership', String(formData.confirmOwnership))
+      body.append('phone', formData.phone)
+      body.append('proposedLocation', formData.propertyAddress)
+      body.append('proposedPricePerNight', formData.proposedPricePerNight)
+      body.append('idDocument', formData.governmentID)
+      formData.propertyImages.forEach((image) => {
+        body.append('housePictures', image)
+      })
 
-      const response = await fetch(`${API_BASE_URL}/api${ENDPOINTS.verifications.submitHost}`, {
+      const response = await fetch(`${API_BASE_URL}/api/host-demands/submit`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -793,6 +796,16 @@ export default function HostVerificationPageNew() {
               value={formData.propertyType}
               onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
               error={errors.propertyType}
+              required
+            />
+
+            <InputField
+              label="Prix Proposé par Nuit ($)"
+              type="number"
+              placeholder="ex. 50"
+              value={formData.proposedPricePerNight}
+              onChange={(e) => setFormData({ ...formData, proposedPricePerNight: e.target.value })}
+              error={errors.proposedPricePerNight}
               required
             />
 

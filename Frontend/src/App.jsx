@@ -22,6 +22,7 @@ import { useNotifications } from './context/NotificationContext'
 // Lazy load less frequently used pages
 const HostVerificationPage = React.lazy(() => import('./pages/HostVerificationPage'))
 const GuestVerificationPage = React.lazy(() => import('./pages/GuestVerificationPage'))
+const BecomeAHostPage = React.lazy(() => import('./pages/BecomeAHostPage'))
 const AddPropertyPage = React.lazy(() => import('./pages/AddPropertyPage'))
 const MyPropertiesPage = React.lazy(() => import('./pages/MyPropertiesPage'))
 const HostBookingsPage = React.lazy(() => import('./pages/HostBookingsPage'))
@@ -319,6 +320,7 @@ function AppRoutes() {
             <Route path="/profile"  element={user ? <ProfilePage user={user} onUserUpdate={setUser} onLogout={handleLogout} /> : <Navigate to="/?auth=login" replace />} />
             <Route path="/account"  element={user ? <ProfilePage user={user} onUserUpdate={setUser} onLogout={handleLogout} /> : <Navigate to="/?auth=login" replace />} />
             <Route path="/host-verification" element={user ? <Suspense fallback={<LoadingFallback />}><HostVerificationPage user={user} onUserUpdate={setUser} /></Suspense> : <Navigate to="/?auth=login" replace />} />
+            <Route path="/become-a-host" element={user ? <Suspense fallback={<LoadingFallback />}><BecomeAHostPage user={user} /></Suspense> : <Navigate to="/?auth=login" replace />} />
             <Route path="/guest-verification" element={user ? <Suspense fallback={<LoadingFallback />}><GuestVerificationPage user={user} onUserUpdate={setUser} /></Suspense> : <Navigate to="/?auth=login" replace />} />
             <Route path="/bookings"  element={user ? <BookingsPage user={user} /> : <Navigate to="/?auth=login" replace />} />
             <Route path="/messages"  element={user ? <MessagesPage user={user} /> : <Navigate to="/?auth=login" replace />} />

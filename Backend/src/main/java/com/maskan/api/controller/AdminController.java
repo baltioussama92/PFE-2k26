@@ -16,7 +16,10 @@ import com.maskan.api.dto.AdminGrowthMetricsResponse;
 import com.maskan.api.dto.HostDemandResponse;
 import com.maskan.api.dto.PropertyResponse;
 import com.maskan.api.dto.UserDto;
+import com.maskan.api.entity.HostDemand;
 import com.maskan.api.service.AdminService;
+import com.maskan.api.service.HostDemandService;
+import java.util.Map;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -45,6 +48,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final HostDemandService hostDemandService;
 
     @GetMapping("/users")
     public ResponseEntity<List<UserDto>> users() {
@@ -158,25 +162,19 @@ public class AdminController {
     }
 
     @GetMapping("/host-demands")
-    public ResponseEntity<List<HostDemandResponse>> hostDemands(@RequestParam(required = false) String status) {
-        return ResponseEntity.ok(adminService.listHostDemands(status));
+    public ResponseEntity<List<HostDemand>> hostDemands(@RequestParam(required = false) String status) {
+        return ResponseEntity.ok(hostDemandService.getAllDemands(status));
     }
 
     @GetMapping("/host-demands/{demandId}")
-    public ResponseEntity<HostDemandResponse> hostDemandById(@PathVariable String demandId) {
-        return ResponseEntity.ok(adminService.hostDemandById(demandId));
+    public ResponseEntity<HostDemand> hostDemandById(@PathVariable String demandId) {
+        return ResponseEntity.ok(hostDemandService.getDemandById(demandId));
     }
 
-    @PutMapping("/host-demands/{demandId}/approve")
-    public ResponseEntity<HostDemandResponse> approveHostDemand(@PathVariable String demandId) {
-        return ResponseEntity.ok(adminService.approveHostDemand(demandId));
-    }
-
-    @PutMapping("/host-demands/{demandId}/reject")
-    public ResponseEntity<HostDemandResponse> rejectHostDemand(@PathVariable String demandId,
-                                                                @RequestBody(required = false) AdminRejectGuestVerificationRequest request) {
-        String reason = request == null ? null : request.getReason();
-        return ResponseEntity.ok(adminService.rejectHostDemand(demandId, reason));
+    @PutMapping("/host-demands/{demandId}/status")
+    public ResponseEntity<HostDemand> updateHostDemandStatus(@PathVariable String demandId, @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        return ResponseEntity.ok(hostDemandService.updateStatus(demandId, status));
     }
 }
 

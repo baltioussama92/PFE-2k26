@@ -1,4 +1,4 @@
-﻿import { API_BASE_URL, apiClient, getStoredAuthToken } from '../../api/apiClient'
+import { API_BASE_URL, apiClient, getStoredAuthToken } from '../../api/apiClient'
 import { ENDPOINTS } from '../../api/endpoints'
 import type { BookingResponse, MessageResponse, PageResponse, PropertyResponse, UserDto } from '../../utils/contracts'
 
@@ -170,19 +170,16 @@ export interface HostDemand {
 interface HostDemandApiResponse {
   id: string
   userId: string
-  userName: string
-  userEmail: string
-  userPhone?: string
+  fullName: string
+  email: string
+  phone?: string
   status: string
   submittedDate: string
-  documents: string[]
-  idDocument: string
-  idVerificationStatus: string
+  idDocumentUrl: string
+  idStatus: string
   housePictures: string[]
-  proposedPrice: number
+  proposedPricePerNight: number
   proposedLocation: string
-  bio?: string
-  notes?: string
 }
 
 export interface DashboardStats {
@@ -357,19 +354,19 @@ const mapHostDemand = (item: HostDemandApiResponse): HostDemand => ({
   id: toNumberId(item.id),
   backendId: item.id,
   userId: String(item.userId || item.id),
-  userName: item.userName,
-  userEmail: item.userEmail,
-  userPhone: item.userPhone || undefined,
+  userName: item.fullName,
+  userEmail: item.email,
+  userPhone: item.phone || undefined,
   status: mapHostDemandStatus(item.status),
   submittedDate: item.submittedDate,
-  documents: item.documents || [],
-  idDocument: item.idDocument,
-  idVerificationStatus: mapIdVerificationStatus(item.idVerificationStatus),
+  documents: [],
+  idDocument: item.idDocumentUrl,
+  idVerificationStatus: mapIdVerificationStatus(item.idStatus),
   housePictures: item.housePictures || [],
-  proposedPrice: Number(item.proposedPrice || 0),
+  proposedPrice: Number(item.proposedPricePerNight || 0),
   proposedLocation: item.proposedLocation || 'N/A',
-  bio: item.bio || undefined,
-  notes: item.notes || undefined,
+  bio: undefined,
+  notes: undefined,
 })
 
 const mapListing = (listing: PropertyResponse, isPending: boolean): AdminListing => ({
@@ -869,12 +866,12 @@ export const adminApi = {
   },
 
   async approveHostDemand(demandId: number | string): Promise<HostDemand | null> {
-    const { data } = await apiClient.put<HostDemandApiResponse>(ENDPOINTS.admin.approveHostDemand(demandId))
+    const { data } = await apiClient.put<HostDemandApiResponse>(ENDPOINTS.admin.updateHostDemandStatus(demandId), { status: 'APPROVED' })
     return mapHostDemand(data)
   },
 
   async rejectHostDemand(demandId: number | string, reason?: string): Promise<void> {
-    await apiClient.put(ENDPOINTS.admin.rejectHostDemand(demandId), { reason })
+    await apiClient.put(ENDPOINTS.admin.updateHostDemandStatus(demandId), { status: 'REJECTED', reason })
   },
 }
 
