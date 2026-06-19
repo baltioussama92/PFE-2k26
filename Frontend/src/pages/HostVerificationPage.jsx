@@ -500,9 +500,6 @@ export default function HostVerificationPageNew() {
       case 4: // Payment
         if (!formData.iban.trim()) newErrors.iban = 'IBAN is required'
         if (!formData.accountHolder.trim()) newErrors.accountHolder = 'Account holder name is required'
-        if (formData.accountHolder.toLowerCase() !== formData.fullName.toLowerCase()) {
-          newErrors.accountHolder = 'Account holder name must match full name'
-        }
         // Validate IBAN format (basic)
         if (!/^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/.test(formData.iban.replace(/\s/g, ''))) {
           newErrors.iban = 'Invalid IBAN format'

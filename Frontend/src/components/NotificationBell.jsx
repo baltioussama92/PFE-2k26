@@ -6,6 +6,23 @@ import { authService } from '../services/authService'
 
 const ROLE_STORAGE_KEY = 'userRole'
 
+const hostApprovalSeenKey = (userId) => `hasSeenHostApproval_${userId}`
+
+const hasSeenHostApprovalBanner = (userId) => {
+  if (!userId) return true
+  return localStorage.getItem(hostApprovalSeenKey(userId)) === 'true'
+}
+
+const markHostApprovalBannerSeen = (userId) => {
+  if (!userId) return
+  localStorage.setItem(hostApprovalSeenKey(userId), 'true')
+}
+
+const isHostApprovalNotification = (notification) =>
+  notification.type === 'SYSTEM' &&
+  notification.title &&
+  notification.title.includes('Host Application Approved')
+
 const formatRelativeTime = (value) => {
   if (!value) return ''
   const now = Date.now()
@@ -30,6 +47,36 @@ function NotificationBell({ user }) {
     [notifications],
   )
 
+  const dismissRoleUpgradeBanner = () => {
+    markHostApprovalBannerSeen(user?.id)
+    setRoleUpgradeBanner(false)
+  }
+
+  const handleRoleUpgradeReload = () => {
+    markHostApprovalBannerSeen(user?.id)
+    window.location.reload()
+  }
+
+  const markHostApprovalNotificationsRead = async (items) => {
+    const unreadApprovals = items.filter((n) => !n.isRead && isHostApprovalNotification(n))
+    if (unreadApprovals.length === 0) return
+
+    await Promise.all(
+      unreadApprovals.map(async (notification) => {
+        try {
+          await notificationService.markAsRead(notification.id)
+        } catch {
+          // Ignore transient failures to keep UI responsive.
+        }
+      }),
+    )
+
+    const readIds = new Set(unreadApprovals.map((n) => n.id))
+    setNotifications((prev) =>
+      prev.map((item) => (readIds.has(item.id) ? { ...item, isRead: true } : item)),
+    )
+  }
+
   const refreshNotifications = async () => {
     if (!user?.id) {
       setNotifications([])
@@ -45,21 +92,25 @@ function NotificationBell({ user }) {
       // The JWT does NOT embed role claims — it only stores the email subject.
       // The backend always re-reads role from MongoDB, so the change is already
       // effective server-side. Only localStorage is stale until refreshed here.
-      const hasHostApproval = data.some(
-        (n) =>
-          !n.isRead &&
-          n.type === 'SYSTEM' &&
-          n.title &&
-          n.title.includes('Host Application Approved'),
-      )
+      const hasHostApproval = data.some((n) => !n.isRead && isHostApprovalNotification(n))
 
-      if (hasHostApproval) {
+      if (hasHostApproval && !hasSeenHostApprovalBanner(user?.id)) {
         const currentRole = localStorage.getItem(ROLE_STORAGE_KEY)
-        if (currentRole && currentRole.toLowerCase() !== 'host') {
+        const profileRole =
+          typeof user?.role === 'string' ? user.role : user?.role != null ? String(user.role) : ''
+        const alreadyHost =
+          profileRole.toLowerCase() === 'host' || currentRole?.toLowerCase() === 'host'
+
+        if (alreadyHost) {
+          markHostApprovalBannerSeen(user?.id)
+          await markHostApprovalNotificationsRead(data)
+        } else if (currentRole && currentRole.toLowerCase() !== 'host') {
           const updated = await authService.refreshUserSession()
           if (updated?.role) {
             const newRole = typeof updated.role === 'string' ? updated.role : String(updated.role)
             if (newRole.toLowerCase() === 'host') {
+              markHostApprovalBannerSeen(user?.id)
+              await markHostApprovalNotificationsRead(data)
               setRoleUpgradeBanner(true)
             }
           }
@@ -126,13 +177,13 @@ function NotificationBell({ user }) {
             <CheckCircle className="w-5 h-5 shrink-0" />
             <span>🎉 Your host application was approved! Reload to activate HOST features.</span>
             <button
-              onClick={() => window.location.reload()}
+              onClick={handleRoleUpgradeReload}
               className="ml-2 px-3 py-1 rounded-lg bg-white text-emerald-700 text-xs font-bold hover:bg-emerald-50 transition"
             >
               Reload
             </button>
             <button
-              onClick={() => setRoleUpgradeBanner(false)}
+              onClick={dismissRoleUpgradeBanner}
               className="ml-1 text-white/70 hover:text-white text-lg leading-none"
               aria-label="Dismiss"
             >
