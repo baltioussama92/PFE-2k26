@@ -537,14 +537,9 @@ export const adminApi = {
   },
 
   async getGuestVerificationRequests(): Promise<AdminUser[]> {
-    const users = await this.getUsers()
-    return users
-      .filter((user) => user.identityStatus === 'pending')
-      .sort((a, b) => {
-        const left = a.identitySubmittedAt ? Date.parse(a.identitySubmittedAt) : 0
-        const right = b.identitySubmittedAt ? Date.parse(b.identitySubmittedAt) : 0
-        return right - left
-      })
+    const { data } = await apiClient.get<UserDto[]>(ENDPOINTS.admin.guestVerifications)
+    const mapped = data.map(mapUser)
+    return ensureUniqueIds(mapped)
   },
 
   async approveGuestVerification(userId: number | string): Promise<AdminUser> {

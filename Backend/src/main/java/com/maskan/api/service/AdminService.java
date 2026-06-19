@@ -42,6 +42,7 @@ public interface AdminService {
     AdminUserPermissionsResponse userPermissions(String userId);
     UserDto approveGuestVerification(String userId);
     UserDto rejectGuestVerification(String userId, String reason);
+    List<UserDto> listGuestVerifications();
     List<HostDemandResponse> listHostDemands(String status);
     HostDemandResponse hostDemandById(String demandId);
     HostDemandResponse approveHostDemand(String demandId);

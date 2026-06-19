@@ -77,6 +77,7 @@ export const ENDPOINTS = {
     userPermissions: (userId: number | string) => `/admin/users/${userId}/permissions`,
     approveGuestVerification: (userId: number | string) => `/admin/guest-verifications/${userId}/approve`,
     rejectGuestVerification: (userId: number | string) => `/admin/guest-verifications/${userId}/reject`,
+    guestVerifications: '/admin/guest-verifications',
     updateUser: (userId: number | string) => `/admin/users/${userId}`,
     updateUserPassword: (userId: number | string) => `/admin/users/${userId}/password`,
     deleteUser: (userId: number | string) => `/admin/users/${userId}`,

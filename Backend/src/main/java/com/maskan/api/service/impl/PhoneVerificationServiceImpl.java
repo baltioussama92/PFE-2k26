@@ -1,5 +1,6 @@
 package com.maskan.api.service.impl;
 
+import com.maskan.api.dto.MoceanSmsResult;
 import com.maskan.api.dto.PhoneOtpSendResponse;
 import com.maskan.api.dto.VerificationSummaryResponse;
 import com.maskan.api.entity.User;
@@ -44,12 +45,17 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
         String code = String.format("%04d", java.util.concurrent.ThreadLocalRandom.current().nextInt(10000));
         
         String text = "Votre code OTP Maskan est : " + code;
-        moceanSmsService.sendSms(normalizedPhone, text);
-        
+        MoceanSmsResult smsResult = moceanSmsService.sendSms(normalizedPhone, text);
+
         Instant expiresAt = Instant.now().plusSeconds(OTP_EXPIRY_MINUTES * 60);
 
         otpStore.put(reqId, new PhoneOtpEntry(user.getId(), normalizedPhone, code, expiresAt));
-        LOGGER.info("Phone OTP sent via Mocean SMS for userId={} phone={}", user.getId(), maskPhone(normalizedPhone));
+        LOGGER.info(
+                "Phone OTP sent via Mocean SMS for userId={} phone={} msgid={}",
+                user.getId(),
+                maskPhone(normalizedPhone),
+                smsResult.messageId()
+        );
         return new PhoneOtpSendResponse(reqId, "OTP sent successfully");
     }
 
@@ -90,7 +96,15 @@ public class PhoneVerificationServiceImpl implements PhoneVerificationService {
         if (!StringUtils.hasText(phoneNumber)) {
             return "";
         }
-        return phoneNumber.trim();
+
+        String normalized = phoneNumber.trim().replace(" ", "").replace("-", "");
+        if (normalized.startsWith("00")) {
+            normalized = "+" + normalized.substring(2);
+        }
+        if (!normalized.startsWith("+") && normalized.matches("^0?\\d{8}$")) {
+            normalized = "+216" + normalized.replaceFirst("^0", "");
+        }
+        return normalized;
     }
 
     private String maskPhone(String phoneNumber) {

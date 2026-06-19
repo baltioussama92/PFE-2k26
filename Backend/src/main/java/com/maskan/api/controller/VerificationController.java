@@ -8,6 +8,7 @@ import com.maskan.api.dto.VerificationSummaryResponse;
 import com.maskan.api.dto.VerifyOtpRequest;
 import com.maskan.api.entity.User;
 import com.maskan.api.repository.UserRepository;
+import com.maskan.api.service.GuestVerificationService;
 import com.maskan.api.service.PhoneVerificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,25 +26,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/verifications/guest")
 @RequiredArgsConstructor
 public class VerificationController {
 
-    private static final Path VERIFICATION_UPLOAD_ROOT = Paths.get("uploads", "verifications");
-
     private final UserRepository userRepository;
     private final PhoneVerificationService phoneVerificationService;
+    private final GuestVerificationService guestVerificationService;
 
     @GetMapping("/status")
     public ResponseEntity<VerificationSummaryResponse> getStatus(@AuthenticationPrincipal UserDetails userDetails) {
@@ -95,69 +87,9 @@ public class VerificationController {
             @RequestParam("selfie") MultipartFile selfie
     ) {
         User user = getCurrentUser(userDetails);
-        if (governmentIds == null || governmentIds.isEmpty() || governmentIds.stream().allMatch(MultipartFile::isEmpty)) {
-            throw new IllegalArgumentException("At least one government ID file is required");
-        }
-        if (selfie == null || selfie.isEmpty()) {
-            throw new IllegalArgumentException("Selfie file is required");
-        }
-
-        List<String> savedGovernmentIds = storeFiles(user.getId(), governmentIds, "government-id");
-        List<String> savedAttachments = storeFiles(user.getId(), otherAttachments, "attachment");
-        String savedSelfie = storeSingleFile(user.getId(), selfie, "selfie");
-
-        user.setIdentityStatus("pending");
-        user.setRejectionReason(null);
-        user.setGovernmentIdFiles(savedGovernmentIds);
-        user.setOtherAttachmentFiles(savedAttachments);
-        user.setSelfieFile(savedSelfie);
-        user.setIdentitySubmittedAt(Instant.now());
-        applyDerivedVerificationLevel(user);
-        User saved = userRepository.save(user);
+        guestVerificationService.submitIdentity(user, governmentIds, otherAttachments, selfie);
+        User saved = userRepository.findById(user.getId()).orElse(user);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(toSummary(saved));
-    }
-
-    private List<String> storeFiles(String userId, List<MultipartFile> files, String prefix) {
-        List<String> savedPaths = new ArrayList<>();
-        if (files == null || files.isEmpty()) {
-            return savedPaths;
-        }
-
-        for (MultipartFile file : files) {
-            if (file == null || file.isEmpty()) {
-                continue;
-            }
-            savedPaths.add(storeSingleFile(userId, file, prefix));
-        }
-
-        return savedPaths;
-    }
-
-    private String storeSingleFile(String userId, MultipartFile file, String prefix) {
-        try {
-            Path userFolder = VERIFICATION_UPLOAD_ROOT.resolve(userId);
-            Files.createDirectories(userFolder);
-
-            String safeOriginalName = sanitizeFilename(file.getOriginalFilename());
-            String extension = "";
-            int dotIndex = safeOriginalName.lastIndexOf('.');
-            if (dotIndex >= 0) {
-                extension = safeOriginalName.substring(dotIndex);
-            }
-
-            String filename = prefix + "-" + UUID.randomUUID() + extension;
-            Path destination = userFolder.resolve(filename);
-            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-
-            return destination.toString().replace('\\', '/');
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Failed to store uploaded file");
-        }
-    }
-
-    private String sanitizeFilename(String originalName) {
-        String value = StringUtils.hasText(originalName) ? originalName : "file";
-        return value.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 
     private User getCurrentUser(UserDetails userDetails) {
@@ -167,26 +99,6 @@ public class VerificationController {
 
         return userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
-    }
-
-    private void applyDerivedVerificationLevel(User user) {
-        String identityStatus = StringUtils.hasText(user.getIdentityStatus()) ? user.getIdentityStatus() : "not_verified";
-        if ("approved".equalsIgnoreCase(identityStatus)) {
-            user.setVerificationLevel(3);
-            return;
-        }
-
-        if (Boolean.TRUE.equals(user.getPhoneVerified())) {
-            user.setVerificationLevel(2);
-            return;
-        }
-
-        if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            user.setVerificationLevel(1);
-            return;
-        }
-
-        user.setVerificationLevel(0);
     }
 
     private VerificationSummaryResponse toSummary(User user) {

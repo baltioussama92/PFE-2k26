@@ -52,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
                         throw new IllegalArgumentException("Password is required");
                 }
 
-                boolean verifiedByDefault = role == Role.GUEST;
+                boolean verifiedByDefault = false;
 
         User user = User.builder()
                                 .name(request.getFullName())

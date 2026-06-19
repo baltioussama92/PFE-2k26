@@ -34,28 +34,52 @@ export default function GuestVerificationsPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [notes, setNotes] = useState('')
   const [activeTab, setActiveTab] = useState<VerificationTab>('guest')
+  const [guestLoaded, setGuestLoaded] = useState(false)
+  const [hostLoaded, setHostLoaded] = useState(false)
 
   useEffect(() => {
     let active = true
 
-    Promise.all([
-      adminApi.getGuestVerificationRequests(),
-      getHostDemands(),
-    ])
-      .then(([guests, hosts]) => {
+    const loadGuestRequests = async () => {
+      if (guestLoaded) return
+      setLoading(true)
+      try {
+        const guests = await adminApi.getGuestVerificationRequests()
         if (!active) return
         setGuestRequests(guests)
-        setHostRequests(hosts)
-      })
-      .catch(() => showToast('Failed to load verification requests.', 'error'))
-      .finally(() => {
+        setGuestLoaded(true)
+      } catch {
+        showToast('Failed to load guest verification requests.', 'error')
+      } finally {
         if (active) setLoading(false)
-      })
+      }
+    }
+
+    const loadHostRequests = async () => {
+      if (hostLoaded) return
+      setLoading(true)
+      try {
+        const hosts = await getHostDemands()
+        if (!active) return
+        setHostRequests(hosts)
+        setHostLoaded(true)
+      } catch {
+        showToast('Failed to load host verification requests.', 'error')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    if (activeTab === 'guest') {
+      loadGuestRequests()
+    } else {
+      loadHostRequests()
+    }
 
     return () => {
       active = false
     }
-  }, [showToast])
+  }, [activeTab, guestLoaded, hostLoaded, showToast])
 
   const guestColumns = useMemo<TableColumn<AdminUser>[]>(() => [
     { key: 'name', header: 'Guest', render: (row) => row.name },

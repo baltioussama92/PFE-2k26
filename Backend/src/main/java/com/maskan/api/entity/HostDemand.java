@@ -26,9 +26,13 @@ public class HostDemand {
     private String phone;
     private Instant submittedDate;
     private String idDocumentUrl;
-    private String idStatus;
+    @Builder.Default
+    private HostDemandStatus idStatus = HostDemandStatus.PENDING;
+
     private String proposedLocation;
     private Double proposedPricePerNight;
     private List<String> housePictures;
-    private String status;
+
+    @Builder.Default
+    private HostDemandStatus status = HostDemandStatus.PENDING;
 }

@@ -1,6 +1,7 @@
 package com.maskan.api.service.impl;
 
 import com.maskan.api.entity.HostDemand;
+import com.maskan.api.entity.HostDemandStatus;
 import com.maskan.api.entity.NotificationType;
 import com.maskan.api.entity.Role;
 import com.maskan.api.entity.User;
@@ -62,22 +63,20 @@ public class HostDemandServiceImpl implements HostDemandService {
                 .phone(phone)
                 .submittedDate(Instant.now())
                 .idDocumentUrl(idDocumentUrl)
-                .idStatus("PENDING")
+                .idStatus(HostDemandStatus.PENDING)
                 .proposedLocation(proposedLocation)
                 .proposedPricePerNight(proposedPricePerNight)
                 .housePictures(housePictureUrls)
-                .status("PENDING")
+                .status(HostDemandStatus.PENDING)
                 .build();
 
-        HostDemand savedDemand = hostDemandRepository.save(demand);
-        markUserHostApplicationPending(userId);
-        return savedDemand;
+        return hostDemandRepository.save(demand);
     }
 
     @Override
     public List<HostDemand> getAllDemands(String status) {
         if (StringUtils.hasText(status)) {
-            return hostDemandRepository.findByStatus(status.toUpperCase(Locale.ROOT));
+            return hostDemandRepository.findByStatus(parseStatus(status));
         }
         return hostDemandRepository.findAll();
     }
@@ -99,12 +98,13 @@ public class HostDemandServiceImpl implements HostDemandService {
         }
 
         HostDemand demand = getDemandById(id);
-        String upperStatus = status.trim().toUpperCase(Locale.ROOT);
+        HostDemandStatus nextStatus = parseStatus(status);
 
-        return switch (upperStatus) {
-            case "APPROVED" -> approveDemand(demand);
-            case "REJECTED" -> rejectDemand(demand);
-            default -> throw new IllegalArgumentException("Unsupported status: " + status);
+        return switch (nextStatus) {
+            case APPROVED -> approveDemand(demand);
+            case VERIFIED -> approveDemand(demand);
+            case REJECTED -> rejectDemand(demand);
+            case PENDING -> throw new IllegalArgumentException("Cannot revert host demand to pending");
         };
     }
 
@@ -115,8 +115,6 @@ public class HostDemandServiceImpl implements HostDemandService {
                 Query.query(Criteria.where("_id").is(user.getId())),
                 new Update()
                         .set("role", Role.HOST)
-                        .set("identityStatus", "approved")
-                        .set("verificationLevel", 3)
                         .set("isVerified", Boolean.TRUE)
                         .unset("rejectionReason"),
                 User.class
@@ -131,13 +129,13 @@ public class HostDemandServiceImpl implements HostDemandService {
         long demandsUpdated = mongoTemplate.updateFirst(
                 Query.query(Criteria.where("_id").is(demand.getId())),
                 new Update()
-                        .set("status", "APPROVED")
-                        .set("idStatus", "VERIFIED")
+                        .set("status", HostDemandStatus.APPROVED)
+                        .set("idStatus", HostDemandStatus.APPROVED)
                         .set("userId", user.getId()),
                 HostDemand.class
         ).getModifiedCount();
 
-        if (demandsUpdated == 0 && !"APPROVED".equalsIgnoreCase(demand.getStatus())) {
+        if (demandsUpdated == 0 && demand.getStatus().normalized() != HostDemandStatus.APPROVED) {
             throw new IllegalStateException(
                     "Failed to mark host demand " + demand.getId() + " as APPROVED after user upgrade"
             );
@@ -159,12 +157,12 @@ public class HostDemandServiceImpl implements HostDemandService {
         long demandsUpdated = mongoTemplate.updateFirst(
                 Query.query(Criteria.where("_id").is(demand.getId())),
                 new Update()
-                        .set("status", "REJECTED")
-                        .set("idStatus", "REJECTED"),
+                        .set("status", HostDemandStatus.REJECTED)
+                        .set("idStatus", HostDemandStatus.REJECTED),
                 HostDemand.class
         ).getModifiedCount();
 
-        if (demandsUpdated == 0 && !"REJECTED".equalsIgnoreCase(demand.getStatus())) {
+        if (demandsUpdated == 0 && demand.getStatus().normalized() != HostDemandStatus.REJECTED) {
             throw new IllegalStateException("Failed to mark host demand " + demand.getId() + " as REJECTED");
         }
 
@@ -179,20 +177,6 @@ public class HostDemandServiceImpl implements HostDemandService {
         );
 
         return getDemandById(demand.getId());
-    }
-
-    private void markUserHostApplicationPending(String userId) {
-        if (!StringUtils.hasText(userId)) {
-            return;
-        }
-
-        mongoTemplate.updateFirst(
-                Query.query(Criteria.where("_id").is(userId)),
-                new Update()
-                        .set("identityStatus", "pending")
-                        .set("identitySubmittedAt", Instant.now()),
-                User.class
-        );
     }
 
     private User resolveDemandUser(HostDemand demand) {
@@ -220,6 +204,14 @@ public class HostDemandServiceImpl implements HostDemandService {
             return java.util.Optional.of(resolveDemandUser(demand));
         } catch (NotFoundException exception) {
             return java.util.Optional.empty();
+        }
+    }
+
+    private HostDemandStatus parseStatus(String status) {
+        try {
+            return HostDemandStatus.fromValue(status).normalized();
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Unsupported status: " + status);
         }
     }
 

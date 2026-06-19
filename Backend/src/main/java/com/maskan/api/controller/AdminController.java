@@ -149,6 +149,11 @@ public class AdminController {
         return ResponseEntity.ok(adminService.userPermissions(userId));
     }
 
+    @GetMapping("/guest-verifications")
+    public ResponseEntity<List<UserDto>> guestVerifications() {
+        return ResponseEntity.ok(adminService.listGuestVerifications());
+    }
+
     @PatchMapping("/guest-verifications/{userId}/approve")
     public ResponseEntity<UserDto> approveGuestVerification(@PathVariable String userId) {
         return ResponseEntity.ok(adminService.approveGuestVerification(userId));

@@ -19,8 +19,8 @@ import com.maskan.api.dto.PropertyResponse;
 import com.maskan.api.dto.UserDto;
 import com.maskan.api.entity.Booking;
 import com.maskan.api.entity.BookingStatus;
-import com.maskan.api.entity.HostVerification;
-import com.maskan.api.entity.HostVerificationStatus;
+import com.maskan.api.entity.HostDemand;
+import com.maskan.api.entity.HostDemandStatus;
 import com.maskan.api.entity.Message;
 import com.maskan.api.entity.NotificationType;
 import com.maskan.api.entity.Property;
@@ -29,11 +29,11 @@ import com.maskan.api.entity.User;
 import com.maskan.api.repository.BookingRepository;
 import com.maskan.api.repository.PropertyRepository;
 import com.maskan.api.exception.NotFoundException;
-import com.maskan.api.exception.ResourceNotFoundException;
-import com.maskan.api.repository.HostVerificationRepository;
 import com.maskan.api.repository.MessageRepository;
 import com.maskan.api.repository.UserRepository;
 import com.maskan.api.service.AdminService;
+import com.maskan.api.service.GuestVerificationService;
+import com.maskan.api.service.HostDemandService;
 import com.maskan.api.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -66,7 +66,8 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
     private final PropertyRepository propertyRepository;
-    private final HostVerificationRepository hostVerificationRepository;
+    private final HostDemandService hostDemandService;
+    private final GuestVerificationService guestVerificationService;
     private final MessageRepository messageRepository;
     private final PasswordEncoder passwordEncoder;
     private final NotificationService notificationService;
@@ -511,56 +512,26 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<UserDto> listGuestVerifications() {
+        return guestVerificationService.listPendingForAdmin();
+    }
+
+    @Override
     public UserDto approveGuestVerification(String userId) {
-        User user = getUserById(userId);
-
-        if (user.getGovernmentIdFiles() == null || user.getGovernmentIdFiles().isEmpty() || user.getSelfieFile() == null || user.getSelfieFile().isBlank()) {
-            throw new IllegalArgumentException("User has not submitted identity documents");
-        }
-
-        user.setIdentityStatus("approved");
-        user.setVerificationLevel(3);
-        user.setIsVerified(Boolean.TRUE);
-        user.setRejectionReason(null);
-
-        User updated = userRepository.save(user);
-        notificationService.sendInternalNotification(
-            updated.getId(),
-            "Verification Approved",
-            "Your identity verification has been approved.",
-            NotificationType.KYC
-        );
-        return toDto(updated);
+        return guestVerificationService.approve(userId);
     }
 
     @Override
     public UserDto rejectGuestVerification(String userId, String reason) {
-        User user = getUserById(userId);
-
-        user.setIdentityStatus("rejected");
-        user.setVerificationLevel(Boolean.TRUE.equals(user.getPhoneVerified()) ? 2 : Boolean.TRUE.equals(user.getEmailVerified()) ? 1 : 0);
-        user.setIsVerified(Boolean.FALSE);
-        user.setRejectionReason((reason == null || reason.isBlank()) ? "Verification rejected by admin" : reason.trim());
-
-        User updated = userRepository.save(user);
-        notificationService.sendInternalNotification(
-            updated.getId(),
-            "Verification Rejected",
-            "Your identity verification was rejected. " + user.getRejectionReason(),
-            NotificationType.KYC
-        );
-        return toDto(updated);
+        return guestVerificationService.reject(userId, reason);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<HostDemandResponse> listHostDemands(String status) {
-        String normalizedStatus = status == null ? null : status.trim().toLowerCase();
-
-        return userRepository.findAll().stream()
-                .filter(this::isHostDemandCandidate)
-                .filter(user -> normalizedStatus == null || normalizedStatus.isBlank() || normalizedStatus.equals(resolveHostDemandStatus(user)))
-                .sorted(Comparator.comparing(User::getIdentitySubmittedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+        return hostDemandService.getAllDemands(status).stream()
+                .sorted(Comparator.comparing(HostDemand::getSubmittedDate, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(this::toHostDemandResponse)
                 .toList();
     }
@@ -568,77 +539,25 @@ public class AdminServiceImpl implements AdminService {
     @Override
     @Transactional(readOnly = true)
     public HostDemandResponse hostDemandById(String demandId) {
-        User user = getUserById(demandId);
-        if (!isHostDemandCandidate(user)) {
-            throw new NotFoundException("Host demand not found");
-        }
-        return toHostDemandResponse(user);
+        return toHostDemandResponse(hostDemandService.getDemandById(demandId));
     }
 
     @Override
     public HostDemandResponse approveHostDemand(String demandId) {
-        HostVerification verification = hostVerificationRepository.findById(demandId)
-                .orElseThrow(() -> new ResourceNotFoundException("Host verification not found"));
-
-        verification.setStatus(HostVerificationStatus.APPROVED);
-        verification.setReviewedAt(Instant.now());
-        verification.setRejectionReason(null);
-
-        String userId = verification.getUserId();
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found for host verification"));
-
-        user.setRole(Role.HOST);
-        user.setIdentityStatus("approved");
-        user.setVerificationLevel(3);
-        user.setIsVerified(Boolean.TRUE);
-        user.setRejectionReason(null);
-
-        HostVerification savedVerification = hostVerificationRepository.save(verification);
-        User updated = userRepository.save(user);
-        notificationService.sendInternalNotification(
-            updated.getId(),
-            "Host Verification Approved",
-            "Your host verification has been approved. You can now list properties.",
-            NotificationType.KYC
-        );
-
-        HostDemandResponse response = toHostDemandResponse(updated);
-        response.setId(savedVerification.getId());
-        response.setStatus(savedVerification.getStatus().name().toLowerCase());
-        response.setSubmittedDate(savedVerification.getSubmittedAt() == null ? response.getSubmittedDate() : savedVerification.getSubmittedAt().toString());
+        HostDemand demand = hostDemandService.updateStatus(demandId, HostDemandStatus.APPROVED.name());
+        HostDemandResponse response = toHostDemandResponse(demand);
         response.setMessage("Host verification approved successfully. User role updated to HOST. Ask the user to re-login to refresh JWT role claims.");
         return response;
     }
 
     @Override
     public HostDemandResponse rejectHostDemand(String demandId, String reason) {
-        HostVerification verification = hostVerificationRepository.findById(demandId)
-                .orElseThrow(() -> new ResourceNotFoundException("Host verification not found"));
-
-        verification.setStatus(HostVerificationStatus.REJECTED);
-        verification.setReviewedAt(Instant.now());
-
-        String rejectionReason = (reason == null || reason.isBlank()) ? "Host demand rejected by admin" : reason.trim();
-        verification.setRejectionReason(rejectionReason);
-
-        String userId = verification.getUserId();
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found for host verification"));
-
-        user.setIdentityStatus("rejected");
-        user.setVerificationLevel(Boolean.TRUE.equals(user.getPhoneVerified()) ? 2 : Boolean.TRUE.equals(user.getEmailVerified()) ? 1 : 0);
-        user.setRejectionReason(rejectionReason);
-
-        hostVerificationRepository.save(verification);
-        User updated = userRepository.save(user);
-        notificationService.sendInternalNotification(
-            updated.getId(),
-            "Host Verification Rejected",
-            "Your host verification was rejected. " + user.getRejectionReason(),
-            NotificationType.KYC
-        );
-        return toHostDemandResponse(updated);
+        hostDemandService.updateStatus(demandId, HostDemandStatus.REJECTED.name());
+        HostDemandResponse response = toHostDemandResponse(hostDemandService.getDemandById(demandId));
+        if (reason != null && !reason.isBlank()) {
+            response.setNotes(reason.trim());
+        }
+        return response;
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
@@ -833,68 +752,46 @@ public class AdminServiceImpl implements AdminService {
                 .build();
     }
 
-    private boolean isHostDemandCandidate(User user) {
-        boolean hasIdentityDocs = user.getGovernmentIdFiles() != null && !user.getGovernmentIdFiles().isEmpty();
-        boolean hasSelfie = user.getSelfieFile() != null && !user.getSelfieFile().isBlank();
-        boolean hasSubmissionDate = user.getIdentitySubmittedAt() != null;
-        return hasIdentityDocs || hasSelfie || hasSubmissionDate;
-    }
-
-    private String resolveHostDemandStatus(User user) {
-        String identityStatus = user.getIdentityStatus() == null ? "" : user.getIdentityStatus().trim().toLowerCase();
-        return switch (identityStatus) {
-            case "approved" -> "approved";
-            case "rejected" -> "rejected";
-            default -> "pending";
-        };
-    }
-
-    private String resolveIdVerificationStatus(User user) {
-        String status = resolveHostDemandStatus(user);
-        return switch (status) {
-            case "approved" -> "verified";
-            case "rejected" -> "rejected";
-            default -> "pending";
-        };
-    }
-
-    private HostDemandResponse toHostDemandResponse(User user) {
-        List<String> governmentIds = user.getGovernmentIdFiles() == null ? List.of() : user.getGovernmentIdFiles();
-        List<String> attachments = user.getOtherAttachmentFiles() == null ? List.of() : user.getOtherAttachmentFiles();
-        List<String> housePictures = attachments.stream()
-                .filter(path -> path != null && path.contains("property-image-"))
-                .toList();
-        List<String> documents = new ArrayList<>(governmentIds);
-        documents.addAll(attachments);
-        if (user.getSelfieFile() != null && !user.getSelfieFile().isBlank()) {
-            documents.add(user.getSelfieFile());
+    private HostDemandResponse toHostDemandResponse(HostDemand demand) {
+        List<String> housePictures = demand.getHousePictures() == null ? List.of() : demand.getHousePictures();
+        List<String> documents = new ArrayList<>();
+        if (demand.getIdDocumentUrl() != null && !demand.getIdDocumentUrl().isBlank()) {
+            documents.add(demand.getIdDocumentUrl());
         }
+        documents.addAll(housePictures);
 
-        String submittedDate = user.getIdentitySubmittedAt() != null
-                ? user.getIdentitySubmittedAt().toString()
-                : (user.getCreatedAt() == null ? null : user.getCreatedAt().toString());
+        String submittedDate = demand.getSubmittedDate() != null
+                ? demand.getSubmittedDate().toString()
+                : null;
 
-        String idDocument = !governmentIds.isEmpty()
-                ? governmentIds.get(0)
-                : (user.getSelfieFile() == null || user.getSelfieFile().isBlank() ? null : user.getSelfieFile());
+        HostDemandStatus status = (demand.getStatus() == null ? HostDemandStatus.PENDING : demand.getStatus()).normalized();
+        HostDemandStatus idStatus = (demand.getIdStatus() == null ? HostDemandStatus.PENDING : demand.getIdStatus()).normalized();
 
         return HostDemandResponse.builder()
-                .id(user.getId())
-                .userId(user.getId())
-                .userName(user.getName())
-                .userEmail(user.getEmail())
-                .userPhone(null)
-                .status(resolveHostDemandStatus(user))
+                .id(demand.getId())
+                .userId(demand.getUserId())
+                .userName(demand.getFullName())
+                .userEmail(demand.getEmail())
+                .userPhone(demand.getPhone())
+                .status(status.name().toLowerCase())
                 .submittedDate(submittedDate)
                 .documents(documents)
-                .idDocument(idDocument)
-                .idVerificationStatus(resolveIdVerificationStatus(user))
+                .idDocument(demand.getIdDocumentUrl())
+                .idVerificationStatus(mapIdVerificationStatus(idStatus))
                 .housePictures(housePictures)
-                .proposedPrice(0)
-                .proposedLocation("N/A")
+                .proposedPrice(demand.getProposedPricePerNight() == null ? 0 : demand.getProposedPricePerNight())
+                .proposedLocation(demand.getProposedLocation() == null ? "N/A" : demand.getProposedLocation())
                 .bio(null)
-                .notes(user.getRejectionReason())
+                .notes(null)
                 .build();
+    }
+
+    private String mapIdVerificationStatus(HostDemandStatus status) {
+        return switch (status) {
+            case APPROVED -> "verified";
+            case REJECTED -> "rejected";
+            default -> "pending";
+        };
     }
 }
 

@@ -1,10 +1,10 @@
 package com.maskan.api.controller;
 
 import com.maskan.api.dto.HostDemandResponse;
-import com.maskan.api.entity.HostVerification;
-import com.maskan.api.entity.HostVerificationStatus;
+import com.maskan.api.entity.HostDemand;
+import com.maskan.api.entity.HostDemandStatus;
 import com.maskan.api.entity.User;
-import com.maskan.api.repository.HostVerificationRepository;
+import com.maskan.api.repository.HostDemandRepository;
 import com.maskan.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,10 +36,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class HostVerificationController {
 
-    private static final Path VERIFICATION_UPLOAD_ROOT = Paths.get("uploads", "verifications");
+    private static final Path HOST_UPLOAD_ROOT = Paths.get("uploads", "host-demands");
 
     private final UserRepository userRepository;
-    private final HostVerificationRepository hostVerificationRepository;
+    private final HostDemandRepository hostDemandRepository;
 
     @PostMapping("/host")
     public ResponseEntity<HostDemandResponse> submitHostVerification(
@@ -49,6 +50,9 @@ public class HostVerificationController {
             @RequestParam(value = "propertyImages", required = false) List<MultipartFile> propertyImages,
             @RequestParam(value = "fullName", required = false) String fullName,
             @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam(value = "proposedLocation", required = false) String proposedLocation,
+            @RequestParam(value = "proposedPricePerNight", required = false) Double proposedPricePerNight,
             @RequestParam(value = "acceptTerms", required = false, defaultValue = "false") boolean acceptTerms,
             @RequestParam(value = "confirmOwnership", required = false, defaultValue = "false") boolean confirmOwnership
     ) {
@@ -67,45 +71,37 @@ public class HostVerificationController {
             throw new IllegalArgumentException("Ownership confirmation and terms acceptance are required");
         }
 
-        String governmentIdPath = storeSingleFile(user.getId(), governmentId, "government-id");
-        String selfiePath = storeSingleFile(user.getId(), selfie, "selfie");
-        String propertyProofPath = storeSingleFile(user.getId(), propertyProof, "property-proof");
-        List<String> propertyImagePaths = storeFiles(user.getId(), propertyImages, "property-image");
+        String governmentIdPath = saveFile(governmentId);
+        String selfiePath = saveFile(selfie);
+        String propertyProofPath = saveFile(propertyProof);
+        List<String> propertyImagePaths = saveFiles(propertyImages);
 
-        List<String> attachments = new ArrayList<>();
-        attachments.add(propertyProofPath);
-        attachments.addAll(propertyImagePaths);
+        List<String> housePictures = new ArrayList<>();
+        housePictures.add(selfiePath);
+        housePictures.add(propertyProofPath);
+        housePictures.addAll(propertyImagePaths);
 
-        if (StringUtils.hasText(fullName)) {
-            user.setName(fullName.trim());
-        }
-        if (StringUtils.hasText(email)) {
-            user.setEmail(email.trim());
-        }
+        String resolvedName = StringUtils.hasText(fullName) ? fullName.trim() : user.getName();
+        String resolvedEmail = StringUtils.hasText(email) ? email.trim() : user.getEmail();
+        String resolvedPhone = StringUtils.hasText(phone) ? phone.trim() : user.getPhone();
+        String resolvedLocation = StringUtils.hasText(proposedLocation) ? proposedLocation.trim() : "N/A";
+        double resolvedPrice = proposedPricePerNight == null ? 0.0 : proposedPricePerNight;
 
-        user.setGovernmentIdFiles(List.of(governmentIdPath));
-        user.setSelfieFile(selfiePath);
-        user.setOtherAttachmentFiles(attachments);
-        user.setIdentityStatus("pending");
-        user.setRejectionReason(null);
-        user.setIdentitySubmittedAt(Instant.now());
-        applyDerivedVerificationLevel(user);
+        HostDemand demand = HostDemand.builder()
+                .userId(user.getId())
+                .fullName(resolvedName)
+                .email(resolvedEmail)
+                .phone(resolvedPhone)
+                .submittedDate(Instant.now())
+                .idDocumentUrl(governmentIdPath)
+                .idStatus(HostDemandStatus.PENDING)
+                .proposedLocation(resolvedLocation)
+                .proposedPricePerNight(resolvedPrice)
+                .housePictures(housePictures)
+                .status(HostDemandStatus.PENDING)
+                .build();
 
-        User saved = userRepository.save(user);
-
-        HostVerification hostVerification = hostVerificationRepository.findById(saved.getId())
-            .orElseGet(HostVerification::new);
-        hostVerification.setId(saved.getId());
-        hostVerification.setUserId(saved.getId());
-        hostVerification.setStatus(HostVerificationStatus.PENDING);
-        hostVerification.setGovernmentIdFiles(saved.getGovernmentIdFiles());
-        hostVerification.setSelfieFile(saved.getSelfieFile());
-        hostVerification.setOtherAttachmentFiles(saved.getOtherAttachmentFiles());
-        hostVerification.setSubmittedAt(saved.getIdentitySubmittedAt());
-        hostVerification.setReviewedAt(null);
-        hostVerification.setRejectionReason(null);
-        hostVerificationRepository.save(hostVerification);
-
+        HostDemand saved = hostDemandRepository.save(demand);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(toHostDemandResponse(saved));
     }
 
@@ -119,10 +115,14 @@ public class HostVerificationController {
         }
 
         User user = getCurrentUser(userDetails);
-        return ResponseEntity.ok(toHostDemandResponse(user));
+        HostDemand demand = hostDemandRepository.findByUserId(user.getId()).stream()
+                .max(Comparator.comparing(HostDemand::getSubmittedDate, Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElseThrow(() -> new IllegalArgumentException("No host verification request found"));
+
+        return ResponseEntity.ok(toHostDemandResponse(demand));
     }
 
-    private List<String> storeFiles(String userId, List<MultipartFile> files, String prefix) {
+    private List<String> saveFiles(List<MultipartFile> files) {
         List<String> savedPaths = new ArrayList<>();
         if (files == null || files.isEmpty()) {
             return savedPaths;
@@ -132,16 +132,15 @@ public class HostVerificationController {
             if (file == null || file.isEmpty()) {
                 continue;
             }
-            savedPaths.add(storeSingleFile(userId, file, prefix));
+            savedPaths.add(saveFile(file));
         }
 
         return savedPaths;
     }
 
-    private String storeSingleFile(String userId, MultipartFile file, String prefix) {
+    private String saveFile(MultipartFile file) {
         try {
-            Path userFolder = VERIFICATION_UPLOAD_ROOT.resolve(userId);
-            Files.createDirectories(userFolder);
+            Files.createDirectories(HOST_UPLOAD_ROOT);
 
             String safeOriginalName = sanitizeFilename(file.getOriginalFilename());
             String extension = "";
@@ -150,11 +149,11 @@ public class HostVerificationController {
                 extension = safeOriginalName.substring(dotIndex);
             }
 
-            String filename = prefix + "-" + UUID.randomUUID() + extension;
-            Path destination = userFolder.resolve(filename);
+            String filename = Instant.now().toEpochMilli() + "-" + UUID.randomUUID() + extension;
+            Path destination = HOST_UPLOAD_ROOT.resolve(filename);
             Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
 
-            return destination.toString().replace('\\', '/');
+            return "/uploads/host-demands/" + filename;
         } catch (IOException ex) {
             throw new IllegalArgumentException("Failed to store uploaded file");
         }
@@ -174,81 +173,34 @@ public class HostVerificationController {
                 .orElseThrow(() -> new UsernameNotFoundException("Authenticated user not found"));
     }
 
-    private void applyDerivedVerificationLevel(User user) {
-        String identityStatus = StringUtils.hasText(user.getIdentityStatus()) ? user.getIdentityStatus() : "not_verified";
-        if ("approved".equalsIgnoreCase(identityStatus)) {
-            user.setVerificationLevel(3);
-            return;
+    private HostDemandResponse toHostDemandResponse(HostDemand demand) {
+        List<String> housePictures = demand.getHousePictures() == null ? List.of() : demand.getHousePictures();
+        List<String> documents = new ArrayList<>();
+        if (demand.getIdDocumentUrl() != null && !demand.getIdDocumentUrl().isBlank()) {
+            documents.add(demand.getIdDocumentUrl());
         }
+        documents.addAll(housePictures);
 
-        if (Boolean.TRUE.equals(user.getPhoneVerified())) {
-            user.setVerificationLevel(2);
-            return;
-        }
-
-        if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            user.setVerificationLevel(1);
-            return;
-        }
-
-        user.setVerificationLevel(0);
-    }
-
-    private HostDemandResponse toHostDemandResponse(User user) {
-        List<String> governmentIds = user.getGovernmentIdFiles() == null ? List.of() : user.getGovernmentIdFiles();
-        List<String> attachments = user.getOtherAttachmentFiles() == null ? List.of() : user.getOtherAttachmentFiles();
-        List<String> housePictures = attachments.stream()
-                .filter(path -> path != null && path.contains("property-image-"))
-                .toList();
-
-        List<String> documents = new ArrayList<>(governmentIds);
-        if (user.getSelfieFile() != null && !user.getSelfieFile().isBlank()) {
-            documents.add(user.getSelfieFile());
-        }
-        documents.addAll(attachments.stream()
-                .filter(path -> path != null && path.contains("property-proof-"))
-                .toList());
-
-        String submittedDate = user.getIdentitySubmittedAt() != null
-                ? user.getIdentitySubmittedAt().toString()
-                : (user.getCreatedAt() == null ? null : user.getCreatedAt().toString());
-
-        String status = resolveHostDemandStatus(user);
-        String idVerificationStatus = switch (status) {
-            case "approved" -> "verified";
-            case "rejected" -> "rejected";
-            default -> "pending";
-        };
-
-        String idDocument = !governmentIds.isEmpty()
-                ? governmentIds.get(0)
-                : (user.getSelfieFile() == null || user.getSelfieFile().isBlank() ? null : user.getSelfieFile());
+        HostDemandStatus status = (demand.getStatus() == null ? HostDemandStatus.PENDING : demand.getStatus()).normalized();
+        HostDemandStatus idStatus = (demand.getIdStatus() == null ? HostDemandStatus.PENDING : demand.getIdStatus()).normalized();
 
         return HostDemandResponse.builder()
-                .id(user.getId())
-                .userId(user.getId())
-                .userName(user.getName())
-                .userEmail(user.getEmail())
-                .userPhone(null)
-                .status(status)
-                .submittedDate(submittedDate)
+                .id(demand.getId())
+                .userId(demand.getUserId())
+                .userName(demand.getFullName())
+                .userEmail(demand.getEmail())
+                .userPhone(demand.getPhone())
+                .status(status.name().toLowerCase())
+                .submittedDate(demand.getSubmittedDate() == null ? null : demand.getSubmittedDate().toString())
                 .documents(documents)
-                .idDocument(idDocument)
-                .idVerificationStatus(idVerificationStatus)
+                .idDocument(demand.getIdDocumentUrl())
+                .idVerificationStatus(idStatus == HostDemandStatus.APPROVED ? "verified"
+                        : idStatus == HostDemandStatus.REJECTED ? "rejected" : "pending")
                 .housePictures(housePictures)
-                .proposedPrice(0)
-                .proposedLocation("N/A")
+                .proposedPrice(demand.getProposedPricePerNight() == null ? 0 : demand.getProposedPricePerNight())
+                .proposedLocation(demand.getProposedLocation() == null ? "N/A" : demand.getProposedLocation())
                 .bio(null)
-                .notes(user.getRejectionReason())
+                .notes(null)
                 .build();
-    }
-
-    private String resolveHostDemandStatus(User user) {
-        String identityStatus = user.getIdentityStatus() == null ? "" : user.getIdentityStatus().trim().toLowerCase();
-        return switch (identityStatus) {
-            case "approved" -> "approved";
-            case "rejected" -> "rejected";
-            default -> "pending";
-        };
     }
 }

@@ -52,7 +52,7 @@ public class User {
     private Instant createdAt = Instant.now();
 
     @Builder.Default
-    private Boolean isVerified = Boolean.TRUE;
+    private Boolean isVerified = Boolean.FALSE;
 
     @Builder.Default
     private Boolean banned = Boolean.FALSE;
