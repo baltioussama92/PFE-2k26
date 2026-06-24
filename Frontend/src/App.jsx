@@ -2,6 +2,7 @@ import React, { useEffect, useState, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import Layout         from './layout/Layout'
 import Watermark      from './components/Watermark'
 import HomePage       from './pages/HomePage'
@@ -425,6 +426,8 @@ export default function App() {
             <OpeningSplash />
           </div>
         )}
+        
+        <SpeedInsights />
       </>
     </AppErrorBoundary>
   )
